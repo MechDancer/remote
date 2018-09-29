@@ -3,6 +3,7 @@ package org.mechdancer.remote.core
 import java.net.DatagramPacket
 import java.net.InetAddress
 import java.net.MulticastSocket
+import java.net.NetworkInterface
 import kotlin.concurrent.thread
 
 /**
@@ -46,7 +47,18 @@ class BroadcastServer(
     infix fun broadcast(msg: ByteArray) = send(Cmd.Broadcast, msg)
 
     init {
-        //加入组
+        //选择一条靠谱的网络
+        socket.networkInterface =
+                NetworkInterface
+                    .getNetworkInterfaces()
+                    .toList()
+                    .filter { it.isUp }
+                    .run {
+                        firstOrNull(::wlan)
+                            ?: firstOrNull(::eth)
+                            ?: firstOrNull()
+                    }
+        //加入组播
         socket.joinGroup(address)
         //入组通告
         yell(active = true)
@@ -91,10 +103,17 @@ class BroadcastServer(
         const val port = 23333
 
         //组播地址
-        val address: InetAddress = InetAddress.getByName("239.0.0.1")
+        val address: InetAddress = InetAddress.getByName("238.88.88.88")
 
         //反映射
+        @JvmStatic
         fun Byte.toCmd() =
             Cmd.values().firstOrNull { it.id == this }
+
+        @JvmStatic
+        fun wlan(net: NetworkInterface) = net.name.startsWith("wlan")
+
+        @JvmStatic
+        fun eth(net: NetworkInterface) = net.name.startsWith("eth")
     }
 }
