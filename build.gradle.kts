@@ -1,14 +1,13 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm") version "1.3.0-rc-80"
+    kotlin("jvm") version "1.2.71"
 }
 
 group = "org.mechdancer"
 version = "1.0-SNAPSHOT"
 
 repositories {
-    maven { setUrl("http://dl.bintray.com/kotlin/kotlin-eap") }
     mavenCentral()
 }
 

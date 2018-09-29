@@ -28,8 +28,8 @@ class BroadcastServer(
         val pack = ByteArray(header.size + payload.size + 2)
         pack[0] = cmd.id
         pack[1] = name.length.toByte()
-        header.copyInto(pack, 2)
-        payload.copyInto(pack, 2 + name.length)
+        System.arraycopy(header, 0, pack, 2, header.size)
+        System.arraycopy(payload, 0, pack, 2 + name.length, payload.size)
         socket.send(
             DatagramPacket(
                 pack, pack.size,
