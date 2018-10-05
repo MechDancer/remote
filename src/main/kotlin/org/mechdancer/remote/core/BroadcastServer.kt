@@ -73,7 +73,9 @@ class BroadcastServer(
                 //解析名字
                 val name = String(receiver.data, 2, receiver.data[1].toInt())
                 //解析负载
-                val payload = receiver.data.copyOfRange(name.length + 2, receiver.data.lastIndex)
+                val payload = receiver.data.copyOfRange(name.length + 2, receiver.length)
+                //清缓存
+                receiver.data.fill(0)
                 //是自己发的
                 if (name == this.name) continue
                 //记录名字
@@ -85,7 +87,7 @@ class BroadcastServer(
                 when (id.toCmd()) {
                     Cmd.YellActive -> yell(active = false)
                     Cmd.YellReply  -> Unit
-                    Cmd.Broadcast -> this.broadcastReceived(name, payload)
+                    Cmd.Broadcast  -> this.broadcastReceived(name, payload)
                     null           -> Unit
                 }
             }
