@@ -13,7 +13,7 @@ import kotlin.concurrent.thread
 class BroadcastServer(
     val name: String,
     private val newProcessDetected: String.() -> Unit,
-    private val broadcastReceived: String.(ByteArray) -> Unit
+    private val broadcastReceived: BroadcastServer.(String, ByteArray) -> Unit
 ) {
     //组播监听
     private val socket = MulticastSocket(port)
@@ -85,7 +85,7 @@ class BroadcastServer(
                 when (id.toCmd()) {
                     Cmd.YellActive -> yell(active = false)
                     Cmd.YellReply  -> Unit
-                    Cmd.Broadcast  -> broadcastReceived(name, payload)
+                    Cmd.Broadcast -> this.broadcastReceived(name, payload)
                     null           -> Unit
                 }
             }

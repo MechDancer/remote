@@ -7,7 +7,7 @@ object A {
     fun main(args: Array<String>) {
         broadcastServer("A") {
             newProcessDetected = ::println
-            broadcastReceived = { println("$this: ${String(it)}") }
+            broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
         }
         while (true);
     }
@@ -18,7 +18,7 @@ object B {
     fun main(args: Array<String>) {
         broadcastServer("B") {
             newProcessDetected = ::println
-            broadcastReceived = { println("$this: ${String(it)}") }
+            broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
         }
         while (true);
     }
@@ -29,7 +29,7 @@ object C {
     fun main(args: Array<String>) {
         broadcastServer("C") {
             newProcessDetected = ::println
-            broadcastReceived = { println("$this: ${String(it)}") }
+            broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
         }
         while (true);
     }
@@ -40,7 +40,7 @@ object D {
     fun main(args: Array<String>) {
         val temp = broadcastServer("D") {
             newProcessDetected = ::println
-            broadcastReceived = { println("$this: ${String(it)}") }
+            broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
         }
         temp.broadcast("hello".toByteArray())
         while (true);
