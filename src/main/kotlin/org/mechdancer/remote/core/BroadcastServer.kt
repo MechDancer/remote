@@ -40,6 +40,7 @@ class BroadcastServer(
         )
     }
 
+    //广播自己的名字
     private fun yell(active: Boolean) =
         if (active) send(Cmd.YellActive) else send(Cmd.YellReply)
 

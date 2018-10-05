@@ -13,19 +13,19 @@ object DefaultParser {
     )
     private val sentence = mutableListOf<Token<*>>()
 
-    private fun summary() =
+    private fun summary(char: Char? = null) {
         buffers
             .maxBy { it.size }
             ?.build()
             ?.let { sentence += it }
+        buffers.forEach { it.reset(char) }
+    }
 
     operator fun invoke(source: String): List<Token<*>> {
         sentence.clear()
         for (char in source)
-            if (buffers.map { it.offer(char) }.none { it }) {
-                summary()
-                buffers.forEach { it.reset(char) }
-            }
+            if (buffers.map { it.offer(char) }.none { it })
+                summary(char)
         summary()
         return sentence.toList()
     }
