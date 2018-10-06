@@ -1,7 +1,7 @@
-package org.mechdancer.console.parser
+package org.mechdancer.remote.console.parser
 
-import org.mechdancer.console.parser.Result.State.Failure
-import org.mechdancer.console.parser.Result.State.Success
+import org.mechdancer.remote.console.parser.Result.State.Failure
+import org.mechdancer.remote.console.parser.Result.State.Success
 
 /**
  * 指令执行结果

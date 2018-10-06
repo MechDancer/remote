@@ -1,7 +1,7 @@
-package org.mechdancer.console.parser
+package org.mechdancer.remote.console.parser
 
-import org.mechdancer.console.parser.TokenType.*
-import org.mechdancer.console.parser.TokenType.Number
+import org.mechdancer.remote.console.parser.TokenType.*
+import org.mechdancer.remote.console.parser.TokenType.Number
 
 //解析正则
 private infix fun String.match(token: TokenType) =

@@ -1,4 +1,4 @@
-package org.mechdancer.console.s4
+package org.mechdancer.remote.console.s4
 
 /**
  * 累积分析器

@@ -1,10 +1,10 @@
-package org.mechdancer.console.s4
+package org.mechdancer.remote.console.s4
 
-import org.mechdancer.console.parser.Token
-import org.mechdancer.console.parser.TokenType.*
-import org.mechdancer.console.parser.TokenType.Number
-import org.mechdancer.console.s4.Matcher.Accepted
-import org.mechdancer.console.s4.Matcher.Rejected
+import org.mechdancer.remote.console.parser.Token
+import org.mechdancer.remote.console.parser.TokenType.*
+import org.mechdancer.remote.console.parser.TokenType.Number
+import org.mechdancer.remote.console.s4.Matcher.Accepted
+import org.mechdancer.remote.console.s4.Matcher.Rejected
 
 class KeyBuffer : CharBuffer() {
     private val key

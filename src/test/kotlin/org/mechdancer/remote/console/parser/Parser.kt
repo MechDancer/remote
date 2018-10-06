@@ -1,7 +1,7 @@
-package org.mechdancer.console.parser
+package org.mechdancer.remote.console.parser
 
-import org.mechdancer.console.parser.Result.State.*
-import org.mechdancer.console.parser.TokenType.Word
+import org.mechdancer.remote.console.parser.Result.State.*
+import org.mechdancer.remote.console.parser.TokenType.Word
 
 /**
  * 语义分析和执行器

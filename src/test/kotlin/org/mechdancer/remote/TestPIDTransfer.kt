@@ -1,8 +1,8 @@
 package org.mechdancer.remote
 
 import org.junit.Test
-import org.mechdancer.console.s4.DefaultParser
 import org.mechdancer.remote.builder.broadcastServer
+import org.mechdancer.remote.console.s4.DefaultParser
 
 class TestPIDTransfer {
     @Test

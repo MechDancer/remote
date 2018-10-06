@@ -1,6 +1,6 @@
-package org.mechdancer.console.s4
+package org.mechdancer.remote.console.s4
 
-import org.mechdancer.console.s4.Matcher.*
+import org.mechdancer.remote.console.s4.Matcher.*
 
 enum class Matcher {
     Accepted, Rejected, RejectNext;

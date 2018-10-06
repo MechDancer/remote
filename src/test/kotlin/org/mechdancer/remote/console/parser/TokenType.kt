@@ -1,4 +1,4 @@
-package org.mechdancer.console.parser
+package org.mechdancer.remote.console.parser
 
 private val dec = "(^[-+]?\\d+$)".toRegex()
 private val hex = "(^[-+]?0x[a-fA-F0-9]+$)".toRegex()

@@ -1,4 +1,4 @@
-package org.mechdancer.console.parser
+package org.mechdancer.remote.console.parser
 
 import kotlin.math.min
 

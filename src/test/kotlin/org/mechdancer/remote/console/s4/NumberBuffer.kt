@@ -1,8 +1,8 @@
-package org.mechdancer.console.s4
+package org.mechdancer.remote.console.s4
 
-import org.mechdancer.console.parser.Token
-import org.mechdancer.console.parser.TokenType.Integer
-import org.mechdancer.console.parser.TokenType.Number
+import org.mechdancer.remote.console.parser.Token
+import org.mechdancer.remote.console.parser.TokenType.Integer
+import org.mechdancer.remote.console.parser.TokenType.Number
 
 class NumberBuffer : CharBuffer() {
     override fun build() =
