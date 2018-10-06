@@ -7,6 +7,8 @@ import org.mechdancer.remote.builder.broadcastServer
 class TestPIDTransfer {
     @Test
     fun testPIDTransfer() {
+        val lock = Object()
+
         val server = broadcastServer("Server") {
             newProcessDetected = ::println
             broadcastReceived = { name, _msg ->
@@ -35,10 +37,15 @@ class TestPIDTransfer {
                     }
                     else -> println("$name: ${String(msg)}")
                 }
+                synchronized(lock) {
+                    lock.notify()
+                }
             }
         }
 
         robot.broadcast("pid".toByteArray())
-        while (true);
+        synchronized(lock) {
+            lock.wait()
+        }
     }
 }
