@@ -52,11 +52,14 @@ class BroadcastServer(
         socket.networkInterface =
                 NetworkInterface
                     .getNetworkInterfaces()
-                    .toList()
+                    .asSequence()
                     .filter { it.isUp }
+                    .filter { it.supportsMulticast() }
+                    .filter { !it.isVirtual }
                     .run {
                         firstOrNull(::wlan)
                             ?: firstOrNull(::eth)
+                            ?: firstOrNull { !it.isLoopback }
                             ?: firstOrNull()
                     }
         //加入组播
