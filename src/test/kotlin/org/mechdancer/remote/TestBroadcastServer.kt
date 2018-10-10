@@ -1,48 +1,46 @@
 package org.mechdancer.remote
 
-import org.mechdancer.remote.builder.broadcastServer
+import org.mechdancer.remote.builder.broadcastHub
 
 object A {
     @JvmStatic
     fun main(args: Array<String>) {
-        broadcastServer("A") {
+        broadcastHub("A") {
             newProcessDetected = ::println
             broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
-        }
-        while (true);
+        }.run { while (true) invoke() }
     }
 }
 
 object B {
     @JvmStatic
     fun main(args: Array<String>) {
-        broadcastServer("B") {
+        broadcastHub("B") {
             newProcessDetected = ::println
             broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
-        }
-        while (true);
+        }.run { while (true) invoke() }
     }
 }
 
 object C {
     @JvmStatic
     fun main(args: Array<String>) {
-        broadcastServer("C") {
+        broadcastHub("C") {
             newProcessDetected = ::println
             broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
-        }
-        while (true);
+        }.run { while (true) invoke() }
     }
 }
 
 object D {
     @JvmStatic
     fun main(args: Array<String>) {
-        val temp = broadcastServer("D") {
+        broadcastHub("D") {
             newProcessDetected = ::println
             broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
+        }.run {
+            broadcast("hello".toByteArray())
+            while (true) invoke()
         }
-        temp.broadcast("hello".toByteArray())
-        while (true);
     }
 }

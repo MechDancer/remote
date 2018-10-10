@@ -4,16 +4,15 @@ import java.net.DatagramPacket
 import java.net.InetAddress
 import java.net.MulticastSocket
 import java.net.NetworkInterface
-import kotlin.concurrent.thread
 
 /**
  * 广播服务器
  * @param name 进程名字
  */
-class BroadcastServer(
+class BroadcastHub(
     val name: String,
     private val newProcessDetected: String.() -> Unit,
-    private val broadcastReceived: BroadcastServer.(String, ByteArray) -> Unit
+    private val broadcastReceived: BroadcastHub.(String, ByteArray) -> Unit
 ) {
     //组播监听
     private val socket = MulticastSocket(port)
@@ -47,6 +46,36 @@ class BroadcastServer(
     /** 广播一包数据 */
     infix fun broadcast(msg: ByteArray) = send(Cmd.Broadcast, msg)
 
+    /**
+     * 接收并解析数据包
+     */
+    operator fun invoke(bufferSize: Int = 2048) {
+        val receiver = DatagramPacket(ByteArray(bufferSize), bufferSize)
+        while (true) {
+            //收一包
+            socket.receive(receiver)
+            //解析名字
+            val name = String(receiver.data, 2, receiver.data[1].toInt())
+            //是自己发的则再收一包
+            if (name == this.name) continue
+            //记录不认识的名字
+            if (name !in _group) {
+                _group += name
+                newProcessDetected(name)
+            }
+            break
+        }
+        //解析负载
+        val payload = receiver.data.copyOfRange(name.length + 2, receiver.length)
+        //响应指令
+        when (receiver.data[0].toCmd()) {
+            Cmd.YellActive -> yell(active = false)
+            Cmd.YellReply -> Unit
+            Cmd.Broadcast -> broadcastReceived(name, payload)
+            null -> Unit
+        }
+    }
+
     init {
         //选择一条靠谱的网络
         socket.networkInterface =
@@ -66,36 +95,6 @@ class BroadcastServer(
         socket.joinGroup(address)
         //入组通告
         yell(active = true)
-        //持续监听
-        thread {
-            val receiver = DatagramPacket(ByteArray(2048), 2048)
-            while (true) {
-                //收一包
-                socket.receive(receiver)
-                //判断指令
-                val id = receiver.data[0]
-                //解析名字
-                val name = String(receiver.data, 2, receiver.data[1].toInt())
-                //解析负载
-                val payload = receiver.data.copyOfRange(name.length + 2, receiver.length)
-                //清缓存
-                receiver.data.fill(0)
-                //是自己发的
-                if (name == this.name) continue
-                //记录名字
-                if (name !in _group) {
-                    _group += name
-                    newProcessDetected(name)
-                }
-                //响应
-                when (id.toCmd()) {
-                    Cmd.YellActive -> yell(active = false)
-                    Cmd.YellReply  -> Unit
-                    Cmd.Broadcast  -> this.broadcastReceived(name, payload)
-                    null           -> Unit
-                }
-            }
-        }
     }
 
     enum class Cmd(val id: Byte) {

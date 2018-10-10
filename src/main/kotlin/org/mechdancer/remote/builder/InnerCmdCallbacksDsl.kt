@@ -1,8 +1,8 @@
 package org.mechdancer.remote.builder
 
-import org.mechdancer.remote.core.BroadcastServer
+import org.mechdancer.remote.core.BroadcastHub
 
 data class InnerCmdCallbacksDsl(
     var newProcessDetected: String.() -> Unit = {},
-    var broadcastReceived: BroadcastServer.(String, ByteArray) -> Unit = { _, _ -> }
+    var broadcastReceived: BroadcastHub.(String, ByteArray) -> Unit = { _, _ -> }
 )

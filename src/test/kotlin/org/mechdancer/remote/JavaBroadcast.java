@@ -1,11 +1,11 @@
 package org.mechdancer.remote;
 
 import kotlin.Unit;
-import org.mechdancer.remote.core.BroadcastServer;
+import org.mechdancer.remote.core.BroadcastHub;
 
 class JavaBroadcast {
     public static void main(String[] args) {
-        BroadcastServer temp = new BroadcastServer(
+        BroadcastHub temp = new BroadcastHub(
                 "X",
                 (remote) -> {
                     System.out.println(remote);
@@ -19,6 +19,6 @@ class JavaBroadcast {
                 }
         );
 
-        while (true) ;
+        while (true) temp.invoke(2048);
     }
 }

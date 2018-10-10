@@ -1,13 +1,13 @@
 //package org.mechdancer.remote
 //
 //import org.junit.Test
-//import org.mechdancer.remote.builder.broadcastServer
+//import org.mechdancer.remote.builder.broadcastHub
 //import org.mechdancer.console
 //
 //class TestPIDTransfer {
 //    @Test
 //    fun testPIDTransfer() {
-//        val server = broadcastServer("Server") {
+//        val server = broadcastHub("Server") {
 //            newProcessDetected = ::println
 //            broadcastReceived = { name, _msg ->
 //                val msg = String(_msg.takeWhile { it != 0.toByte() }.toByteArray())
@@ -18,7 +18,7 @@
 //            }
 //        }
 //
-//        val robot = broadcastServer("Robot") {
+//        val robot = broadcastHub("Robot") {
 //            newProcessDetected = ::println
 //            broadcastReceived = { name, msg ->
 //                when (name) {
