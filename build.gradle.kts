@@ -16,7 +16,7 @@ plugins {
 }
 
 group = "org.mechdancer"
-version = "1.0-SNAPSHOT"
+version = "0.0.1-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -24,7 +24,7 @@ repositories {
 
 dependencies {
     compile(kotlin("stdlib-jdk8"))
-    testCompile("junit", "junit", "4.12")
+    testCompile("junit", "junit", "+")
 }
 
 configure<JavaPluginConvention> {
