@@ -1,5 +1,7 @@
 # 远程接入协议
 
+[![Download](https://api.bintray.com/packages/mechdancer/maven/remote/images/download.svg?version=0.1.0) ](https://bintray.com/mechdancer/maven/remote/0.1.0/link)
+
 ## 设计思路
 
 本协议框架由2部分组成：
@@ -12,6 +14,48 @@
 * udp 组播：传递内部指令、进程信息和用户广播报文
 * udp 单播：传递无可靠性要求的用户数据报
 * tcp：传递有可靠性要求的用户报文、实现远程调用
+
+## 开始使用
+
+* Gradle
+* Maven
+* Bintray
+
+您需要将其添加至  [仓库和依赖](https://docs.gradle.org/current/userguide/declaring_dependencies.html) 中。
+
+### Gradle
+
+```groovy
+repositories {
+    jcenter()
+}
+dependencies {
+    compile 'org.mechdancer:remote:0.1.0'
+}
+```
+
+### Maven
+
+```xml
+<repositories>
+   <repository>
+     <id>jcenter</id>
+     <name>JCenter</name>
+     <url>https://jcenter.bintray.com/</url>
+   </repository>
+</repositories>
+
+<dependency>
+  <groupId>org.mechdancer</groupId>
+  <artifactId>remote</artifactId>
+  <version>0.1.0</version>
+  <type>pom</type>
+</dependency>
+```
+
+### Bintray
+
+您总可以从 bintray 直接下载 jar： [![Download](https://api.bintray.com/packages/mechdancer/maven/remote/images/download.svg?version=0.1.0) ](https://bintray.com/mechdancer/maven/remote/0.1.0/link)
 
 ## 名词解释
 

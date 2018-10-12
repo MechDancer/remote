@@ -1,12 +1,16 @@
+import com.novoda.gradle.release.PublishExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 buildscript {
+
     repositories {
         mavenCentral()
         jcenter()
     }
+
     dependencies {
         classpath("org.jetbrains.dokka:dokka-gradle-plugin")
+        classpath ("com.novoda:bintray-release:+")
     }
 }
 
@@ -15,8 +19,12 @@ plugins {
     id("org.jetbrains.dokka") version "0.9.16"
 }
 
+apply{
+    plugin("com.novoda.bintray-release")
+}
+
 group = "org.mechdancer"
-version = "0.0.1-SNAPSHOT"
+version = "0.1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -32,4 +40,13 @@ configure<JavaPluginConvention> {
 }
 tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = "1.8"
+}
+
+configure<PublishExtension> {
+    userOrg = "mechdancer"
+    groupId = "org.mechdancer"
+    artifactId = "remote"
+    publishVersion = "0.1.0"
+    desc = "communication lib"
+    website = "https://github.com/MechDancer/remote"
 }

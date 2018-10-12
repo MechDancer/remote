@@ -7,7 +7,7 @@ import java.net.NetworkInterface
 
 /**
  * 广播服务器
- * @param name 进程名字
+ * @param name 进程名
  */
 class BroadcastHub(
     val name: String,
