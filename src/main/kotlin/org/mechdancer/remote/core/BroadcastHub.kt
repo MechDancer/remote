@@ -51,27 +51,28 @@ class BroadcastHub(
      */
     operator fun invoke(bufferSize: Int = 2048) {
         val receiver = DatagramPacket(ByteArray(bufferSize), bufferSize)
-        while (true) {
+        var senderName: String
+        do {
             //收一包
             socket.receive(receiver)
             //解析名字
-            val name = String(receiver.data, 2, receiver.data[1].toInt())
+            senderName = String(receiver.data, 2, receiver.data[1].toInt())
             //是自己发的则再收一包
-            if (name == this.name) continue
+            if (senderName == name) continue
             //记录不认识的名字
-            if (name !in _group) {
-                _group += name
-                newProcessDetected(name)
+            if (senderName !in _group) {
+                _group += senderName
+                newProcessDetected(senderName)
             }
             break
-        }
+        } while (true)
         //解析负载
-        val payload = receiver.data.copyOfRange(name.length + 2, receiver.length)
+        val payload = receiver.data.copyOfRange(senderName.length + 2, receiver.length)
         //响应指令
         when (receiver.data[0].toCmd()) {
             Cmd.YellActive -> yell(active = false)
             Cmd.YellReply -> Unit
-            Cmd.Broadcast -> broadcastReceived(name, payload)
+            Cmd.Broadcast -> broadcastReceived(senderName, payload)
             null -> Unit
         }
     }

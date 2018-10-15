@@ -15,7 +15,7 @@ object A {
 object B {
     @JvmStatic
     fun main(args: Array<String>) {
-        broadcastHub("B") {
+        broadcastHub("BB") {
             newProcessDetected = ::println
             broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
         }.run { while (true) invoke() }
@@ -25,7 +25,7 @@ object B {
 object C {
     @JvmStatic
     fun main(args: Array<String>) {
-        broadcastHub("C") {
+        broadcastHub("CCC") {
             newProcessDetected = ::println
             broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
         }.run { while (true) invoke() }
@@ -35,7 +35,7 @@ object C {
 object D {
     @JvmStatic
     fun main(args: Array<String>) {
-        broadcastHub("D") {
+        broadcastHub("DDDD") {
             newProcessDetected = ::println
             broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
         }.run {
