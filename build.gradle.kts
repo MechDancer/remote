@@ -24,7 +24,7 @@ apply{
 }
 
 group = "org.mechdancer"
-version = "0.1.0-SNAPSHOT"
+version = "0.1.1"
 
 repositories {
     mavenCentral()
@@ -46,7 +46,7 @@ configure<PublishExtension> {
     userOrg = "mechdancer"
     groupId = "org.mechdancer"
     artifactId = "remote"
-    publishVersion = "0.1.0"
+    publishVersion = "0.1.1"
     desc = "communication lib"
     website = "https://github.com/MechDancer/remote"
 }
