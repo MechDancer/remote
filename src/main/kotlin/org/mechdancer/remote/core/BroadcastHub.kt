@@ -11,6 +11,7 @@ import kotlin.math.abs
  */
 class BroadcastHub(
     val name: String,
+    private val netFilter: (NetworkInterface) -> Boolean,
     private val newProcessDetected: String.() -> Unit,
     private val broadcastReceived: BroadcastHub.(String, ByteArray) -> Unit,
     private val remoteProcess: (ByteArray) -> ByteArray
@@ -20,7 +21,7 @@ class BroadcastHub(
     // TCP监听
     private val server = newServerSocket()
     // 组成员列表
-    private val _group = mutableMapOf<String, Pair<InetAddress, Int>?>()
+    private val _group = mutableMapOf<String, Pair<Int, InetAddress>?>()
     // TCP挂起锁
     private val tcpLock = Object()
 
@@ -76,7 +77,7 @@ class BroadcastHub(
         _group[name]
             ?.let {
                 try {
-                    Socket(it.first, it.second)
+                    Socket(it.second, it.first)
                 } catch (e: IOException) {
                     _group[name] = null
                     null
@@ -86,7 +87,7 @@ class BroadcastHub(
                 getOutputStream().write(msg)
                 shutdownOutput()
                 getInputStream()
-                    .readAllBytes()
+                    .readNBytes(Int.MAX_VALUE)
                     .also { close() }
             }
             ?: run {
@@ -102,7 +103,7 @@ class BroadcastHub(
     infix fun broadcast(msg: ByteArray) = send(Cmd.Broadcast, msg)
 
     /**
-     * 接收并解析数据包
+     * 监听并解析 UDP 包
      */
     operator fun invoke(bufferSize: Int = 2048) {
         val receiver = DatagramPacket(ByteArray(bufferSize), bufferSize)
@@ -131,10 +132,7 @@ class BroadcastHub(
             Cmd.TcpAck -> {
                 ByteArrayInputStream(payload)
                     .let(::DataInputStream)
-                    .use {
-                        val p = it.readShort().toUInt()
-                        it.readAllBytes().let(InetAddress::getByAddress) to p
-                    }
+                    .use { it.readShort().toUInt() to it.readNBytes(Int.MAX_VALUE).let(InetAddress::getByAddress) }
                     .also { _group[senderName] = it }
                 synchronized(tcpLock) { tcpLock.notifyAll() }
             }
@@ -143,12 +141,15 @@ class BroadcastHub(
         }
     }
 
+    /**
+     * 监听并解析 TCP 包
+     */
     fun listen() {
         server
             .accept()
             .run {
                 val ack = getInputStream()
-                    .readAllBytes()
+                    .readNBytes(Int.MAX_VALUE)
                     .let(remoteProcess)
                 shutdownInput()
                 getOutputStream().write(ack)
@@ -165,6 +166,7 @@ class BroadcastHub(
                     .filter { it.isUp }
                     .filter { it.supportsMulticast() }
                     .filter { !it.isVirtual }
+                    .filter(netFilter)
                     .run {
                         firstOrNull(::wlan)
                             ?: firstOrNull(::eth)
