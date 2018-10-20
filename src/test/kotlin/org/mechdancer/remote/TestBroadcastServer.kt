@@ -1,6 +1,7 @@
 package org.mechdancer.remote
 
 import org.mechdancer.remote.builder.broadcastHub
+import kotlin.concurrent.thread
 
 object A {
     @JvmStatic
@@ -28,7 +29,10 @@ object C {
         broadcastHub("CCC") {
             newProcessDetected = ::println
             broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
-        }.run { while (true) invoke() }
+        }.run {
+            thread { while (true) listen() }
+            while (true) invoke()
+        }
     }
 }
 
@@ -40,6 +44,7 @@ object D {
             broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
         }.run {
             broadcast("hello".toByteArray())
+            thread { println(String(remoteCall("CCC", "ttt".toByteArray()))) }
             while (true) invoke()
         }
     }

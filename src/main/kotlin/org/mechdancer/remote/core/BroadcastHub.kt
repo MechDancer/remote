@@ -1,9 +1,9 @@
 package org.mechdancer.remote.core
 
-import java.net.DatagramPacket
-import java.net.InetAddress
-import java.net.MulticastSocket
-import java.net.NetworkInterface
+import java.io.*
+import java.net.*
+import java.util.*
+import kotlin.math.abs
 
 /**
  * 广播服务器
@@ -14,15 +14,19 @@ class BroadcastHub(
     private val newProcessDetected: String.() -> Unit,
     private val broadcastReceived: BroadcastHub.(String, ByteArray) -> Unit
 ) {
-    //组播监听
+    // 组播监听
     private val socket = MulticastSocket(port)
-    //组成员列表
-    private val _group = mutableSetOf<String>()
+    // TCP监听
+    private val server = newServerSocket()
+    // 组成员列表
+    private val _group = mutableMapOf<String, Pair<InetAddress, Int>?>()
+    // TCP挂起锁
+    private val tcpLock = Object()
 
     /** 组成员列表 */
-    val group get() = _group.toSet()
+    val group get() = _group.keys
 
-    //发送组播报文
+    // 发送组播报文
     private fun send(cmd: Cmd, payload: ByteArray = ByteArray(0)) {
         val header = name.toByteArray()
         val pack = ByteArray(header.size + payload.size + 2)
@@ -39,11 +43,61 @@ class BroadcastHub(
         )
     }
 
-    //广播自己的名字
+    // 广播自己的名字
     private fun yell(active: Boolean) =
         if (active) send(Cmd.YellActive) else send(Cmd.YellReply)
 
-    /** 广播一包数据 */
+    // 广播自己的IP地址
+    private fun tcpAck() =
+        ByteArrayOutputStream()
+            .apply {
+                DataOutputStream(this).use {
+                    server
+                        .localPort
+                        .let(it::writeShort)
+                    socket
+                        .networkInterface
+                        .inetAddresses
+                        .toList()
+                        .first()
+                        .address
+                        .let(it::write)
+                }
+            }
+            .toByteArray()
+            .let { send(Cmd.TcpAck, it) }
+
+    /**
+     * 远程调用
+     * 通过TCP传输，并阻塞接收反馈
+     */
+    tailrec fun remoteCall(name: String, msg: ByteArray): ByteArray =
+        _group[name]
+            ?.let {
+                try {
+                    Socket(it.first, it.second)
+                } catch (e: IOException) {
+                    _group[name] = null
+                    null
+                }
+            }
+            ?.run {
+                getOutputStream().write(msg)
+                shutdownOutput()
+                getInputStream()
+                    .readAllBytes()
+                    .also { close() }
+            }
+            ?: run {
+                send(Cmd.TcpAsk, name.toByteArray())
+                synchronized(tcpLock) { tcpLock.wait() }
+                null
+            }
+            ?: remoteCall(name, msg)
+
+    /**
+     * 广播一包数据
+     */
     infix fun broadcast(msg: ByteArray) = send(Cmd.Broadcast, msg)
 
     /**
@@ -61,7 +115,7 @@ class BroadcastHub(
             if (senderName == name) continue
             //记录不认识的名字
             if (senderName !in _group) {
-                _group += senderName
+                _group[senderName] = null
                 newProcessDetected(senderName)
             }
             break
@@ -72,9 +126,33 @@ class BroadcastHub(
         when (receiver.data[0].toCmd()) {
             Cmd.YellActive -> yell(active = false)
             Cmd.YellReply -> Unit
+            Cmd.TcpAsk -> if (name == String(payload)) tcpAck()
+            Cmd.TcpAck -> {
+                ByteArrayInputStream(payload)
+                    .let(::DataInputStream)
+                    .use {
+                        val p = it.readShort().toUInt()
+                        it.readAllBytes().let(InetAddress::getByAddress) to p
+                    }
+                    .also { _group[senderName] = it }
+                synchronized(tcpLock) { tcpLock.notifyAll() }
+            }
             Cmd.Broadcast -> broadcastReceived(senderName, payload)
             null -> Unit
         }
+    }
+
+    fun listen() {
+        server
+            .accept()
+            .run {
+                getInputStream()
+                    .readAllBytes()
+                    .let { String(it) }
+                shutdownInput()
+                getOutputStream().write("OK".toByteArray())
+                close()
+            }
     }
 
     init {
@@ -90,7 +168,7 @@ class BroadcastHub(
                         firstOrNull(::wlan)
                             ?: firstOrNull(::eth)
                             ?: firstOrNull { !it.isLoopback }
-                            ?: firstOrNull()
+                            ?: first()
                     }
         //加入组播
         socket.joinGroup(address)
@@ -101,6 +179,8 @@ class BroadcastHub(
     enum class Cmd(val id: Byte) {
         YellActive(0),
         YellReply(1),
+        TcpAsk(2),
+        TcpAck(3),
         Broadcast(127)
     }
 
@@ -121,5 +201,24 @@ class BroadcastHub(
 
         @JvmStatic
         fun eth(net: NetworkInterface) = net.name.startsWith("eth")
+
+        @JvmStatic
+        fun Short.toUInt() = toInt().let { if (it < 0) it + 65536 else it }
+
+        @JvmStatic
+        tailrec fun newServerSocket(): ServerSocket =
+            Random()
+                .nextInt()
+                .let(::abs)
+                .plus(10000)
+                .rem(65536)
+                .let {
+                    try {
+                        ServerSocket(it)
+                    } catch (e: BindException) {
+                        null
+                    }
+                }
+                ?: newServerSocket()
     }
 }
