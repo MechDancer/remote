@@ -12,7 +12,8 @@ import kotlin.math.abs
 class BroadcastHub(
     val name: String,
     private val newProcessDetected: String.() -> Unit,
-    private val broadcastReceived: BroadcastHub.(String, ByteArray) -> Unit
+    private val broadcastReceived: BroadcastHub.(String, ByteArray) -> Unit,
+    private val remoteProcess: (ByteArray) -> ByteArray
 ) {
     // 组播监听
     private val socket = MulticastSocket(port)
@@ -146,11 +147,11 @@ class BroadcastHub(
         server
             .accept()
             .run {
-                getInputStream()
+                val ack = getInputStream()
                     .readAllBytes()
-                    .let { String(it) }
+                    .let(remoteProcess)
                 shutdownInput()
-                getOutputStream().write("OK".toByteArray())
+                getOutputStream().write(ack)
                 close()
             }
     }
@@ -208,13 +209,10 @@ class BroadcastHub(
         @JvmStatic
         tailrec fun newServerSocket(): ServerSocket =
             Random()
-                .nextInt()
-                .let(::abs)
-                .plus(10000)
-                .rem(65536)
+                .nextInt(65536)
                 .let {
                     try {
-                        ServerSocket(it)
+                        ServerSocket(abs(it))
                     } catch (e: BindException) {
                         null
                     }

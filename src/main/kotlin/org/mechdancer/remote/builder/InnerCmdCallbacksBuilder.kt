@@ -7,5 +7,6 @@ import org.mechdancer.remote.core.BroadcastHub
  */
 data class InnerCmdCallbacksBuilder(
     var newProcessDetected: String.() -> Unit = {},
-    var broadcastReceived: BroadcastHub.(String, ByteArray) -> Unit = { _, _ -> }
+    var broadcastReceived: BroadcastHub.(String, ByteArray) -> Unit = { _, _ -> },
+    var remoteProcess: (ByteArray) -> ByteArray = { ByteArray(0) }
 )

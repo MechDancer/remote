@@ -9,7 +9,11 @@ object A {
         broadcastHub("A") {
             newProcessDetected = ::println
             broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
-        }.run { while (true) invoke() }
+            remoteProcess = { ask -> String(ask).also(::println).let { "ok: $it".toByteArray() } }
+        }.run {
+            thread { while (true) listen() }
+            while (true) invoke()
+        }
     }
 }
 
@@ -19,7 +23,11 @@ object B {
         broadcastHub("BB") {
             newProcessDetected = ::println
             broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
-        }.run { while (true) invoke() }
+            remoteProcess = { ask -> String(ask).also(::println).let { "ok: $it".toByteArray() } }
+        }.run {
+            thread { while (true) listen() }
+            while (true) invoke()
+        }
     }
 }
 
@@ -29,6 +37,7 @@ object C {
         broadcastHub("CCC") {
             newProcessDetected = ::println
             broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
+            remoteProcess = { ask -> String(ask).also(::println).let { "ok: $it".toByteArray() } }
         }.run {
             thread { while (true) listen() }
             while (true) invoke()
@@ -42,9 +51,16 @@ object D {
         broadcastHub("DDDD") {
             newProcessDetected = ::println
             broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
+            remoteProcess = { ask -> String(ask).also(::println).let { "ok: $it".toByteArray() } }
         }.run {
             broadcast("hello".toByteArray())
-            thread { println(String(remoteCall("CCC", "ttt".toByteArray()))) }
+            thread {
+                var i = 0
+                while (true) {
+                    println(String(remoteCall("CCC", i++.toString().toByteArray())))
+                    Thread.sleep(100)
+                }
+            }
             while (true) invoke()
         }
     }

@@ -11,4 +11,4 @@ import org.mechdancer.remote.core.BroadcastHub
 fun broadcastHub(name: String, callbacks: InnerCmdCallbacksBuilder.() -> Unit) =
     InnerCmdCallbacksBuilder()
         .apply(callbacks)
-        .run { BroadcastHub(name, newProcessDetected, broadcastReceived) }
+        .run { BroadcastHub(name, newProcessDetected, broadcastReceived, remoteProcess) }
