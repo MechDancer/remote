@@ -86,7 +86,7 @@ class BroadcastHub(
             ?.run {
                 getOutputStream().write(msg)
                 shutdownOutput()
-                getInputStream().readAllBytes().also { close() }
+                getInputStream().readBytes().also { close() }
             }
             ?: run {
                 send(Cmd.TcpAsk, name.toByteArray())
@@ -130,7 +130,7 @@ class BroadcastHub(
             Cmd.TcpAck -> {
                 ByteArrayInputStream(payload)
                     .let(::DataInputStream)
-                    .use { it.readShort().toUInt() to it.readAllBytes().let(InetAddress::getByAddress) }
+                    .use { it.readShort().toUInt() to it.readBytes().let(InetAddress::getByAddress) }
                     .also { _group[senderName] = InetSocketAddress(it.second, it.first) }
                 synchronized(tcpLock) { tcpLock.notifyAll() }
             }
@@ -147,7 +147,7 @@ class BroadcastHub(
             .accept()
             .apply {
                 val ack = getInputStream()
-                    .readAllBytes()
+                    .readBytes()
                     .let(remoteProcess)
                 shutdownInput()
                 getOutputStream().write(ack)
