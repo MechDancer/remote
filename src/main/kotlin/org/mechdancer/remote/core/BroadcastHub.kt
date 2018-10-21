@@ -105,13 +105,13 @@ class BroadcastHub(
 			receiver
 				.apply(socket::receive)
 				.let { String(it.data, 2, it.data[1].toInt()) }
-				.takeUnless { it == name }
+				.takeUnless(name::equals)
 				?: receive()
 		// 接收
 		val senderName = receive()
 		// 记录不认识的名字
 		senderName
-			.takeIf { it !in group }
+			.takeUnless(group::containsKey)
 			?.also { group[it] = null }
 			?.also(newProcessDetected)
 		// 解析负载
@@ -121,13 +121,12 @@ class BroadcastHub(
 			Cmd.YellActive -> send(Cmd.YellReply)
 			Cmd.YellReply  -> Unit
 			Cmd.TcpAsk     -> if (name == String(payload)) tcpAck()
-			Cmd.TcpAck     -> {
+			Cmd.TcpAck     ->
 				payload
 					.let(::ByteArrayInputStream)
 					.let(::ObjectInputStream)
 					.use { group[senderName] = it.readObject() as InetSocketAddress }
-				synchronized(tcpLock) { tcpLock.notifyAll() }
-			}
+					.also { synchronized(tcpLock) { tcpLock.notifyAll() } }
 			Cmd.Broadcast  -> broadcastReceived(senderName, payload)
 			null           -> Unit
 		}
@@ -154,9 +153,9 @@ class BroadcastHub(
 			NetworkInterface
 				.getNetworkInterfaces()
 				.asSequence()
-				.filter { it.isUp }
-				.filter { it.supportsMulticast() }
-				.filter { !it.isVirtual }
+				.filter(NetworkInterface::isUp)
+				.filter(NetworkInterface::supportsMulticast)
+				.filterNot(NetworkInterface::isVirtual)
 				.filter(netFilter)
 				.toList()
 				.run {
