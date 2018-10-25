@@ -9,12 +9,12 @@ import kotlin.math.abs
  * 广播服务器
  * @param name 进程名
  */
-class BroadcastHub(
+class RemoteHub(
 	val name: String,
 	netFilter: (NetworkInterface) -> Boolean,
 	private val newProcessDetected: String.() -> Unit,
-	private val broadcastReceived: BroadcastHub.(String, ByteArray) -> Unit,
-	private val remoteProcess: (ByteArray) -> ByteArray
+	private val broadcastReceived: RemoteHub.(String, ByteArray) -> Unit,
+	private val remoteProcess: RemoteHub.(String, ByteArray) -> ByteArray
 ) {
 	// 组播监听
 	private val socket = MulticastSocket(ADDRESS.port)
@@ -40,36 +40,36 @@ class BroadcastHub(
 		)
 
 	// 发送组播报文
-	private fun send(cmd: Cmd, payload: ByteArray = ByteArray(0)) =
-		ByteArrayOutputStream()
-			.apply {
-				DataOutputStream(this).use {
-					cmd.id.toInt().let(it::writeByte)
-					name.length.let(it::writeByte)
-					name.toByteArray().let(it::write)
-					payload.let(it::write)
-				}
-			}
+	private fun send(cmd: UdpCmd, payload: ByteArray = ByteArray(0)) =
+		PackageIO(cmd.id, name, payload)
 			.toByteArray()
 			.let { DatagramPacket(it, it.size, ADDRESS) }
 			.let(socket::send)
 
 	// 广播自己的名字
-	fun yell() = send(Cmd.YellActive)
+	fun yell() = send(UdpCmd.YellActive)
 
 	// 广播自己的IP地址
 	private fun tcpAck() =
 		ByteArrayOutputStream()
-			.apply { ObjectOutputStream(this).writeObject(tcpAddress) }
+			.apply {
+				writeBytes(tcpAddress.address.address)
+				DataOutputStream(this).writeInt(tcpAddress.port)
+			}
 			.toByteArray()
-			.let { send(Cmd.TcpAck, it) }
+			.let { send(UdpCmd.TcpAck, it) }
 
-	/**
-	 * 远程调用
-	 * 通过TCP传输，并阻塞接收反馈
-	 */
-	tailrec fun remoteCall(name: String, msg: ByteArray): ByteArray =
-		group[name]
+	// 解析收到的IP地址
+	private fun parseTCP(pack: PackageIO) =
+		pack.payload
+			.let(::ByteArrayInputStream)
+			.let { it.readNBytes(4).let(InetAddress::getByAddress) to DataInputStream(it).readInt() }
+			.let { group[pack.name] = InetSocketAddress(it.first, it.second) }
+			.also { synchronized(tcpLock) { tcpLock.notifyAll() } }
+
+	// 尝试连接一个远端 TCP 服务器
+	private tailrec fun connect(name: String): Socket {
+		val result = group[name]
 			?.let {
 				try {
 					Socket(it.address, it.port)
@@ -78,57 +78,71 @@ class BroadcastHub(
 					null
 				}
 			}
-			?.run {
-				getOutputStream().write(msg)
-				shutdownOutput()
-				getInputStream().readBytes().also { close() }
-			}
-			?: run {
-				send(Cmd.TcpAsk, name.toByteArray())
-				synchronized(tcpLock) { tcpLock.wait(1000) }
-				null
-			}
-			?: remoteCall(name, msg)
+		return if (result == null) {
+			send(UdpCmd.TcpAsk, name.toByteArray())
+			synchronized(tcpLock) { tcpLock.wait() }
+			connect(name)
+		} else result
+	}
+
+	/**
+	 * 远程调用
+	 * 通过TCP传输，并在传输完后立即返回
+	 */
+	fun remoteCall(name: String, msg: ByteArray) =
+		connect(name).use {
+			it.getOutputStream()
+				.writePack(TcpCmd.Call.id, name, msg)
+		}
+
+	/**
+	 * 远程调用
+	 * 通过TCP传输，并阻塞接收反馈
+	 */
+	fun remoteCallBack(name: String, msg: ByteArray) =
+		connect(name).use {
+			it.getOutputStream()
+				.writePack(TcpCmd.CallBack.id, name, msg)
+			it.shutdownOutput()
+			it.getInputStream()
+				.readPack()
+				.let { pack -> pack.name to pack.payload }
+		}
 
 	/**
 	 * 广播一包数据
 	 */
-	infix fun broadcast(msg: ByteArray) = send(Cmd.Broadcast, msg)
+	infix fun broadcast(msg: ByteArray) = send(UdpCmd.Broadcast, msg)
 
 	/**
 	 * 监听并解析 UDP 包
 	 */
 	operator fun invoke(bufferSize: Int = 2048) {
 		val receiver = DatagramPacket(ByteArray(bufferSize), bufferSize)
-
-		tailrec fun receive(): String =
+		tailrec fun receive(): PackageIO =
 			receiver
 				.apply(socket::receive)
-				.let { String(it.data, 2, it.data[1].toInt()) }
-				.takeUnless(name::equals)
+				.data
+				.copyOf(receiver.length)
+				.let(::ByteArrayInputStream)
+				.readPack()
+				.takeIf { it.name != name }
 				?: receive()
 		// 接收
-		val senderName = receive()
+		val pack = receive()
 		// 记录不认识的名字
-		senderName
+		pack.name
 			.takeUnless(group::containsKey)
 			?.also { group[it] = null }
 			?.also(newProcessDetected)
-		// 解析负载
-		val payload = receiver.data.copyOfRange(senderName.length + 2, receiver.length)
 		// 响应指令
-		when (receiver.data[0].toCmd()) {
-			Cmd.YellActive -> send(Cmd.YellReply)
-			Cmd.YellReply  -> Unit
-			Cmd.TcpAsk     -> if (name == String(payload)) tcpAck()
-			Cmd.TcpAck     ->
-				payload
-					.let(::ByteArrayInputStream)
-					.let(::ObjectInputStream)
-					.use { group[senderName] = it.readObject() as InetSocketAddress }
-					.also { synchronized(tcpLock) { tcpLock.notifyAll() } }
-			Cmd.Broadcast  -> broadcastReceived(senderName, payload)
-			null           -> Unit
+		when (pack.type.toUdpCmd()) {
+			UdpCmd.YellActive -> send(UdpCmd.YellReply)
+			UdpCmd.YellReply  -> Unit
+			UdpCmd.TcpAsk     -> if (name == String(pack.payload)) tcpAck()
+			UdpCmd.TcpAck     -> parseTCP(pack)
+			UdpCmd.Broadcast  -> broadcastReceived(pack.name, pack.payload)
+			null              -> Unit
 		}
 	}
 
@@ -139,10 +153,10 @@ class BroadcastHub(
 		server
 			.accept()
 			.apply {
-				getInputStream()
-					.readBytes()
-					.let(remoteProcess)
-					.let(getOutputStream()::write)
+				val pack = getInputStream().readPack()
+				remoteProcess(pack.name, pack.payload)
+					.takeIf { pack.type.toTcpCmd() == TcpCmd.CallBack }
+					?.let { getOutputStream().writePack(TcpCmd.Back.id, name, it) }
 			}
 			.close()
 
@@ -169,7 +183,7 @@ class BroadcastHub(
 	}
 
 	// 指令 ID
-	private enum class Cmd(val id: Byte) {
+	private enum class UdpCmd(val id: Byte) {
 		YellActive(0),
 		YellReply(1),
 		TcpAsk(2),
@@ -177,11 +191,21 @@ class BroadcastHub(
 		Broadcast(127)
 	}
 
+	// 指令 ID
+	private enum class TcpCmd(val id: Byte) {
+		Call(0),
+		CallBack(1),
+		Back(2)
+	}
+
 	private companion object {
 		val ADDRESS = InetSocketAddress(InetAddress.getByName("238.88.88.88"), 23333)
 
 		@JvmStatic
-		fun Byte.toCmd() = Cmd.values().firstOrNull { it.id == this }
+		fun Byte.toUdpCmd() = UdpCmd.values().firstOrNull { it.id == this }
+
+		@JvmStatic
+		fun Byte.toTcpCmd() = TcpCmd.values().firstOrNull { it.id == this }
 
 		@JvmStatic
 		fun wlan(net: NetworkInterface) = net.name.startsWith("wlan")

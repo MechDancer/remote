@@ -1,6 +1,6 @@
 package org.mechdancer.remote.builder
 
-import org.mechdancer.remote.core.BroadcastHub
+import org.mechdancer.remote.core.RemoteHub
 
 /**
  * 建造一个广播服务器
@@ -11,4 +11,4 @@ import org.mechdancer.remote.core.BroadcastHub
 fun broadcastHub(name: String, callbacks: InnerCmdCallbacksBuilder.() -> Unit) =
     InnerCmdCallbacksBuilder()
         .apply(callbacks)
-        .run { BroadcastHub(name, netFilter, newProcessDetected, broadcastReceived, remoteProcess) }
+	    .run { RemoteHub(name, netFilter, newProcessDetected, broadcastReceived, remoteProcess) }

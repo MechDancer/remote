@@ -1,13 +1,13 @@
 //package org.mechdancer.remote;
 //
 //import kotlin.Unit;
-//import org.mechdancer.remote.core.BroadcastHub;
+//import org.mechdancer.remote.core.RemoteHub;
 //
 //import java.lang.reflect.Array;
 //
 //class JavaBroadcast {
 //    public static void main(String[] args) {
-//        BroadcastHub temp = new BroadcastHub(
+//        RemoteHub temp = new RemoteHub(
 //                "X",
 //                (remote) -> {
 //                    System.out.println(remote);
