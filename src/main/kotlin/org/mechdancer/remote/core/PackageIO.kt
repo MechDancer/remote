@@ -7,15 +7,15 @@ data class PackageIO(
 	val name: String,
 	val payload: ByteArray
 ) {
-	fun toByteArray() =
+	fun toByteArray(): ByteArray =
 		ByteArrayOutputStream().apply {
 			DataOutputStream(this).apply {
 				writeByte(type.toInt())
 				writeByte(name.length)
 				writeBytes(name)
 			}
-			writeBytes(payload)
-		}.toByteArray()!!
+			write(payload)
+		}.toByteArray()
 
 	override fun equals(other: Any?): Boolean {
 		if (this === other) return true

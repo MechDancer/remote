@@ -53,7 +53,7 @@ class RemoteHub(
 	private fun tcpAck() =
 		ByteArrayOutputStream()
 			.apply {
-				writeBytes(tcpAddress.address.address)
+				write(tcpAddress.address.address)
 				DataOutputStream(this).writeInt(tcpAddress.port)
 			}
 			.toByteArray()
