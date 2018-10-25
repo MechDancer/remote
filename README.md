@@ -1,7 +1,6 @@
 # 远程接入协议
 
-[![Download](https://api.bintray.com/packages/mechdancer/maven/remote/images/download.svg?version=0.1.0) ](https://bintray.com/mechdancer/maven/remote/0.1.0/link)
-
+[ ![Download](https://api.bintray.com/packages/mechdancer/maven/remote/images/download.svg) ](https://bintray.com/mechdancer/maven/remote/_latestVersion)
 ## 设计思路
 
 本协议框架由2部分组成：
@@ -55,7 +54,8 @@ dependencies {
 
 ### Bintray
 
-您总可以从 bintray 直接下载 jar： [![Download](https://api.bintray.com/packages/mechdancer/maven/remote/images/download.svg?version=0.1.0) ](https://bintray.com/mechdancer/maven/remote/0.1.0/link)
+您总可以从 bintray 直接下载 jar： [ ![Download](https://api.bintray.com/packages/mechdancer/maven/remote/images/download.svg) ](https://bintray.com/mechdancer/maven/remote/_latestVersion)
+
 
 ## 名词解释
 
