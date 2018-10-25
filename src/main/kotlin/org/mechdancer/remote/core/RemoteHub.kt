@@ -1,5 +1,6 @@
 package org.mechdancer.remote.core
 
+import org.mechdancer.remote.readNBytes
 import java.io.*
 import java.net.*
 import java.util.*
@@ -80,7 +81,7 @@ class RemoteHub(
 			}
 		return if (result == null) {
 			send(UdpCmd.TcpAsk, name.toByteArray())
-			synchronized(tcpLock) { tcpLock.wait() }
+            synchronized(tcpLock) { tcpLock.wait(1000) }
 			connect(name)
 		} else result
 	}

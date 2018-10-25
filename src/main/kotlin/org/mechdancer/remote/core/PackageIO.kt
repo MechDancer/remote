@@ -1,5 +1,6 @@
 package org.mechdancer.remote.core
 
+import org.mechdancer.remote.readNBytes
 import java.io.*
 
 data class PackageIO(
