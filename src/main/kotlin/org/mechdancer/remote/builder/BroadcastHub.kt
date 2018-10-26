@@ -8,7 +8,17 @@ import org.mechdancer.remote.core.RemoteHub
  * @param name 进程名
  * @param callbacks 请求回调
  */
-fun remoteHub(name: String, callbacks: RemoteCallbackBuilder.() -> Unit) =
-    RemoteCallbackBuilder()
-        .apply(callbacks)
-        .run { RemoteHub(name, netFilter, newProcessDetected, broadcastReceived, remoteProcess) }
+fun remoteHub(
+	name: String,
+	callbacks: RemoteCallbackBuilder.() -> Unit
+) = RemoteCallbackBuilder()
+	.apply(callbacks)
+	.run {
+		RemoteHub(
+			name,
+			netFilter,
+			newProcessDetected,
+			broadcastReceived,
+			remoteProcess
+		)
+	}

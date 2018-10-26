@@ -1,10 +1,10 @@
 package org.mechdancer.remote.core
 
-import org.mechdancer.remote.readNBytes
 import java.io.*
 import java.net.*
 import java.util.*
 import kotlin.math.abs
+import kotlin.math.min
 
 /**
  * 广播服务器
@@ -42,13 +42,9 @@ class RemoteHub(
 
 	// 发送组播报文
 	private fun send(cmd: UdpCmd, payload: ByteArray = ByteArray(0)) =
-		PackageIO(cmd.id, name, payload)
-			.toByteArray()
+		pack(cmd.id, name, payload)
 			.let { DatagramPacket(it, it.size, ADDRESS) }
 			.let(socket::send)
-
-	// 广播自己的名字
-	fun yell() = send(UdpCmd.YellActive)
 
 	// 广播自己的IP地址
 	private fun tcpAck() =
@@ -61,11 +57,11 @@ class RemoteHub(
 			.let { send(UdpCmd.TcpAck, it) }
 
 	// 解析收到的IP地址
-	private fun parseTCP(pack: PackageIO) =
-		pack.payload
+	private fun parseTcp(sender: String, payload: ByteArray) =
+		payload
 			.let(::ByteArrayInputStream)
 			.let { it.readNBytes(4).let(InetAddress::getByAddress) to DataInputStream(it).readInt() }
-			.let { group[pack.name] = InetSocketAddress(it.first, it.second) }
+			.let { group[sender] = InetSocketAddress(it.first, it.second) }
 			.also { synchronized(tcpLock) { tcpLock.notifyAll() } }
 
 	// 尝试连接一个远端 TCP 服务器
@@ -79,12 +75,19 @@ class RemoteHub(
 					null
 				}
 			}
-		return if (result == null) {
+		return if (result != null) result
+		else {
 			send(UdpCmd.TcpAsk, name.toByteArray())
-            synchronized(tcpLock) { tcpLock.wait(1000) }
+			synchronized(tcpLock) { tcpLock.wait(1000) }
 			connect(name)
-		} else result
+		}
 	}
+
+	/**
+	 * 广播自己的名字
+	 * 使得所有在线节点也广播自己的名字，从而得知完整的组列表
+	 */
+	fun yell() = send(UdpCmd.YellActive)
 
 	/**
 	 * 远程调用
@@ -107,7 +110,10 @@ class RemoteHub(
 			it.shutdownOutput()
 			it.getInputStream()
 				.readPack()
-				.let { pack -> pack.name to pack.payload }
+				.let { pack ->
+					assert(pack.second == name)
+					pack.third
+				}
 		}
 
 	/**
@@ -120,29 +126,29 @@ class RemoteHub(
 	 */
 	operator fun invoke(bufferSize: Int = 2048) {
 		val receiver = DatagramPacket(ByteArray(bufferSize), bufferSize)
-		tailrec fun receive(): PackageIO =
+		tailrec fun receive(): Triple<Byte, String, ByteArray> =
 			receiver
 				.apply(socket::receive)
 				.data
 				.copyOf(receiver.length)
 				.let(::ByteArrayInputStream)
 				.readPack()
-				.takeIf { it.name != name }
+				.takeIf { it.second != name }
 				?: receive()
 		// 接收
-		val pack = receive()
+		val (type, sender, payload) = receive()
 		// 记录不认识的名字
-		pack.name
+		sender
 			.takeUnless(group::containsKey)
 			?.also { group[it] = null }
 			?.also(newProcessDetected)
 		// 响应指令
-		when (pack.type.toUdpCmd()) {
+		when (type.toUdpCmd()) {
 			UdpCmd.YellActive -> send(UdpCmd.YellReply)
 			UdpCmd.YellReply  -> Unit
-			UdpCmd.TcpAsk     -> if (name == String(pack.payload)) tcpAck()
-			UdpCmd.TcpAck     -> parseTCP(pack)
-			UdpCmd.Broadcast  -> broadcastReceived(pack.name, pack.payload)
+			UdpCmd.TcpAsk     -> if (name == String(payload)) tcpAck()
+			UdpCmd.TcpAck     -> parseTcp(sender, payload)
+			UdpCmd.Broadcast  -> broadcastReceived(sender, payload)
 			null              -> Unit
 		}
 	}
@@ -153,13 +159,12 @@ class RemoteHub(
 	fun listen() =
 		server
 			.accept()
-			.apply {
-				val pack = getInputStream().readPack()
-				remoteProcess(pack.name, pack.payload)
-					.takeIf { pack.type.toTcpCmd() == TcpCmd.CallBack }
-					?.let { getOutputStream().writePack(TcpCmd.Back.id, name, it) }
+			.use { server ->
+				val (type, sender, payload) = server.getInputStream().readPack()
+				remoteProcess(sender, payload)
+					.takeIf { type.toTcpCmd() == TcpCmd.CallBack }
+					?.let { server.getOutputStream().writePack(TcpCmd.Back.id, name, it) }
 			}
-			.close()
 
 	init {
 		assert(name.isNotBlank())
@@ -226,5 +231,50 @@ class RemoteHub(
 					}
 				}
 				?: newServerSocket()
+
+		@JvmStatic
+		@Suppress("EXTENSION_SHADOWED_BY_MEMBER")
+		@Deprecated(message = "only for who under jdk11")
+		fun InputStream.readNBytes(len: Int): ByteArray {
+			val count = min(available(), len)
+			val buffer = ByteArray(count)
+			read(buffer, 0, count)
+			return buffer
+		}
+
+		// 打包一包
+		@JvmStatic
+		fun pack(
+			type: Byte,
+			name: String,
+			payload: ByteArray
+		): ByteArray =
+			ByteArrayOutputStream().apply {
+				DataOutputStream(this).apply {
+					writeByte(type.toInt())
+					writeByte(name.length)
+					writeBytes(name)
+				}
+				write(payload)
+			}.toByteArray()
+
+		// 把一包写入输出流
+		@JvmStatic
+		fun OutputStream.writePack(
+			type: Byte,
+			name: String,
+			payload: ByteArray
+		) = write(pack(type, name, payload))
+
+		//从输入流读取一包
+		@JvmStatic
+		fun InputStream.readPack() =
+			DataInputStream(this).let {
+				val type = it.readByte()
+				val length = it.readByte().toInt()
+				val name = String(it.readNBytes(length))
+				val payload = it.readBytes()
+				Triple(type, name, payload)
+			}
 	}
 }
