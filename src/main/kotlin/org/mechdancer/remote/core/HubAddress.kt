@@ -14,7 +14,7 @@ class HubAddress(
 ) {
 	val bytes: ByteArray =
 		ByteArrayOutputStream().apply {
-			writeBytes(address.address)
+			write(address.address)
 			DataOutputStream(this).apply {
 				writeInt(tcpPort)
 				writeInt(rmiPort)
