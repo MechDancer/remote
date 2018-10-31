@@ -2,8 +2,14 @@ package org.mechdancer.remote
 
 import org.mechdancer.remote.builder.remoteHub
 import java.rmi.Remote
+import java.rmi.RemoteException
 import java.rmi.server.UnicastRemoteObject
 import kotlin.concurrent.thread
+
+interface RemoteService : Remote {
+	@Throws(RemoteException::class)
+	fun hello(): String
+}
 
 object D {
 	@JvmStatic
@@ -16,6 +22,7 @@ object D {
 				override fun hello() = "hello"
 			}
 		}.run {
+			startRMI()
 			while (true) invoke()
 		}
 	}
@@ -28,7 +35,7 @@ object E {
 			newProcessDetected = ::println
 		}.run {
 			thread { while (true) invoke() }
-			getRegistry<RemoteService>("RMIServer").hello().let(::println)
+			connectRMI<RemoteService>("RMIServer").hello().let(::println)
 		}
 	}
 }

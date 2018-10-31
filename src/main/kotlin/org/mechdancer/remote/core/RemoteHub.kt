@@ -6,6 +6,7 @@ import java.rmi.Remote
 import java.rmi.RemoteException
 import java.rmi.registry.LocateRegistry
 import java.rmi.registry.Registry
+import java.rmi.server.UnicastRemoteObject
 import java.util.*
 import kotlin.math.absoluteValue
 import kotlin.math.min
@@ -142,7 +143,7 @@ class RemoteHub<out T : Remote>(
 	/**
 	 * 尝试连接一个远程调用服务
 	 */
-	tailrec fun <U : Remote> getRegistry(name: String): U {
+	tailrec fun <U : Remote> connectRMI(name: String): U {
 		val result = group[name]
 			?.let {
 				try {
@@ -160,8 +161,30 @@ class RemoteHub<out T : Remote>(
 		else {
 			send(UdpCmd.TcpAsk, name.toByteArray())
 			synchronized(tcpLock) { tcpLock.wait(1000) }
-			getRegistry(name)
+			connectRMI(name)
 		}
+	}
+
+	/**
+	 * 开始响应 RMI
+	 */
+	fun startRMI() {
+		registry
+			?.second
+			?.takeIf { it.list().isEmpty() }
+			?.rebind(name, rmiRemote)
+	}
+
+	/**
+	 * 停止 RMI 服务
+	 * @param force 是否允许中止正在运行的线程
+	 */
+	fun stopRMI(force: Boolean = false) {
+		registry
+			?.second
+			?.takeIf { it.list().isNotEmpty() }
+			?.unbind(name)
+			?.also { UnicastRemoteObject.unexportObject(rmiRemote, force) }
 	}
 
 	/**
