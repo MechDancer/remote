@@ -22,5 +22,5 @@ class HubAddress(
 		}.toByteArray()
 
 	override fun toString() =
-		"${address.hostAddress}: $tcpPort, $rmiPort"
+		"${address.hostAddress}:$tcpPort|$rmiPort"
 }

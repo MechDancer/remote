@@ -7,7 +7,7 @@ import kotlin.concurrent.thread
 object A {
 	@JvmStatic
 	fun main(args: Array<String>) {
-		remoteHub<Remote>("A") {
+		remoteHub<Remote> {
 			newProcessDetected = ::println
 			broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
 			remoteProcess = { name, ask ->
@@ -39,7 +39,7 @@ object B {
 object C {
 	@JvmStatic
 	fun main(args: Array<String>) {
-		remoteHub<Remote>("CCC") {
+		remoteHub<Remote> {
 			newProcessDetected = ::println
 			broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
 			remoteProcess = { name, ask ->

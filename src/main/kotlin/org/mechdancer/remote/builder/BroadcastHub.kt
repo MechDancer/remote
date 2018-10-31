@@ -10,7 +10,7 @@ import java.rmi.Remote
  * @param block 请求回调
  */
 fun <T : Remote> remoteHub(
-	name: String,
+	name: String = "",
 	block: RemoteCallbackBuilder<T>.() -> Unit
 ) = RemoteCallbackBuilder<T>()
 	.apply(block)

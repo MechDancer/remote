@@ -34,8 +34,8 @@ object E {
 		remoteHub<Remote>("RMIClient") {
 			newProcessDetected = ::println
 		}.run {
-			thread { while (true) invoke() }
-			connectRMI<RemoteService>("RMIServer").hello().let(::println)
+			thread(isDaemon = true) { while (true) invoke() }
+			connect<RemoteService>("RMIServer").hello().let(::println)
 		}
 	}
 }

@@ -2,6 +2,8 @@ package org.mechdancer.remote.core
 
 import java.io.*
 import java.net.*
+import java.net.InetAddress.getByAddress
+import java.net.InetAddress.getByName
 import java.rmi.Remote
 import java.rmi.RemoteException
 import java.rmi.registry.LocateRegistry
@@ -18,14 +20,22 @@ import kotlin.math.min
  * 2. TCP 可靠传输
  * 3. RMI Java 远程调用
  *
- * @param name 进程名
+ * 初始化参数
+ * @param name      进程名
+ * @param netFilter 自定义选网策略
+ *
+ * 回调参数
+ * @param newMemberDetected 发现新成员
+ * @param broadcastReceived 收到广播
+ * @param commandReceived   收到 TCP
+ * @param rmiRemote         远程过程实现
  */
 class RemoteHub<out T : Remote>(
-	val name: String,
+	name: String,
 	netFilter: (NetworkInterface) -> Boolean,
-	private val newProcessDetected: String.() -> Unit,
+	private val newMemberDetected: String.() -> Unit,
 	private val broadcastReceived: RemoteHub<T>.(String, ByteArray) -> Unit,
-	private val remoteProcess: RemoteHub<T>.(String, ByteArray) -> ByteArray,
+	private val commandReceived: RemoteHub<T>.(String, ByteArray) -> ByteArray,
 	private val rmiRemote: T?
 ) {
 	// 组播监听
@@ -36,23 +46,23 @@ class RemoteHub<out T : Remote>(
 	private val registry = rmiRemote?.let { newRegistry() }
 	// 组成员列表
 	private val group = mutableMapOf<String, HubAddress?>()
-	// TCP挂起锁
-	private val tcpLock = Object()
+	// 地址询问阻塞
+	private val addressSignal = SignalBlocker()
 
 	/**
-	 * 组成员列表k
+	 * 终端名字
+	 */
+	val name: String
+
+	/**
+	 * 终端地址
+	 */
+	val address: HubAddress
+
+	/**
+	 * 组成员列表
 	 */
 	val members get() = group.keys
-
-	/**
-	 * 本进程地址
-	 */
-	val hubAddress
-		get() = HubAddress(
-			socket.networkInterface.inetAddresses.asSequence().first(),
-			server.localPort,
-			registry?.first ?: 0
-		)
 
 	// 发送组播报文
 	private fun send(cmd: UdpCmd, payload: ByteArray = ByteArray(0)) =
@@ -61,27 +71,22 @@ class RemoteHub<out T : Remote>(
 			.let(socket::send)
 
 	// 广播自己的IP地址
-	private fun tcpAck() =
-		ByteArrayOutputStream()
-			.apply { write(hubAddress.bytes) }
-			.toByteArray()
-			.let { send(UdpCmd.TcpAck, it) }
+	private fun tcpAck() = send(UdpCmd.AddressAck, address.bytes)
 
 	// 解析收到的IP地址
-	private fun parseTcp(sender: String, payload: ByteArray) =
-		payload
+	private fun parse(sender: String, payload: ByteArray) {
+		group[sender] = payload
 			.let(::ByteArrayInputStream)
-			.let {
-				val address = it.readNBytes(4).let(InetAddress::getByAddress)
-				val stream = DataInputStream(it)
+			.let(::DataInputStream)
+			.use { stream ->
 				HubAddress(
-					address,
+					getByAddress(stream.readNBytes(4)),
 					stream.readInt(),
 					stream.readInt()
 				)
 			}
-			.let { group[sender] = it }
-			.also { synchronized(tcpLock) { tcpLock.notifyAll() } }
+		addressSignal.awake()
+	}
 
 	// 尝试连接一个远端 TCP 服务器
 	private tailrec fun connect(name: String): Socket {
@@ -96,8 +101,8 @@ class RemoteHub<out T : Remote>(
 			}
 		return if (result != null) result
 		else {
-			send(UdpCmd.TcpAsk, name.toByteArray())
-			synchronized(tcpLock) { tcpLock.wait(1000) }
+			send(UdpCmd.AddressAsk, name.toByteArray())
+			addressSignal.block(1000)
 			connect(name)
 		}
 	}
@@ -143,7 +148,7 @@ class RemoteHub<out T : Remote>(
 	/**
 	 * 尝试连接一个远程调用服务
 	 */
-	tailrec fun <U : Remote> connectRMI(name: String): U {
+	tailrec fun <U : Remote> connect(name: String): U {
 		val result = group[name]
 			?.let {
 				try {
@@ -159,33 +164,31 @@ class RemoteHub<out T : Remote>(
 		@Suppress("UNCHECKED_CAST")
 		return if (result != null) result as U
 		else {
-			send(UdpCmd.TcpAsk, name.toByteArray())
-			synchronized(tcpLock) { tcpLock.wait(1000) }
-			connectRMI(name)
+			send(UdpCmd.AddressAsk, name.toByteArray())
+			addressSignal.block(1000)
+			connect<U>(name)
 		}
 	}
 
 	/**
 	 * 开始响应 RMI
 	 */
-	fun startRMI() {
+	fun startRMI() =
 		registry
 			?.second
 			?.takeIf { it.list().isEmpty() }
 			?.rebind(name, rmiRemote)
-	}
 
 	/**
 	 * 停止 RMI 服务
-	 * @param force 是否允许中止正在运行的线程
+	 * @param force 是否允许强制立即中止正在运行的线程
 	 */
-	fun stopRMI(force: Boolean = false) {
+	fun stopRMI(force: Boolean = false) =
 		registry
 			?.second
 			?.takeIf { it.list().isNotEmpty() }
 			?.unbind(name)
 			?.also { UnicastRemoteObject.unexportObject(rmiRemote, force) }
-	}
 
 	/**
 	 * 监听并解析 UDP 包
@@ -207,13 +210,13 @@ class RemoteHub<out T : Remote>(
 		sender
 			.takeUnless(group::containsKey)
 			?.also { group[it] = null }
-			?.also(newProcessDetected)
+			?.also(newMemberDetected)
 		// 响应指令
 		when (type.toUdpCmd()) {
 			UdpCmd.YellActive -> send(UdpCmd.YellReply)
 			UdpCmd.YellReply  -> Unit
-			UdpCmd.TcpAsk     -> if (name == String(payload)) tcpAck()
-			UdpCmd.TcpAck     -> parseTcp(sender, payload)
+			UdpCmd.AddressAsk -> if (name == String(payload)) tcpAck()
+			UdpCmd.AddressAck -> parse(sender, payload)
 			UdpCmd.Broadcast  -> broadcastReceived(sender, payload)
 			null              -> Unit
 		}
@@ -227,15 +230,14 @@ class RemoteHub<out T : Remote>(
 			.accept()
 			.use { server ->
 				val (type, sender, payload) = server.getInputStream().readPack()
-				remoteProcess(sender, payload)
+				commandReceived(sender, payload)
 					.takeIf { type.toTcpCmd() == TcpCmd.CallBack }
 					?.let { server.getOutputStream().writePack(TcpCmd.Back.id, name, it) }
 			}
 
 	init {
-		assert(name.isNotBlank())
-		// 选择一条靠谱的网络
-		socket.networkInterface =
+		// 选网
+		val network =
 			NetworkInterface
 				.getNetworkInterfaces()
 				.asSequence()
@@ -250,18 +252,24 @@ class RemoteHub<out T : Remote>(
 						?: firstOrNull { !it.isLoopback }
 						?: first()
 				}
-		// 加入组播
+		socket.networkInterface = network
+		address = HubAddress(
+			network.inetAddresses.asSequence().first(),
+			server.localPort,
+			registry?.first ?: 0
+		)
+		// 定名
+		this.name = name.takeIf { it.isNotBlank() } ?: "Hub[$address]"
+		// 入组
 		socket.joinGroup(ADDRESS.address)
-		// 注册远程服务
-		registry?.second?.rebind(name, rmiRemote)
 	}
 
 	// 指令 ID
 	private enum class UdpCmd(val id: Byte) {
 		YellActive(0),
 		YellReply(1),
-		TcpAsk(2),
-		TcpAck(3),
+		AddressAsk(2),
+		AddressAck(3),
 		Broadcast(127)
 	}
 
@@ -273,7 +281,7 @@ class RemoteHub<out T : Remote>(
 	}
 
 	private companion object {
-		val ADDRESS = InetSocketAddress(InetAddress.getByName("238.88.88.88"), 23333)
+		val ADDRESS = InetSocketAddress(getByName("238.88.88.88"), 23333)
 
 		@JvmStatic
 		fun Byte.toUdpCmd() = UdpCmd.values().firstOrNull { it.id == this }
@@ -309,7 +317,7 @@ class RemoteHub<out T : Remote>(
 
 		@JvmStatic
 		@Suppress("EXTENSION_SHADOWED_BY_MEMBER")
-		@Deprecated(message = "only for who under jdk11")
+		@Deprecated(message = "only for who is below jdk11")
 		fun InputStream.readNBytes(len: Int): ByteArray {
 			val count = min(available(), len)
 			val buffer = ByteArray(count)
