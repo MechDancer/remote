@@ -8,9 +8,9 @@ object A {
 	@JvmStatic
 	fun main(args: Array<String>) {
 		remoteHub<Remote> {
-			newProcessDetected = ::println
+			newMemberDetected = ::println
 			broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
-			remoteProcess = { name, ask ->
+			commandReceived = { name, ask ->
 				String(ask).also(::println).let { "$name(\"${String(ask)}\"): $it".toByteArray() }
 			}
 		}.run {
@@ -24,9 +24,9 @@ object B {
 	@JvmStatic
 	fun main(args: Array<String>) {
 		remoteHub<Remote>("BB") {
-			newProcessDetected = ::println
+			newMemberDetected = ::println
 			broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
-			remoteProcess = { name, ask ->
+			commandReceived = { name, ask ->
 				String(ask).also(::println).let { "$name(\"${String(ask)}\"): $it".toByteArray() }
 			}
 		}.run {
@@ -40,9 +40,9 @@ object C {
 	@JvmStatic
 	fun main(args: Array<String>) {
 		remoteHub<Remote> {
-			newProcessDetected = ::println
+			newMemberDetected = ::println
 			broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
-			remoteProcess = { name, ask ->
+			commandReceived = { name, ask ->
 				String(ask).also(::println).let { "$name(\"${String(ask)}\"): $it".toByteArray() }
 			}
 		}.run {

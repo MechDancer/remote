@@ -15,7 +15,7 @@ object D {
 	@JvmStatic
 	fun main(args: Array<String>) {
 		remoteHub<RemoteService>("RMIServer") {
-			newProcessDetected = ::println
+			newMemberDetected = ::println
 			rmiRemote = object :
 				UnicastRemoteObject(),
 				RemoteService {
@@ -32,7 +32,7 @@ object E {
 	@JvmStatic
 	fun main(args: Array<String>) {
 		remoteHub<Remote>("RMIClient") {
-			newProcessDetected = ::println
+			newMemberDetected = ::println
 		}.run {
 			thread(isDaemon = true) { while (true) invoke() }
 			connect<RemoteService>("RMIServer").hello().let(::println)

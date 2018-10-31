@@ -18,9 +18,9 @@ fun <T : Remote> remoteHub(
 		RemoteHub(
 			name,
 			netFilter,
-			newProcessDetected,
+			newMemberDetected,
 			broadcastReceived,
-			remoteProcess,
+			commandReceived,
 			rmiRemote
 		)
 	}

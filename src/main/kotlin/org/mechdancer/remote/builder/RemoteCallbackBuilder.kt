@@ -9,8 +9,8 @@ import java.rmi.Remote
  */
 class RemoteCallbackBuilder<T : Remote> {
 	var netFilter: (NetworkInterface) -> Boolean = { true }
-	var newProcessDetected: String.() -> Unit = {}
+	var newMemberDetected: String.() -> Unit = {}
 	var broadcastReceived: RemoteHub<T>.(String, ByteArray) -> Unit = { _, _ -> }
-	var remoteProcess: RemoteHub<T>.(String, ByteArray) -> ByteArray = { _, _ -> ByteArray(0) }
+	var commandReceived: RemoteHub<T>.(String, ByteArray) -> ByteArray = { _, _ -> ByteArray(0) }
 	var rmiRemote: T? = null
 }
