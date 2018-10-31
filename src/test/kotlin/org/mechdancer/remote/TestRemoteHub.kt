@@ -1,12 +1,13 @@
 package org.mechdancer.remote
 
 import org.mechdancer.remote.builder.remoteHub
+import java.rmi.Remote
 import kotlin.concurrent.thread
 
 object A {
 	@JvmStatic
 	fun main(args: Array<String>) {
-		remoteHub("A") {
+		remoteHub<Remote>("A") {
 			newProcessDetected = ::println
 			broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
 			remoteProcess = { name, ask ->
@@ -22,7 +23,7 @@ object A {
 object B {
 	@JvmStatic
 	fun main(args: Array<String>) {
-		remoteHub("BB") {
+		remoteHub<Remote>("BB") {
 			newProcessDetected = ::println
 			broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
 			remoteProcess = { name, ask ->
@@ -38,7 +39,7 @@ object B {
 object C {
 	@JvmStatic
 	fun main(args: Array<String>) {
-		remoteHub("CCC") {
+		remoteHub<Remote>("CCC") {
 			newProcessDetected = ::println
 			broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
 			remoteProcess = { name, ask ->

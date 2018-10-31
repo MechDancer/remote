@@ -2,42 +2,55 @@ package org.mechdancer.remote.core
 
 import java.io.*
 import java.net.*
+import java.rmi.Remote
+import java.rmi.RemoteException
+import java.rmi.registry.LocateRegistry
+import java.rmi.registry.Registry
 import java.util.*
-import kotlin.math.abs
+import kotlin.math.absoluteValue
 import kotlin.math.min
 
 /**
- * 广播服务器
+ * 远程终端
+ *
+ * 1. UDP 组播
+ * 2. TCP 可靠传输
+ * 3. RMI Java 远程调用
+ *
  * @param name 进程名
  */
-class RemoteHub(
+class RemoteHub<out T : Remote>(
 	val name: String,
 	netFilter: (NetworkInterface) -> Boolean,
 	private val newProcessDetected: String.() -> Unit,
-	private val broadcastReceived: RemoteHub.(String, ByteArray) -> Unit,
-	private val remoteProcess: RemoteHub.(String, ByteArray) -> ByteArray
+	private val broadcastReceived: RemoteHub<T>.(String, ByteArray) -> Unit,
+	private val remoteProcess: RemoteHub<T>.(String, ByteArray) -> ByteArray,
+	private val rmiRemote: T?
 ) {
 	// 组播监听
 	private val socket = MulticastSocket(ADDRESS.port)
 	// TCP监听
 	private val server = newServerSocket()
+	// RMI服务
+	private val registry = rmiRemote?.let { newRegistry() }
 	// 组成员列表
-	private val group = mutableMapOf<String, InetSocketAddress?>()
+	private val group = mutableMapOf<String, HubAddress?>()
 	// TCP挂起锁
 	private val tcpLock = Object()
 
 	/**
-	 * 组成员列表
+	 * 组成员列表k
 	 */
 	val members get() = group.keys
 
 	/**
 	 * 本进程地址
 	 */
-	val tcpAddress
-		get() = InetSocketAddress(
+	val hubAddress
+		get() = HubAddress(
 			socket.networkInterface.inetAddresses.asSequence().first(),
-			server.localPort
+			server.localPort,
+			registry?.first ?: 0
 		)
 
 	// 发送组播报文
@@ -49,10 +62,7 @@ class RemoteHub(
 	// 广播自己的IP地址
 	private fun tcpAck() =
 		ByteArrayOutputStream()
-			.apply {
-				write(tcpAddress.address.address)
-				DataOutputStream(this).writeInt(tcpAddress.port)
-			}
+			.apply { write(hubAddress.bytes) }
 			.toByteArray()
 			.let { send(UdpCmd.TcpAck, it) }
 
@@ -60,8 +70,16 @@ class RemoteHub(
 	private fun parseTcp(sender: String, payload: ByteArray) =
 		payload
 			.let(::ByteArrayInputStream)
-			.let { it.readNBytes(4).let(InetAddress::getByAddress) to DataInputStream(it).readInt() }
-			.let { group[sender] = InetSocketAddress(it.first, it.second) }
+			.let {
+				val address = it.readNBytes(4).let(InetAddress::getByAddress)
+				val stream = DataInputStream(it)
+				HubAddress(
+					address,
+					stream.readInt(),
+					stream.readInt()
+				)
+			}
+			.let { group[sender] = it }
 			.also { synchronized(tcpLock) { tcpLock.notifyAll() } }
 
 	// 尝试连接一个远端 TCP 服务器
@@ -69,7 +87,7 @@ class RemoteHub(
 		val result = group[name]
 			?.let {
 				try {
-					Socket(it.address, it.port)
+					Socket(it.address, it.tcpPort)
 				} catch (e: IOException) {
 					group[name] = null
 					null
@@ -120,6 +138,31 @@ class RemoteHub(
 	 * 广播一包数据
 	 */
 	infix fun broadcast(msg: ByteArray) = send(UdpCmd.Broadcast, msg)
+
+	/**
+	 * 尝试连接一个远程调用服务
+	 */
+	tailrec fun <U : Remote> getRegistry(name: String): U {
+		val result = group[name]
+			?.let {
+				try {
+					LocateRegistry
+						.getRegistry(it.address.hostAddress, it.rmiPort)
+						.lookup(name)
+				} catch (e: RemoteException) {
+					println(e.detail)
+					group[name] = null
+					null
+				}
+			}
+		@Suppress("UNCHECKED_CAST")
+		return if (result != null) result as U
+		else {
+			send(UdpCmd.TcpAsk, name.toByteArray())
+			synchronized(tcpLock) { tcpLock.wait(1000) }
+			getRegistry(name)
+		}
+	}
 
 	/**
 	 * 监听并解析 UDP 包
@@ -186,6 +229,8 @@ class RemoteHub(
 				}
 		// 加入组播
 		socket.joinGroup(ADDRESS.address)
+		// 注册远程服务
+		registry?.second?.rebind(name, rmiRemote)
 	}
 
 	// 指令 ID
@@ -220,17 +265,24 @@ class RemoteHub(
 		fun eth(net: NetworkInterface) = net.name.startsWith("eth")
 
 		@JvmStatic
+		fun newPort() = Random().nextInt(55536).absoluteValue + 10000
+
+		@JvmStatic
 		tailrec fun newServerSocket(): ServerSocket =
-			Random()
-				.nextInt(55536)
-				.let {
-					try {
-						ServerSocket(10000 + abs(it))
-					} catch (e: BindException) {
-						null
-					}
-				}
-				?: newServerSocket()
+			try {
+				ServerSocket(newPort())
+			} catch (e: BindException) {
+				null
+			} ?: newServerSocket()
+
+		@JvmStatic
+		tailrec fun newRegistry(): Pair<Int, Registry> =
+			try {
+				val port = newPort()
+				port to LocateRegistry.createRegistry(port)
+			} catch (e: BindException) {
+				null
+			} ?: newRegistry()
 
 		@JvmStatic
 		@Suppress("EXTENSION_SHADOWED_BY_MEMBER")
