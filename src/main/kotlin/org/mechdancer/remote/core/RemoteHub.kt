@@ -104,8 +104,9 @@ class RemoteHub(
 		addressSignal.awake()
 	}
 
+	// 清除一个地址
 	private fun clearAddress(sender: String) {
-		group[name]?.copy(address = null)?.let { info -> group.put(name, info) }
+		group[sender]?.copy(address = null)?.let { info -> group.put(name, info) }
 	}
 
 	// 尝试连接一个远端 TCP 服务器
@@ -189,7 +190,7 @@ class RemoteHub(
 	/**
 	 * 挂载 RMI 任务
 	 */
-	fun load(serviceName: String, remote: Remote) {
+	fun <T : Remote> load(serviceName: String, remote: T) {
 		registry.second.rebind(serviceName, remote)
 	}
 

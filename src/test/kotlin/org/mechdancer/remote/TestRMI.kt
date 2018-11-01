@@ -1,12 +1,15 @@
 package org.mechdancer.remote
 
 import org.mechdancer.remote.builder.remoteHub
+import org.mechdancer.remote.core.connectRMI
+import org.mechdancer.remote.core.forever
+import org.mechdancer.remote.core.put
 import java.rmi.Remote
 import java.rmi.RemoteException
 import java.rmi.server.UnicastRemoteObject
 import kotlin.concurrent.thread
 
-interface RemoteService : Remote {
+interface Greeting : Remote {
 	@Throws(RemoteException::class)
 	fun hello(): String
 }
@@ -14,15 +17,15 @@ interface RemoteService : Remote {
 object D {
 	@JvmStatic
 	fun main(args: Array<String>) {
-		remoteHub("RMIServer") { newMemberDetected = ::println }
-			.run {
-				load("hello", object :
-					UnicastRemoteObject(),
-					RemoteService {
-					override fun hello() = "hello"
-				})
-				while (true) invoke()
-			}
+		val hub = remoteHub("RMIServer") {
+			newMemberDetected = ::println
+			put<Greeting>(object :
+				UnicastRemoteObject(),
+				Greeting {
+				override fun hello() = "hello"
+			})
+		}
+		forever { hub() }
 	}
 }
 
@@ -33,7 +36,7 @@ object E {
 			newMemberDetected = ::println
 		}.run {
 			thread(isDaemon = true) { while (true) invoke() }
-			connect<RemoteService>("RMIServer", "hello")?.hello().let(::println)
+			connectRMI<Greeting>("RMIServer")?.hello().let(::println)
 		}
 	}
 }

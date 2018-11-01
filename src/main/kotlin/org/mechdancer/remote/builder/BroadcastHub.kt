@@ -20,5 +20,9 @@ fun remoteHub(
 			newMemberDetected,
 			broadcastReceived,
 			commandReceived
-		)
+		).apply {
+			services.forEach { serviceName, remote ->
+				load(serviceName, remote)
+			}
+		}
 	}
