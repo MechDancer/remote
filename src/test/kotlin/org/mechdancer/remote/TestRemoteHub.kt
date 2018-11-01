@@ -9,7 +9,7 @@ import kotlin.concurrent.thread
 object A {
 	@JvmStatic
 	fun main(args: Array<String>) {
-		remoteHub<Remote> {
+		remoteHub<Remote>("A") {
 			newMemberDetected = ::println
 			broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
 			commandReceived = { name, ask ->
