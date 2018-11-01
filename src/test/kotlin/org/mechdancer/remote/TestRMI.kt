@@ -14,28 +14,26 @@ interface RemoteService : Remote {
 object D {
 	@JvmStatic
 	fun main(args: Array<String>) {
-		remoteHub<RemoteService>("RMIServer") {
-			newMemberDetected = ::println
-			rmiRemote = object :
-				UnicastRemoteObject(),
-				RemoteService {
-				override fun hello() = "hello"
+		remoteHub("RMIServer") { newMemberDetected = ::println }
+			.run {
+				load("hello", object :
+					UnicastRemoteObject(),
+					RemoteService {
+					override fun hello() = "hello"
+				})
+				while (true) invoke()
 			}
-		}.run {
-			startRMI()
-			while (true) invoke()
-		}
 	}
 }
 
 object E {
 	@JvmStatic
 	fun main(args: Array<String>) {
-		remoteHub<Remote>("RMIClient") {
+		remoteHub("RMIClient") {
 			newMemberDetected = ::println
 		}.run {
 			thread(isDaemon = true) { while (true) invoke() }
-			connect<RemoteService>("RMIServer").hello().let(::println)
+			connect<RemoteService>("RMIServer", "hello")?.hello().let(::println)
 		}
 	}
 }

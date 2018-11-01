@@ -5,7 +5,6 @@ import java.net.*
 import java.net.InetAddress.getByAddress
 import java.net.InetAddress.getByName
 import java.rmi.Remote
-import java.rmi.RemoteException
 import java.rmi.registry.LocateRegistry
 import java.rmi.registry.Registry
 import java.rmi.server.UnicastRemoteObject
@@ -30,22 +29,20 @@ import kotlin.math.min
  * @param newMemberDetected 发现新成员
  * @param broadcastReceived 收到广播
  * @param commandReceived   收到 TCP
- * @param rmiRemote         远程过程实现
  */
-class RemoteHub<out T : Remote>(
+class RemoteHub(
 	name: String,
 	netFilter: (NetworkInterface) -> Boolean,
 	private val newMemberDetected: String.() -> Unit,
-	private val broadcastReceived: RemoteHub<T>.(String, ByteArray) -> Unit,
-	private val commandReceived: RemoteHub<T>.(String, ByteArray) -> ByteArray,
-	private val rmiRemote: T?
+	private val broadcastReceived: RemoteHub.(String, ByteArray) -> Unit,
+	private val commandReceived: RemoteHub.(String, ByteArray) -> ByteArray
 ) : Closeable {
 	// 默认套接字
 	private val default = MulticastSocket(ADDRESS.port)
 	// TCP监听
 	private val server = newServerSocket()
 	// RMI服务
-	private val registry = rmiRemote?.let { newRegistry() }
+	private val registry = newRegistry()
 	// 组成员列表
 	private val group = ConcurrentHashMap<String, ConnectionInfo>()
 	// 地址询问阻塞
@@ -107,17 +104,18 @@ class RemoteHub<out T : Remote>(
 		addressSignal.awake()
 	}
 
+	private fun clearAddress(sender: String) {
+		group[name]?.copy(address = null)?.let { info -> group.put(name, info) }
+	}
+
 	// 尝试连接一个远端 TCP 服务器
 	private tailrec fun connect(name: String): Socket {
 		val result = group[name]
 			?.address
 			?.let {
-				try {
-					Socket(it.address, it.tcpPort)
-				} catch (e: IOException) {
-					group[name]?.copy(address = null)?.let { info -> group.put(name, info) }
-					null
-				}
+				runCatching { Socket(it.address, it.tcpPort) }
+					.apply { onFailure { clearAddress(name) } }
+					.getOrNull()
 			}
 		return if (result != null) result
 		else {
@@ -166,48 +164,44 @@ class RemoteHub<out T : Remote>(
 	/**
 	 * 尝试连接一个远程调用服务
 	 */
-	tailrec fun <U : Remote> connect(name: String): U {
+	tailrec fun <T : Remote> connect(
+		name: String,
+		serviceName: String
+	): T? {
 		val result = group[name]
 			?.address
 			?.let {
-				try {
+				runCatching {
 					LocateRegistry
 						.getRegistry(it.address.hostAddress, it.rmiPort)
-						.lookup(name)
-				} catch (e: RemoteException) {
-					println(e.detail)
-					null
-				}
+						.lookup(serviceName)
+				}.getOrNull()
 			}
 		@Suppress("UNCHECKED_CAST")
-		return if (result != null) result as U
+		return if (result != null) result as? T
 		else {
 			send(UdpCmd.AddressAsk, name.toByteArray())
 			addressSignal.block(1000)
-			connect<U>(name)
+			connect(name, serviceName)
 		}
 	}
 
 	/**
-	 * 开始响应 RMI
+	 * 挂载 RMI 任务
 	 */
-	fun startRMI() {
-		registry
-			?.second
-			?.takeIf { it.list().isEmpty() }
-			?.rebind(name, rmiRemote)
+	fun load(serviceName: String, remote: Remote) {
+		registry.second.rebind(serviceName, remote)
 	}
 
 	/**
-	 * 停止 RMI 服务
-	 * @param force 是否允许强制立即中止正在运行的线程
+	 * 取消 RMI 任务
 	 */
-	fun stopRMI(force: Boolean = false) {
-		registry
-			?.second
-			?.takeIf { it.list().isNotEmpty() }
-			?.unbind(name)
-			?.also { UnicastRemoteObject.unexportObject(rmiRemote, force) }
+	fun cancel(serviceName: String, force: Boolean = false) {
+		runCatching { registry.second.lookup(serviceName) }
+			.onSuccess {
+				registry.second.unbind(serviceName)
+				UnicastRemoteObject.unexportObject(it, force)
+			}
 	}
 
 	/**
@@ -215,7 +209,7 @@ class RemoteHub<out T : Remote>(
 	 * 调用此方法后再用终端进行收发操作将导致异常、阻塞或其他非预期的结果
 	 */
 	override fun close() {
-		stopRMI()
+		registry.second.list().forEach { cancel(it, true) }
 		default.leaveGroup(ADDRESS.address)
 		server.close()
 	}
@@ -351,7 +345,7 @@ class RemoteHub<out T : Remote>(
 		address = HubAddress(
 			network.inetAddresses.asSequence().first(),
 			server.localPort,
-			registry?.first ?: 0
+			registry.first
 		)
 		// 定名
 		this.name = name.takeIf { it.isNotBlank() } ?: "Hub[$address]"
