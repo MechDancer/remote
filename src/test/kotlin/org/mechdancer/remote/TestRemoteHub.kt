@@ -1,6 +1,8 @@
 package org.mechdancer.remote
 
 import org.mechdancer.remote.builder.remoteHub
+import org.mechdancer.remote.core.forever
+import org.mechdancer.remote.core.launch
 import java.rmi.Remote
 import kotlin.concurrent.thread
 
@@ -14,8 +16,8 @@ object A {
 				String(ask).also(::println).let { "$name(\"${String(ask)}\"): $it".toByteArray() }
 			}
 		}.run {
-			thread { while (true) listen() }
-			while (true) invoke()
+			launch { listen() }
+			forever { invoke() }
 		}
 	}
 }
@@ -30,8 +32,9 @@ object B {
 				String(ask).also(::println).let { "$name(\"${String(ask)}\"): $it".toByteArray() }
 			}
 		}.run {
-			thread { while (true) listen() }
-			while (true) invoke()
+			launch { listen() }
+			launch { println("members: ${refresh(200)}") }
+			forever { invoke() }
 		}
 	}
 }
@@ -49,15 +52,15 @@ object C {
 			broadcast("hello".toByteArray())
 			thread {
 				var i = 0
-				while (true) {
-					i++.toString()
+				while (i++ % 200 < 100) {
+					i.toString()
 						.toByteArray()
-						.let { String(remoteCallBack("BB", it)) }
+						.let { String(call("BB", it)) }
 						.let(::println)
-					Thread.sleep(100)
+					Thread.sleep(10)
 				}
 			}
-			while (true) invoke()
+			forever { invoke() }
 		}
 	}
 }

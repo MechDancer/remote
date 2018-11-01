@@ -10,6 +10,7 @@ import java.rmi.registry.LocateRegistry
 import java.rmi.registry.Registry
 import java.rmi.server.UnicastRemoteObject
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.absoluteValue
 import kotlin.math.min
 
@@ -37,15 +38,17 @@ class RemoteHub<out T : Remote>(
 	private val broadcastReceived: RemoteHub<T>.(String, ByteArray) -> Unit,
 	private val commandReceived: RemoteHub<T>.(String, ByteArray) -> ByteArray,
 	private val rmiRemote: T?
-) {
-	// 组播监听
-	private val socket = MulticastSocket(ADDRESS.port)
+) : Closeable {
+	// 有效网关
+	private val network: NetworkInterface
+	// 默认套接字
+	private val default = MulticastSocket(ADDRESS.port)
 	// TCP监听
 	private val server = newServerSocket()
 	// RMI服务
 	private val registry = rmiRemote?.let { newRegistry() }
 	// 组成员列表
-	private val group = mutableMapOf<String, HubAddress?>()
+	private val group = ConcurrentHashMap<String, ConnectionInfo>()
 	// 地址询问阻塞
 	private val addressSignal = SignalBlocker()
 
@@ -62,20 +65,28 @@ class RemoteHub<out T : Remote>(
 	/**
 	 * 组成员列表
 	 */
-	val members get() = group.keys
+	val members get() = group.toMap()
 
 	// 发送组播报文
 	private fun send(cmd: UdpCmd, payload: ByteArray = ByteArray(0)) =
 		pack(cmd.id, name, payload)
 			.let { DatagramPacket(it, it.size, ADDRESS) }
-			.let(socket::send)
+			.let(default::send)
 
 	// 广播自己的IP地址
 	private fun tcpAck() = send(UdpCmd.AddressAck, address.bytes)
 
+	// 更新时间戳
+	private fun updateGroup(sender: String) {
+		val now = System.currentTimeMillis()
+		group[sender] = group[sender]
+			?.copy(stamp = now)
+			?: ConnectionInfo(null, now).also { newMemberDetected(sender) }
+	}
+
 	// 解析收到的IP地址
 	private fun parse(sender: String, payload: ByteArray) {
-		group[sender] = payload
+		val address = payload
 			.let(::ByteArrayInputStream)
 			.let(::DataInputStream)
 			.use { stream ->
@@ -85,17 +96,21 @@ class RemoteHub<out T : Remote>(
 					stream.readInt()
 				)
 			}
+		group[sender] =
+			group[sender]?.copy(address = address)
+			?: ConnectionInfo(address)
 		addressSignal.awake()
 	}
 
 	// 尝试连接一个远端 TCP 服务器
 	private tailrec fun connect(name: String): Socket {
 		val result = group[name]
+			?.address
 			?.let {
 				try {
 					Socket(it.address, it.tcpPort)
 				} catch (e: IOException) {
-					group[name] = null
+					group -= name
 					null
 				}
 			}
@@ -114,20 +129,18 @@ class RemoteHub<out T : Remote>(
 	fun yell() = send(UdpCmd.YellActive)
 
 	/**
-	 * 远程调用
-	 * 通过TCP传输，并在传输完后立即返回
+	 * 通过 TCP 发送，并在传输完后立即返回
 	 */
-	fun remoteCall(name: String, msg: ByteArray) =
+	fun send(name: String, msg: ByteArray) =
 		connect(name).use {
 			it.getOutputStream()
 				.writePack(TcpCmd.Call.id, name, msg)
 		}
 
 	/**
-	 * 远程调用
-	 * 通过TCP传输，并阻塞接收反馈
+	 * 通过 TCP 发送，并阻塞接收反馈
 	 */
-	fun remoteCallBack(name: String, msg: ByteArray) =
+	fun call(name: String, msg: ByteArray) =
 		connect(name).use {
 			it.getOutputStream()
 				.writePack(TcpCmd.CallBack.id, name, msg)
@@ -150,6 +163,7 @@ class RemoteHub<out T : Remote>(
 	 */
 	tailrec fun <U : Remote> connect(name: String): U {
 		val result = group[name]
+			?.address
 			?.let {
 				try {
 					LocateRegistry
@@ -157,7 +171,7 @@ class RemoteHub<out T : Remote>(
 						.lookup(name)
 				} catch (e: RemoteException) {
 					println(e.detail)
-					group[name] = null
+					group -= name
 					null
 				}
 			}
@@ -173,52 +187,134 @@ class RemoteHub<out T : Remote>(
 	/**
 	 * 开始响应 RMI
 	 */
-	fun startRMI() =
+	fun startRMI() {
 		registry
 			?.second
 			?.takeIf { it.list().isEmpty() }
 			?.rebind(name, rmiRemote)
+	}
 
 	/**
 	 * 停止 RMI 服务
 	 * @param force 是否允许强制立即中止正在运行的线程
 	 */
-	fun stopRMI(force: Boolean = false) =
+	fun stopRMI(force: Boolean = false) {
 		registry
 			?.second
 			?.takeIf { it.list().isNotEmpty() }
 			?.unbind(name)
 			?.also { UnicastRemoteObject.unexportObject(rmiRemote, force) }
+	}
+
+	/**
+	 * 停止所有功能，释放资源
+	 * 调用此方法后再用终端进行收发操作将导致异常、阻塞或其他非预期的结果
+	 */
+	override fun close() {
+		stopRMI()
+		default.leaveGroup(ADDRESS.address)
+		server.close()
+	}
+
+	// 接收并解析 UDP 包
+	// s : socket   接收用套接字
+	// r : receiver 接收缓冲区
+	// e : end      结束时间
+	// l : loop     是否循环到时间用尽
+	private tailrec fun receive(
+		s: DatagramSocket,
+		r: DatagramPacket,
+		e: Long,
+		l: Boolean
+	) {
+		// 设置超时时间
+		s.soTimeout = (e - System.currentTimeMillis())
+			.let {
+				when {
+					it > Int.MAX_VALUE -> 0
+					it > 0             -> it.toInt()
+					else               -> return
+				}
+			}
+		// 接收，超时直接退出
+		try {
+			r.apply(s::receive)
+		} catch (_: SocketTimeoutException) {
+			return
+		}
+			.data
+			.copyOf(r.length)
+			.let(::ByteArrayInputStream)
+			.readPack()
+			.takeIf { it.second != name }
+			?.let {
+				val (type, sender, payload) = it
+				// 更新时间
+				updateGroup(sender)
+				// 响应指令
+				when (type.toUdpCmd()) {
+					UdpCmd.YellActive -> send(UdpCmd.YellReply)
+					UdpCmd.YellReply  -> Unit
+					UdpCmd.AddressAsk -> if (name == String(payload)) tcpAck()
+					UdpCmd.AddressAck -> parse(sender, payload)
+					UdpCmd.Broadcast  -> broadcastReceived(sender, payload)
+					null              -> Unit
+				}
+			}
+		return if (l) receive(s, r, e, l) else Unit
+	}
+
+	/**
+	 * 更新成员表
+	 *
+	 * 方法将阻塞 [timeout] ms
+	 * 在此时段内未出现的终端视作已离线
+	 *
+	 * @param timeout 检查时间，单位毫秒
+	 */
+	fun refresh(timeout: Int): Set<String> {
+		assert(timeout > 100)
+		yell()
+		invoke(timeout)
+
+		val now = System.currentTimeMillis()
+		val limit = 500 + timeout
+		for (member in group.keys) {
+			val time = group[member]?.stamp
+			if (time != null && now - time > limit)
+				group -= member
+		}
+		return group.keys
+	}
 
 	/**
 	 * 监听并解析 UDP 包
+	 *
+	 * @param timeout    超时时间，单位毫秒，方法最多阻塞这么长时间
+	 * @param bufferSize 缓冲区大小，超过缓冲容量的数据包无法接收
 	 */
-	operator fun invoke(bufferSize: Int = 2048) {
-		val receiver = DatagramPacket(ByteArray(bufferSize), bufferSize)
-		tailrec fun receive(): Triple<Byte, String, ByteArray> =
-			receiver
-				.apply(socket::receive)
-				.data
-				.copyOf(receiver.length)
-				.let(::ByteArrayInputStream)
-				.readPack()
-				.takeIf { it.second != name }
-				?: receive()
-		// 接收
-		val (type, sender, payload) = receive()
-		// 记录不认识的名字
-		sender
-			.takeUnless(group::containsKey)
-			?.also { group[it] = null }
-			?.also(newMemberDetected)
-		// 响应指令
-		when (type.toUdpCmd()) {
-			UdpCmd.YellActive -> send(UdpCmd.YellReply)
-			UdpCmd.YellReply  -> Unit
-			UdpCmd.AddressAsk -> if (name == String(payload)) tcpAck()
-			UdpCmd.AddressAck -> parse(sender, payload)
-			UdpCmd.Broadcast  -> broadcastReceived(sender, payload)
-			null              -> Unit
+	operator fun invoke(
+		timeout: Int = 0,
+		bufferSize: Int = 2048
+	) {
+		when (timeout) {
+			0    -> receive(
+				default,
+				DatagramPacket(ByteArray(bufferSize), bufferSize),
+				Long.MAX_VALUE,
+				false
+			)
+			else -> MulticastSocket(ADDRESS.port).use { core ->
+				core.networkInterface = default.networkInterface
+				core.joinGroup(ADDRESS.address)
+
+				receive(
+					core,
+					DatagramPacket(ByteArray(bufferSize), bufferSize),
+					System.currentTimeMillis() + timeout,
+					true
+				)
+			}
 		}
 	}
 
@@ -237,7 +333,7 @@ class RemoteHub<out T : Remote>(
 
 	init {
 		// 选网
-		val network =
+		network =
 			NetworkInterface
 				.getNetworkInterfaces()
 				.asSequence()
@@ -252,7 +348,6 @@ class RemoteHub<out T : Remote>(
 						?: firstOrNull { !it.isLoopback }
 						?: first()
 				}
-		socket.networkInterface = network
 		address = HubAddress(
 			network.inetAddresses.asSequence().first(),
 			server.localPort,
@@ -261,7 +356,8 @@ class RemoteHub<out T : Remote>(
 		// 定名
 		this.name = name.takeIf { it.isNotBlank() } ?: "Hub[$address]"
 		// 入组
-		socket.joinGroup(ADDRESS.address)
+		default.networkInterface = network
+		default.joinGroup(ADDRESS.address)
 	}
 
 	// 指令 ID
