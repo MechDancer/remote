@@ -12,6 +12,7 @@ import java.rmi.server.UnicastRemoteObject
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.absoluteValue
+import kotlin.math.max
 import kotlin.math.min
 
 /**
@@ -39,8 +40,6 @@ class RemoteHub<out T : Remote>(
 	private val commandReceived: RemoteHub<T>.(String, ByteArray) -> ByteArray,
 	private val rmiRemote: T?
 ) : Closeable {
-	// 有效网关
-	private val network: NetworkInterface
 	// 默认套接字
 	private val default = MulticastSocket(ADDRESS.port)
 	// TCP监听
@@ -51,6 +50,8 @@ class RemoteHub<out T : Remote>(
 	private val group = ConcurrentHashMap<String, ConnectionInfo>()
 	// 地址询问阻塞
 	private val addressSignal = SignalBlocker()
+	// 存活时间
+	private var aliveTime = 10000
 
 	/**
 	 * 终端名字
@@ -65,7 +66,13 @@ class RemoteHub<out T : Remote>(
 	/**
 	 * 组成员列表
 	 */
-	val members get() = group.toMap()
+	val members: Map<String, HubAddress?>
+		get() {
+			val now = System.currentTimeMillis()
+			return group.toMap()
+				.filterValues { now - it.stamp < aliveTime }
+				.mapValues { it.value.address }
+		}
 
 	// 发送组播报文
 	private fun send(cmd: UdpCmd, payload: ByteArray = ByteArray(0)) =
@@ -96,9 +103,7 @@ class RemoteHub<out T : Remote>(
 					stream.readInt()
 				)
 			}
-		group[sender] =
-			group[sender]?.copy(address = address)
-			?: ConnectionInfo(address)
+		group[sender] = group[sender]!!.copy(address = address)
 		addressSignal.awake()
 	}
 
@@ -110,7 +115,7 @@ class RemoteHub<out T : Remote>(
 				try {
 					Socket(it.address, it.tcpPort)
 				} catch (e: IOException) {
-					group -= name
+					group[name]?.copy(address = null)?.let { info -> group.put(name, info) }
 					null
 				}
 			}
@@ -134,7 +139,7 @@ class RemoteHub<out T : Remote>(
 	fun send(name: String, msg: ByteArray) =
 		connect(name).use {
 			it.getOutputStream()
-				.writePack(TcpCmd.Call.id, name, msg)
+				.writePack(TcpCmd.Call.id, this.name, msg)
 		}
 
 	/**
@@ -143,7 +148,7 @@ class RemoteHub<out T : Remote>(
 	fun call(name: String, msg: ByteArray) =
 		connect(name).use {
 			it.getOutputStream()
-				.writePack(TcpCmd.CallBack.id, name, msg)
+				.writePack(TcpCmd.CallBack.id, this.name, msg)
 			it.shutdownOutput()
 			it.getInputStream()
 				.readPack()
@@ -171,7 +176,6 @@ class RemoteHub<out T : Remote>(
 						.lookup(name)
 				} catch (e: RemoteException) {
 					println(e.detail)
-					group -= name
 					null
 				}
 			}
@@ -274,17 +278,10 @@ class RemoteHub<out T : Remote>(
 	 */
 	fun refresh(timeout: Int): Set<String> {
 		assert(timeout > 100)
+		aliveTime = max(1000, timeout)
 		yell()
 		invoke(timeout)
-
-		val now = System.currentTimeMillis()
-		val limit = 500 + timeout
-		for (member in group.keys) {
-			val time = group[member]?.stamp
-			if (time != null && now - time > limit)
-				group -= member
-		}
-		return group.keys
+		return members.keys
 	}
 
 	/**
@@ -304,17 +301,19 @@ class RemoteHub<out T : Remote>(
 				Long.MAX_VALUE,
 				false
 			)
-			else -> MulticastSocket(ADDRESS.port).use { core ->
-				core.networkInterface = default.networkInterface
-				core.joinGroup(ADDRESS.address)
-
-				receive(
-					core,
-					DatagramPacket(ByteArray(bufferSize), bufferSize),
-					System.currentTimeMillis() + timeout,
-					true
-				)
-			}
+			else -> MulticastSocket(ADDRESS.port)
+				.apply {
+					networkInterface = default.networkInterface
+					joinGroup(ADDRESS.address)
+				}
+				.use {
+					receive(
+						it,
+						DatagramPacket(ByteArray(bufferSize), bufferSize),
+						System.currentTimeMillis() + timeout,
+						true
+					)
+				}
 		}
 	}
 
@@ -326,6 +325,7 @@ class RemoteHub<out T : Remote>(
 			.accept()
 			.use { server ->
 				val (type, sender, payload) = server.getInputStream().readPack()
+				updateGroup(sender)
 				commandReceived(sender, payload)
 					.takeIf { type.toTcpCmd() == TcpCmd.CallBack }
 					?.let { server.getOutputStream().writePack(TcpCmd.Back.id, name, it) }
@@ -333,7 +333,7 @@ class RemoteHub<out T : Remote>(
 
 	init {
 		// 选网
-		network =
+		val network =
 			NetworkInterface
 				.getNetworkInterfaces()
 				.asSequence()

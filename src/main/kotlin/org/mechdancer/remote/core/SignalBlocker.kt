@@ -6,7 +6,7 @@ package org.mechdancer.remote.core
 class SignalBlocker {
 	private val core = Object()
 
-	fun block(timeout: Long = 0L) =
+	fun block(timeout: Long = 0) =
 		synchronized(core) { core.wait(timeout) }
 
 	fun awake() =

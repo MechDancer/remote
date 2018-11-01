@@ -6,6 +6,10 @@ import java.net.InetAddress
 
 /**
  * 终端地址
+ *
+ * @param address IP  地址
+ * @param tcpPort TCP 监听端口号
+ * @param rmiPort RMI 服务端口号
  */
 class HubAddress(
 	val address: InetAddress,

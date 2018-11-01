@@ -13,7 +13,10 @@ object A {
 			newMemberDetected = ::println
 			broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
 			commandReceived = { name, ask ->
-				String(ask).also(::println).let { "$name(\"${String(ask)}\"): $it".toByteArray() }
+				String(ask)
+					.also { println("$name(\"${String(ask)}\"): $it") }
+					.let { "ok: $it" }
+					.toByteArray()
 			}
 		}.run {
 			launch { listen() }
@@ -29,7 +32,10 @@ object B {
 			newMemberDetected = ::println
 			broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
 			commandReceived = { name, ask ->
-				String(ask).also(::println).let { "$name(\"${String(ask)}\"): $it".toByteArray() }
+				String(ask)
+					.also { println("$name(\"${String(ask)}\"): $it") }
+					.let { "ok: $it" }
+					.toByteArray()
 			}
 		}.run {
 			launch { listen() }
@@ -46,7 +52,10 @@ object C {
 			newMemberDetected = ::println
 			broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
 			commandReceived = { name, ask ->
-				String(ask).also(::println).let { "$name(\"${String(ask)}\"): $it".toByteArray() }
+				String(ask)
+					.also { println("$name(\"${String(ask)}\"): $it") }
+					.let { "ok: $it" }
+					.toByteArray()
 			}
 		}.run {
 			broadcast("hello".toByteArray())
