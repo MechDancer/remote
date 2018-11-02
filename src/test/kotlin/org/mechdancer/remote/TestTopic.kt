@@ -34,8 +34,9 @@ object TopicServer {
 			))
 
 		// 启动服务器
-		val server = PublishServer(remoteHub("server") { newMemberDetected = ::println }, functions)
+		val server = PublishServer(remoteHub(), functions)
 		launch { server.core() }
+		server.start()
 
 		forever {
 			server["text"] = UUID.randomUUID().toString()
@@ -50,14 +51,13 @@ object TopicReceiver {
 	fun main(args: Array<String>) {
 		// 启动接收端
 		val receiver = remoteHub { newMemberDetected = ::println }
-		val plugin = ReceivePlugin { sender, topic, data ->
+		// 加载接收插件
+		receiver setup ReceivePlugin { sender, topic, data ->
 			when (topic) {
 				"text" -> println("$sender: ${data as String}")
 				"num"  -> println("$sender: ${data as Int}")
 			}
 		}
-		// 加载接收插件
-		receiver.setup(plugin)
 		// 持续解析
 		forever { receiver() }
 	}

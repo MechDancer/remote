@@ -9,11 +9,11 @@ import java.rmi.RemoteException
 import java.rmi.registry.LocateRegistry
 import java.rmi.registry.Registry
 import java.rmi.server.UnicastRemoteObject
-import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.absoluteValue
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.random.Random
 
 /**
  * 远程终端
@@ -216,7 +216,7 @@ class RemoteHub(
 	/**
 	 * 加载 UDP 处理插件
 	 */
-	fun setup(plugin: BroadcastPlugin) {
+	infix fun setup(plugin: BroadcastPlugin) {
 		assert(plugin.id.isLetterOrDigit())
 		plugins[plugin.id] = plugin::invoke
 	}
@@ -404,7 +404,7 @@ class RemoteHub(
 
 		@JvmStatic
 		tailrec fun newRegistry(): Pair<Int, Registry> =
-			Random()
+			Random
 				.nextInt(55536)
 				.absoluteValue
 				.plus(10000)

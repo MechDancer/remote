@@ -3,11 +3,13 @@
 package org.mechdancer.remote.topic
 
 import org.mechdancer.remote.core.RemoteHub
+import org.mechdancer.remote.core.cancel
 import org.mechdancer.remote.core.load
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import java.rmi.RemoteException
 import java.rmi.server.UnicastRemoteObject
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * 数据发布服务器
@@ -18,14 +20,28 @@ class PublishServer(
 	val core: RemoteHub,
 	val map: Map<String, SerialTool<*>>
 ) {
-	init {
-		core.load<ParserServer>(object : UnicastRemoteObject(), ParserServer {
-			override operator fun get(topic: String) =
-				@Suppress("UNCHECKED_CAST")
-				map[topic]
-					?.input
-					?: throw RemoteException("topic not exist or type goes wrong")
-		})
+	private var started = AtomicBoolean(false)
+
+	/**
+	 * 启动解析服务
+	 */
+	fun start() {
+		if (!started.getAndSet(true)) {
+			core.load<ParserServer>(object : UnicastRemoteObject(), ParserServer {
+				override operator fun get(topic: String) =
+					map[topic]
+						?.input
+						?: throw RemoteException("topic not exist or type goes wrong")
+			})
+		}
+	}
+
+	/**
+	 * 停止解析服务
+	 */
+	fun stop() {
+		if (started.getAndSet(false))
+			core.cancel<ParserServer>()
 	}
 
 	/**
