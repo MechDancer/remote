@@ -1,9 +1,9 @@
 package org.mechdancer.remote.core
 
 /**
- * 广播解析插件
+ * 远程调用解析插件
  */
-interface BroadcastPlugin {
+interface CallBackPlugin {
 	/**
 	 * 指令识别号
 	 */
@@ -19,5 +19,5 @@ interface BroadcastPlugin {
 		host: RemoteHub,
 		guest: String,
 		payload: ByteArray
-	)
+	): ByteArray
 }

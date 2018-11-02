@@ -4,23 +4,15 @@ import java.io.*
 import java.net.*
 import java.net.InetAddress.getByAddress
 import java.net.InetAddress.getByName
-import java.rmi.Remote
-import java.rmi.RemoteException
-import java.rmi.registry.LocateRegistry
-import java.rmi.registry.Registry
-import java.rmi.server.UnicastRemoteObject
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.math.absoluteValue
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.random.Random
 
 /**
  * 远程终端
  *
  * 1. UDP 组播
  * 2. TCP 可靠传输
- * 3. RMI Java 远程调用
  *
  * 初始化参数
  * @param name      进程名
@@ -42,8 +34,6 @@ class RemoteHub(
 	private val default = MulticastSocket(ADDRESS.port)
 	// TCP监听
 	private val server = ServerSocket(0)
-	// RMI服务
-	private val registry = newRegistry()
 	// 组成员列表
 	private val group = ConcurrentHashMap<String, ConnectionInfo>()
 	// 地址询问阻塞
@@ -51,7 +41,9 @@ class RemoteHub(
 	// 存活时间
 	private var aliveTime = 10000
 	// UDP 插件服务
-	private val plugins = mutableMapOf<Char, RemoteHub.(String, ByteArray) -> Unit>()
+	private val udpPlugins = mutableMapOf<Char, RemoteHub.(String, ByteArray) -> Unit>()
+	// TCP 插件服务
+	private val tcpPlugins = mutableMapOf<Char, RemoteHub.(String, ByteArray) -> ByteArray>()
 
 	/**
 	 * 终端名字
@@ -61,12 +53,12 @@ class RemoteHub(
 	/**
 	 * 终端地址
 	 */
-	val address: HubAddress
+	val address: InetSocketAddress
 
 	/**
 	 * 组成员列表
 	 */
-	val members: Map<String, HubAddress?>
+	val members: Map<String, InetSocketAddress?>
 		get() {
 			val now = System.currentTimeMillis()
 			return group.toMap()
@@ -96,13 +88,7 @@ class RemoteHub(
 		val address = payload
 			.let(::ByteArrayInputStream)
 			.let(::DataInputStream)
-			.use { stream ->
-				HubAddress(
-					getByAddress(stream.readNBytes(4)),
-					stream.readInt(),
-					stream.readInt()
-				)
-			}
+			.use { InetSocketAddress(getByAddress(it.readNBytes(4)), it.readInt()) }
 		group[sender] = group[sender]!!.copy(address = address)
 		addressSignal.awake()
 	}
@@ -117,7 +103,7 @@ class RemoteHub(
 		val result = group[name]
 			?.address
 			?.let {
-				runCatching { Socket(it.address, it.tcpPort) }
+				runCatching { Socket(it.address, it.port) }
 					.apply { onFailure { clearAddress(name) } }
 					.getOrNull()
 			}
@@ -167,58 +153,24 @@ class RemoteHub(
 
 	/**
 	 * 广播一包数据
+	 * 用于插件服务
 	 */
 	fun broadcast(id: Char, msg: ByteArray) = send(id.toByte(), msg)
-
-	/**
-	 * 尝试连接一个远程调用服务
-	 */
-	tailrec fun <T : Remote> connectRMI(
-		name: String,
-		serviceName: String
-	): T? {
-		val result = group[name]
-			?.address
-			?.let {
-				runCatching {
-					LocateRegistry
-						.getRegistry(it.address.hostAddress, it.rmiPort)
-						.lookup(serviceName)
-				}.getOrNull()
-			}
-		@Suppress("UNCHECKED_CAST")
-		return if (result != null) result as? T
-		else {
-			send(UdpCmd.AddressAsk.id, name.toByteArray())
-			addressSignal.block(1000)
-			connectRMI(name, serviceName)
-		}
-	}
-
-	/**
-	 * 挂载 RMI 任务
-	 */
-	fun <T : Remote> load(serviceName: String, remote: T) {
-		registry.second.rebind(serviceName, remote)
-	}
-
-	/**
-	 * 取消 RMI 任务
-	 */
-	fun cancel(serviceName: String, force: Boolean = false) {
-		runCatching { registry.second.lookup(serviceName) }
-			.onSuccess {
-				registry.second.unbind(serviceName)
-				UnicastRemoteObject.unexportObject(it, force)
-			}
-	}
 
 	/**
 	 * 加载 UDP 处理插件
 	 */
 	infix fun setup(plugin: BroadcastPlugin) {
 		assert(plugin.id.isLetterOrDigit())
-		plugins[plugin.id] = plugin::invoke
+		udpPlugins[plugin.id] = plugin::invoke
+	}
+
+	/**
+	 * 加载 TCP 处理插件
+	 */
+	infix fun setup(plugin: CallBackPlugin) {
+		assert(plugin.id.isLetterOrDigit())
+		tcpPlugins[plugin.id] = plugin::invoke
 	}
 
 	/**
@@ -226,8 +178,8 @@ class RemoteHub(
 	 * 调用此方法后再用终端进行收发操作将导致异常、阻塞或其他非预期的结果
 	 */
 	override fun close() {
-		registry.second.list().forEach { cancel(it, true) }
 		default.leaveGroup(ADDRESS.address)
+		default.close()
 		server.close()
 	}
 
@@ -272,7 +224,7 @@ class RemoteHub(
 					null              ->
 						type.toChar()
 							.takeIf(Char::isLetterOrDigit)
-							?.let(plugins::get)
+							?.let(udpPlugins::get)
 							?.invoke(this, sender, payload)
 				}
 			}
@@ -337,9 +289,19 @@ class RemoteHub(
 			.use { server ->
 				val (type, sender, payload) = server.getInputStream().readPack()
 				updateGroup(sender)
-				commandReceived(sender, payload)
-					.takeIf { type.toTcpCmd() == TcpCmd.CallBack }
-					?.let { server.getOutputStream().writePack(TcpCmd.Back.id, name, it) }
+				fun reply(msg: ByteArray) =
+					server.getOutputStream().writePack(TcpCmd.Back.id, name, msg)
+				when (type.toTcpCmd()) {
+					TcpCmd.Call     -> commandReceived(sender, payload)
+					TcpCmd.CallBack -> commandReceived(sender, payload).let(::reply)
+					TcpCmd.Back     -> Unit
+					null            ->
+						type.toChar()
+							.takeIf(Char::isLetterOrDigit)
+							?.let(tcpPlugins::get)
+							?.invoke(this, sender, payload)
+							?.let(::reply)
+				}
 			}
 
 	init {
@@ -359,10 +321,9 @@ class RemoteHub(
 						?: firstOrNull { !it.isLoopback }
 						?: first()
 				}
-		address = HubAddress(
+		address = InetSocketAddress(
 			network.inetAddresses.asSequence().first(),
-			server.localPort,
-			registry.first
+			server.localPort
 		)
 		// 定名
 		this.name = name.takeIf { it.isNotBlank() } ?: "Hub[$address]"
@@ -403,15 +364,12 @@ class RemoteHub(
 		fun eth(net: NetworkInterface) = net.name.startsWith("eth")
 
 		@JvmStatic
-		tailrec fun newRegistry(): Pair<Int, Registry> =
-			Random
-				.nextInt(55536)
-				.absoluteValue
-				.plus(10000)
-				.runCatching { this to let(LocateRegistry::createRegistry) }
-				.also { it.onFailure { e -> if (e !is RemoteException) throw  e } }
-				.getOrNull()
-				?: newRegistry()
+		val InetSocketAddress.bytes: ByteArray
+			get() =
+				ByteArrayOutputStream().apply {
+					writeBytes(address.address)
+					DataOutputStream(this).writeInt(port)
+				}.toByteArray()
 
 		@JvmStatic
 		@Suppress("EXTENSION_SHADOWED_BY_MEMBER")
