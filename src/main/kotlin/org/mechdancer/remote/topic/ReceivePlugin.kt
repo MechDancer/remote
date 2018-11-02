@@ -5,9 +5,15 @@ import org.mechdancer.remote.core.RemoteHub
 import org.mechdancer.remote.core.connectRMI
 import kotlin.concurrent.thread
 
-class ReceivePlugin : BroadcastPlugin {
+/**
+ * 话题接收插件
+ */
+class ReceivePlugin(
+	val callback: (String, String, Any?) -> Unit
+) : BroadcastPlugin {
+	private val topics = mutableMapOf<String, (ByteArray) -> Any?>()
+
 	override val id = 'T'
-	val topics = mutableMapOf<String, (ByteArray) -> Any?>()
 	override operator fun invoke(host: RemoteHub, guest: String, payload: ByteArray) {
 		var flag = true
 		thread { while (flag) host() }
@@ -21,7 +27,7 @@ class ReceivePlugin : BroadcastPlugin {
 				else throw RuntimeException("cannot parse topic")
 				f(data)
 			}
-		println(result)
+		callback(guest, topic, result)
 		flag = false
 	}
 }
