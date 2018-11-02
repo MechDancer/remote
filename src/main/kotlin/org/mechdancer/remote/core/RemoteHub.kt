@@ -147,6 +147,22 @@ class RemoteHub(
 		}
 
 	/**
+	 * 调用 TCP 插件服务
+	 */
+	fun call(id: Char, name: String, msg: ByteArray) =
+		connect(name).use {
+			it.getOutputStream()
+				.writePack(id.toByte(), this.name, msg)
+			it.shutdownOutput()
+			it.getInputStream()
+				.readPack()
+				.let { pack ->
+					assert(pack.second == name)
+					pack.third
+				}
+		}
+
+	/**
 	 * 广播一包数据
 	 */
 	infix fun broadcast(msg: ByteArray) = send(UdpCmd.Broadcast.id, msg)
