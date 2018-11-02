@@ -50,7 +50,7 @@ object TopicReceiver {
 	@JvmStatic
 	fun main(args: Array<String>) {
 		// 启动接收端
-		val receiver = remoteHub { newMemberDetected = ::println }
+		val receiver = remoteHub()
 		// 加载接收插件
 		receiver setup ReceivePlugin { sender, topic, data ->
 			when (topic) {
