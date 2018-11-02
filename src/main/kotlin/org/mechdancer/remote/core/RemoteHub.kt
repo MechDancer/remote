@@ -383,7 +383,7 @@ class RemoteHub(
 		val InetSocketAddress.bytes: ByteArray
 			get() =
 				ByteArrayOutputStream().apply {
-					writeBytes(address.address)
+					write(address.address)
 					DataOutputStream(this).writeInt(port)
 				}.toByteArray()
 
