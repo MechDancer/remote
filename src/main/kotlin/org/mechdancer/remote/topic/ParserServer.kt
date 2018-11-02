@@ -8,5 +8,5 @@ import java.rmi.RemoteException
  */
 interface ParserServer : Remote {
 	@Throws(RemoteException::class)
-	operator fun <T> get(topic: String): (ByteArray) -> T
+	operator fun get(topic: String): (ByteArray) -> Any?
 }

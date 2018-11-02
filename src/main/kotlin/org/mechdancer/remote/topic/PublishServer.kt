@@ -20,10 +20,9 @@ class PublishServer(
 ) {
 	init {
 		core.load<ParserServer>(object : UnicastRemoteObject(), ParserServer {
-			override operator fun <T> get(topic: String) =
+			override operator fun get(topic: String) =
 				@Suppress("UNCHECKED_CAST")
 				map[topic]
-					?.let { it as? SerialTool<T> }
 					?.input
 					?: throw RemoteException("topic not exist or type goes wrong")
 		})
@@ -39,9 +38,11 @@ class PublishServer(
 		if (pack != null) {
 			ByteArrayOutputStream().apply {
 				DataOutputStream(this).writeByte(topic.length)
-				this.write(topic.toByteArray())
-				this.write(pack(data))
-			}.toByteArray().let(core::broadcast)
+				write(topic.toByteArray())
+				write(pack(data))
+			}
+				.toByteArray()
+				.let { core.broadcast('T', it) }
 		} else throw IllegalArgumentException("topic is not register")
 	}
 }

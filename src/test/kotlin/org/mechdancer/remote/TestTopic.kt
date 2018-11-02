@@ -2,10 +2,10 @@ package org.mechdancer.remote
 
 import org.mechdancer.remote.builder.remoteHub
 import org.mechdancer.remote.core.cancel
-import org.mechdancer.remote.core.connectRMI
 import org.mechdancer.remote.core.launch
 import org.mechdancer.remote.topic.ParserServer
 import org.mechdancer.remote.topic.PublishServer
+import org.mechdancer.remote.topic.ReceivePlugin
 import org.mechdancer.remote.topic.SerialTool
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -39,17 +39,15 @@ fun main(args: Array<String>) {
 
 	// 启动接收端
 	val receiver = remoteHub { newMemberDetected = ::println }
+	// 加载接收插件
+	receiver.setup(ReceivePlugin())
 	// 持续解析
 	launch { receiver() }
-	// 获取 text 解码方案
-	val text = receiver.connectRMI<ParserServer>("server")?.get<String>("text")
-	// 获取 num  解码方案
-	val num = receiver.connectRMI<ParserServer>("server")?.get<String>("num")
-	// 接收
-	val pText = (functions["text"]!!.output as (String) -> ByteArray)("abc")
-	val pNum = (functions["num"]!!.output as (Int) -> ByteArray)(123)
-	// 进行解码
-	println(text!!(pText))
-	println(num!!(pNum))
+
+	// 发送
+	server["text"] = "xyz"
+
+	Thread.sleep(1000)
+
 	server.core.cancel<ParserServer>()
 }

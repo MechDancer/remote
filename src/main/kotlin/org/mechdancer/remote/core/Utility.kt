@@ -45,4 +45,4 @@ inline fun <reified T : Remote> RemoteHub.cancel() =
  * 连接默认命名的 RMI 服务
  */
 inline fun <reified T : Remote> RemoteHub.connectRMI(name: String) =
-	connect<T>(name, nameOf<T>())
+	connectRMI<T>(name, nameOf<T>())

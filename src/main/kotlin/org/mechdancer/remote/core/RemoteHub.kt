@@ -5,6 +5,7 @@ import java.net.*
 import java.net.InetAddress.getByAddress
 import java.net.InetAddress.getByName
 import java.rmi.Remote
+import java.rmi.RemoteException
 import java.rmi.registry.LocateRegistry
 import java.rmi.registry.Registry
 import java.rmi.server.UnicastRemoteObject
@@ -40,7 +41,7 @@ class RemoteHub(
 	// 默认套接字
 	private val default = MulticastSocket(ADDRESS.port)
 	// TCP监听
-	private val server = newServerSocket()
+	private val server = ServerSocket(0)
 	// RMI服务
 	private val registry = newRegistry()
 	// 组成员列表
@@ -49,6 +50,8 @@ class RemoteHub(
 	private val addressSignal = SignalBlocker()
 	// 存活时间
 	private var aliveTime = 10000
+	// UDP 插件服务
+	private val plugins = mutableMapOf<Char, RemoteHub.(String, ByteArray) -> Unit>()
 
 	/**
 	 * 终端名字
@@ -72,13 +75,13 @@ class RemoteHub(
 		}
 
 	// 发送组播报文
-	private fun send(cmd: UdpCmd, payload: ByteArray = ByteArray(0)) =
-		pack(cmd.id, name, payload)
+	private fun send(cmd: Byte, payload: ByteArray = ByteArray(0)) =
+		pack(cmd, name, payload)
 			.let { DatagramPacket(it, it.size, ADDRESS) }
 			.let(default::send)
 
 	// 广播自己的IP地址
-	private fun tcpAck() = send(UdpCmd.AddressAck, address.bytes)
+	private fun tcpAck() = send(UdpCmd.AddressAck.id, address.bytes)
 
 	// 更新时间戳
 	private fun updateGroup(sender: String) {
@@ -120,7 +123,7 @@ class RemoteHub(
 			}
 		return if (result != null) result
 		else {
-			send(UdpCmd.AddressAsk, name.toByteArray())
+			send(UdpCmd.AddressAsk.id, name.toByteArray())
 			addressSignal.block(1000)
 			connect(name)
 		}
@@ -130,7 +133,7 @@ class RemoteHub(
 	 * 广播自己的名字
 	 * 使得所有在线节点也广播自己的名字，从而得知完整的组列表
 	 */
-	fun yell() = send(UdpCmd.YellActive)
+	fun yell() = send(UdpCmd.YellActive.id)
 
 	/**
 	 * 通过 TCP 发送，并在传输完后立即返回
@@ -160,12 +163,17 @@ class RemoteHub(
 	/**
 	 * 广播一包数据
 	 */
-	infix fun broadcast(msg: ByteArray) = send(UdpCmd.Broadcast, msg)
+	infix fun broadcast(msg: ByteArray) = send(UdpCmd.Broadcast.id, msg)
+
+	/**
+	 * 广播一包数据
+	 */
+	fun broadcast(id: Char, msg: ByteArray) = send(id.toByte(), msg)
 
 	/**
 	 * 尝试连接一个远程调用服务
 	 */
-	tailrec fun <T : Remote> connect(
+	tailrec fun <T : Remote> connectRMI(
 		name: String,
 		serviceName: String
 	): T? {
@@ -181,9 +189,9 @@ class RemoteHub(
 		@Suppress("UNCHECKED_CAST")
 		return if (result != null) result as? T
 		else {
-			send(UdpCmd.AddressAsk, name.toByteArray())
+			send(UdpCmd.AddressAsk.id, name.toByteArray())
 			addressSignal.block(1000)
-			connect(name, serviceName)
+			connectRMI(name, serviceName)
 		}
 	}
 
@@ -203,6 +211,14 @@ class RemoteHub(
 				registry.second.unbind(serviceName)
 				UnicastRemoteObject.unexportObject(it, force)
 			}
+	}
+
+	/**
+	 * 加载 UDP 处理插件
+	 */
+	fun setup(plugin: BroadcastPlugin) {
+		assert(plugin.id.isLetterOrDigit())
+		plugins[plugin.id] = plugin::invoke
 	}
 
 	/**
@@ -236,14 +252,10 @@ class RemoteHub(
 				}
 			}
 		// 接收，超时直接退出
-		try {
-			r.apply(s::receive)
-		} catch (_: SocketTimeoutException) {
-			return
-		}
-			.data
-			.copyOf(r.length)
-			.let(::ByteArrayInputStream)
+		r.runCatching(s::receive)
+			.onFailure { if (it is SocketTimeoutException) return else throw it }
+		// 解包
+		ByteArrayInputStream(r.data, 0, r.length)
 			.readPack()
 			.takeIf { it.second != name }
 			?.let {
@@ -252,12 +264,16 @@ class RemoteHub(
 				updateGroup(sender)
 				// 响应指令
 				when (type.toUdpCmd()) {
-					UdpCmd.YellActive -> send(UdpCmd.YellReply)
+					UdpCmd.YellActive -> send(UdpCmd.YellReply.id)
 					UdpCmd.YellReply  -> Unit
-					UdpCmd.AddressAsk -> if (name == String(payload)) tcpAck()
+					UdpCmd.AddressAsk -> if (name == String(payload)) tcpAck() else Unit
 					UdpCmd.AddressAck -> parse(sender, payload)
 					UdpCmd.Broadcast  -> broadcastReceived(sender, payload)
-					null              -> Unit
+					null              ->
+						type.toChar()
+							.takeIf(Char::isLetterOrDigit)
+							?.let(plugins::get)
+							?.invoke(this, sender, payload)
 				}
 			}
 		return if (l) receive(s, r, e, l) else Unit
@@ -387,24 +403,15 @@ class RemoteHub(
 		fun eth(net: NetworkInterface) = net.name.startsWith("eth")
 
 		@JvmStatic
-		fun newPort() = Random().nextInt(55536).absoluteValue + 10000
-
-		@JvmStatic
-		tailrec fun newServerSocket(): ServerSocket =
-			try {
-				ServerSocket(newPort())
-			} catch (e: BindException) {
-				null
-			} ?: newServerSocket()
-
-		@JvmStatic
 		tailrec fun newRegistry(): Pair<Int, Registry> =
-			try {
-				val port = newPort()
-				port to LocateRegistry.createRegistry(port)
-			} catch (e: BindException) {
-				null
-			} ?: newRegistry()
+			Random()
+				.nextInt(55536)
+				.absoluteValue
+				.plus(10000)
+				.runCatching { this to let(LocateRegistry::createRegistry) }
+				.also { it.onFailure { e -> if (e !is RemoteException) throw  e } }
+				.getOrNull()
+				?: newRegistry()
 
 		@JvmStatic
 		@Suppress("EXTENSION_SHADOWED_BY_MEMBER")
