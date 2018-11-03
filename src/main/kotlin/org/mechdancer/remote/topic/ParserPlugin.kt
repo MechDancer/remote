@@ -8,9 +8,13 @@ import java.io.ObjectOutputStream
 /**
  * 话题解析插件
  */
-class PublishPlugin(
-	val map: Map<String, (ByteArray) -> Any?>
+class ParserPlugin(
+	map: Map<String, (ByteArray) -> Any?>,
+	vararg topics: String
 ) : CallBackPlugin {
+	private val functions =
+		if (topics.isNotEmpty()) map.filterKeys { it in topics } else map
+
 	override val id = 'P'
 
 	override fun invoke(
@@ -19,6 +23,6 @@ class PublishPlugin(
 		payload: ByteArray
 	): ByteArray =
 		ByteArrayOutputStream()
-			.apply { ObjectOutputStream(this).writeObject(map[String(payload)]) }
+			.apply { ObjectOutputStream(this).writeObject(functions[String(payload)]) }
 			.toByteArray()
 }
