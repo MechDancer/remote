@@ -174,19 +174,16 @@ class RemoteHub(
 	fun broadcast(id: Char, msg: ByteArray) = send(id.toByte(), msg)
 
 	/**
-	 * 加载 UDP 处理插件
+	 * 加载插件
 	 */
-	infix fun setup(plugin: BroadcastPlugin) {
+	infix fun setup(plugin: RemotePlugin) {
 		assert(plugin.id.isLetterOrDigit())
-		udpPlugins[plugin.id] = plugin::invoke
-	}
+		when (plugin) {
+			is BroadcastPlugin -> udpPlugins[plugin.id] = plugin::invoke
+			is CallBackPlugin  -> tcpPlugins[plugin.id] = plugin::invoke
+			else               -> throw RuntimeException("unknown plugin type")
+		}
 
-	/**
-	 * 加载 TCP 处理插件
-	 */
-	infix fun setup(plugin: CallBackPlugin) {
-		assert(plugin.id.isLetterOrDigit())
-		tcpPlugins[plugin.id] = plugin::invoke
 	}
 
 	/**
@@ -257,7 +254,7 @@ class RemoteHub(
 	 */
 	fun refresh(timeout: Int): Set<String> {
 		assert(timeout > 100)
-		aliveTime = max(1000, timeout)
+		aliveTime = max(500, timeout)
 		yell()
 		invoke(timeout)
 		return members.keys

@@ -3,12 +3,7 @@ package org.mechdancer.remote.core
 /**
  * 远程调用解析插件
  */
-interface CallBackPlugin {
-	/**
-	 * 指令识别号
-	 */
-	val id: Char
-
+interface CallBackPlugin : RemotePlugin {
 	/**
 	 * 接收回调
 	 * @param host    接收终端

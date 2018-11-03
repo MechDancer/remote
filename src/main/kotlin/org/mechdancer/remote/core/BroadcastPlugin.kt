@@ -3,12 +3,7 @@ package org.mechdancer.remote.core
 /**
  * 广播解析插件
  */
-interface BroadcastPlugin {
-	/**
-	 * 指令识别号
-	 */
-	val id: Char
-
+interface BroadcastPlugin : RemotePlugin {
 	/**
 	 * 接收回调
 	 * @param host    接收终端

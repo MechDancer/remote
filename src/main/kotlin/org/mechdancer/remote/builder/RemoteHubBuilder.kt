@@ -13,12 +13,12 @@ fun remoteHub(
 	block: RemoteCallbackBuilder.() -> Unit = {}
 ) = RemoteCallbackBuilder()
 	.apply(block)
-	.run {
+	.let { info ->
 		RemoteHub(
 			name,
-			netFilter,
-			newMemberDetected,
-			broadcastReceived,
-			commandReceived
+			info.netFilter,
+			info.newMemberDetected,
+			info.broadcastReceived,
+			info.commandReceived
 		)
 	}
