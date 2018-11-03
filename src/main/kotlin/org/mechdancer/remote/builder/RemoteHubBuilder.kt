@@ -20,5 +20,7 @@ fun remoteHub(
 			info.newMemberDetected,
 			info.broadcastReceived,
 			info.commandReceived
-		)
+		).also { hub ->
+			info.plugins.forEach(hub::setup)
+		}
 	}

@@ -4,7 +4,6 @@ import org.mechdancer.remote.builder.remoteHub
 import org.mechdancer.remote.core.forever
 import org.mechdancer.remote.core.launch
 import org.mechdancer.remote.topic.PublishPlugin
-import org.mechdancer.remote.topic.ReceivePlugin
 import org.mechdancer.remote.topic.SerialTool
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -52,12 +51,14 @@ object TopicReceiver {
 	@JvmStatic
 	fun main(args: Array<String>) {
 		// 启动接收端
-		val receiver = remoteHub()
-		// 加载接收插件
-		receiver setup ReceivePlugin { sender, topic, data ->
-			when (topic) {
-				"text" -> println("$sender: ${data as String}")
-				"num"  -> println("$sender: ${data as Int}")
+		val receiver = remoteHub {
+			plugins {
+				topicReceiver { sender, topic, data ->
+					when (topic) {
+						"text" -> println("$sender: ${data as String}")
+						"num"  -> println("$sender: ${data as Int}")
+					}
+				}
 			}
 		}
 		// 持续解析
