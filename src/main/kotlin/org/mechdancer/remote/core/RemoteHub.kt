@@ -4,6 +4,7 @@ import java.io.*
 import java.net.*
 import java.net.InetAddress.getByAddress
 import java.net.InetAddress.getByName
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.max
 import kotlin.math.min
@@ -44,6 +45,11 @@ class RemoteHub(
 	private val udpPlugins = mutableMapOf<Char, RemoteHub.(String, ByteArray) -> Unit>()
 	// TCP 插件服务
 	private val tcpPlugins = mutableMapOf<Char, RemoteHub.(String, ByteArray) -> ByteArray>()
+
+	/**
+	 * 序列号
+	 */
+	val uuid: UUID = UUID.randomUUID()
 
 	/**
 	 * 终端名字
@@ -360,6 +366,16 @@ class RemoteHub(
 		CallBack(1),
 		Back(2)
 	}
+
+	/**
+	 * 连接信息
+	 * @param address 地址
+	 * @param stamp   最后到达时间
+	 */
+	private data class ConnectionInfo(
+		val address: InetSocketAddress?,
+		val stamp: Long
+	)
 
 	private companion object {
 		val ADDRESS = InetSocketAddress(getByName("238.88.88.88"), 23333)

@@ -8,10 +8,9 @@ import org.mechdancer.remote.builder.remoteHub
 import org.mechdancer.remote.core.forever
 import org.mechdancer.remote.core.launch
 import org.mechdancer.remote.topic.TopicPublisher
+import org.mechdancer.remote.topic.encode
 import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
-import java.io.DataOutputStream
 import java.util.*
 import kotlin.random.Random
 
@@ -25,7 +24,7 @@ object PublisherConfig {
 		}
 	}
 	val text = TopicPublisher("text", server) { s: String -> s.toByteArray() }
-	val num = TopicPublisher("num", server) { s: Int -> ByteArrayOutputStream().apply { DataOutputStream(this).writeInt(s) }.toByteArray() }
+	val num = TopicPublisher("num", server) { s: Int -> encode(s) }
 }
 
 object ReceiverConfig {
