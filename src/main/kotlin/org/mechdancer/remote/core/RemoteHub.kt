@@ -91,6 +91,7 @@ class RemoteHub(
 	// 更新时间戳
 	private fun updateGroup(sender: String) {
 		val now = System.currentTimeMillis()
+		if (sender == name) println("!!!!!!!!!!!!!!!!!!!!!!!!!!")
 		group[sender] = group[sender]
 			?.copy(stamp = now)
 			?: ConnectionInfo(null, now).also { newMemberDetected(sender) }
@@ -108,7 +109,7 @@ class RemoteHub(
 
 	// 清除一个地址
 	private fun clearAddress(sender: String) {
-		group[sender]?.copy(address = null)?.let { info -> group.put(name, info) }
+		group[sender]?.copy(address = null)?.let { info -> group[sender] = info }
 	}
 
 	// 尝试连接一个远端 TCP 服务器

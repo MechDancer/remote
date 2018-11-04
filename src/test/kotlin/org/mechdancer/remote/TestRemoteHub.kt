@@ -32,7 +32,7 @@ object B {
 			broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
 			commandReceived = { name, ask ->
 				String(ask)
-					.also { println("$name(\"${String(ask)}\"): $it") }
+					.also { println("$name: \"$it\"") }
 					.let { "ok: $it" }
 					.toByteArray()
 			}
@@ -58,14 +58,18 @@ object C {
 			}
 		}.run {
 			broadcast("hello".toByteArray())
-			launch { println("members: ${refresh(1000)}") }
+			launch {
+				println("members: ${refresh(1000)}")
+				println("a: ${members["a"]}")
+			}
 			thread {
 				var i = 0
 				while (i++ % 200 < 100) {
 					i.toString()
 						.toByteArray()
-						.let { String(call("BB", it)) }
-						.let(::println)
+						.let { send("a", it) }
+					//.let { String(send("a", it)) }
+					//.let(::println)
 					Thread.sleep(10)
 				}
 			}
