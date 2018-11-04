@@ -6,7 +6,7 @@ import java.net.InetAddress.getByAddress
 import java.net.InetAddress.getByName
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.math.max
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.min
 
 /**
@@ -40,7 +40,7 @@ class RemoteHub(
 	// 地址询问阻塞
 	private val addressSignal = SignalBlocker()
 	// 存活时间
-	private var aliveTime = 10000
+	private val alive = AtomicLong(10000)
 	// UDP 插件服务
 	private val udpPlugins = mutableMapOf<Char, RemoteHub.(String, ByteArray) -> Unit>()
 	// TCP 插件服务
@@ -71,6 +71,13 @@ class RemoteHub(
 				.filterValues { now - it.stamp < aliveTime }
 				.mapValues { it.value.address }
 		}
+
+	/**
+	 * 存活时间条件
+	 */
+	var aliveTime: Long
+		get() = alive.get()
+		set(value) = alive.set(if (value <= 0) Long.MAX_VALUE else value)
 
 	// 发送组播报文
 	private fun send(cmd: Byte, payload: ByteArray = ByteArray(0)) =
@@ -259,10 +266,9 @@ class RemoteHub(
 	 * @param timeout 检查时间，单位毫秒
 	 */
 	fun refresh(timeout: Int): Set<String> {
-		assert(timeout > 100)
-		aliveTime = max(500, timeout)
 		yell()
 		invoke(timeout)
+		aliveTime = timeout + 500L // 调用 invoke 构造套接字通常耗费不少于 400ms
 		return members.keys
 	}
 

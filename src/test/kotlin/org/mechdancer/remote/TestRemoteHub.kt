@@ -38,7 +38,7 @@ object B {
 			}
 		}.run {
 			launch { listen() }
-			launch { println("members: ${refresh(200)}") }
+			launch { println("members: ${refresh(1000)}") }
 			forever { invoke() }
 		}
 	}
@@ -58,6 +58,7 @@ object C {
 			}
 		}.run {
 			broadcast("hello".toByteArray())
+			launch { println("members: ${refresh(1000)}") }
 			thread {
 				var i = 0
 				while (i++ % 200 < 100) {
