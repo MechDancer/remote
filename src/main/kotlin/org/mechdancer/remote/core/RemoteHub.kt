@@ -112,28 +112,26 @@ class RemoteHub(
 		group[sender]?.copy(address = null)?.let { info -> group[sender] = info }
 	}
 
-	// 尝试连接一个远端 TCP 服务器
-	private tailrec fun connect(name: String): Socket {
-		val result = group[name]
-			?.address
-			?.let {
-				runCatching { Socket(it.address, it.port) }
-					.apply { onFailure { clearAddress(name) } }
-					.getOrNull()
-			}
-		return if (result != null) result
-		else {
-			send(UdpCmd.AddressAsk.id, name.toByteArray())
-			addressSignal.block(1000)
-			connect(name)
-		}
-	}
-
 	/**
 	 * 广播自己的名字
 	 * 使得所有在线节点也广播自己的名字，从而得知完整的组列表
 	 */
 	fun yell() = send(UdpCmd.YellActive.id)
+
+	// 尝试连接一个远端 TCP 服务器
+	private fun connect(name: String): Socket {
+		while (true) {
+			group[name]
+				?.address
+				?.also { ip ->
+					runCatching { Socket(ip.address, ip.port) }
+						.onFailure { clearAddress(name) }
+						.onSuccess { return it }
+				}
+			send(UdpCmd.AddressAsk.id, name.toByteArray())
+			addressSignal.block(1000)
+		}
+	}
 
 	/**
 	 * 通过 TCP 发送，并在传输完后立即返回

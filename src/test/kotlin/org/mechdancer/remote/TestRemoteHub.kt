@@ -37,6 +37,7 @@ object B {
 					.toByteArray()
 			}
 		}.run {
+			println(address)
 			launch { listen() }
 			launch { println("members: ${refresh(1000)}") }
 			forever { invoke() }
@@ -67,9 +68,9 @@ object C {
 				while (i++ % 200 < 100) {
 					i.toString()
 						.toByteArray()
-						.let { send("a", it) }
-					//.let { String(send("a", it)) }
-					//.let(::println)
+						.let { call("BB", it) }
+						.size
+						.let(::println)
 					Thread.sleep(10)
 				}
 			}
