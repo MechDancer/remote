@@ -154,7 +154,8 @@ class RemoteHub(
 			.onFailure { if (it is SocketTimeoutException) return else throw it }
 		// 解包
 		ByteArrayInputStream(r.data, 0, r.length)
-			.readPack()
+			.readBytes()
+			.let(::unpack)
 			.takeIf { it.second != name }
 			?.let {
 				val (type, sender, payload) = it
@@ -240,37 +241,37 @@ class RemoteHub(
 		}
 	}
 
-	// 通用远程调用
-	private fun Socket.call(id: Byte, name: String, msg: ByteArray) =
-		use {
-			it.getOutputStream().send(id, this@RemoteHub.name, msg)
-			it.getInputStream().receive()
-				.let { pack ->
-					assert(pack.first == TcpCmd.Back.id)
-					assert(pack.second == name)
-					pack.third
-				}
-		}
-
 	/**
 	 * 通过 TCP 发送，并在传输完后立即返回
+	 * @param name 目标终端名字
+	 * @param msg  报文
 	 */
 	fun send(name: String, msg: ByteArray) =
 		connect(name)
 			.getOutputStream()
-			.use { it.send(TcpCmd.Call.id, this.name, msg) }
+			.sendTcp(pack(TcpCmd.Call.id, this.name, msg))
+			.close()
+
+	// 通用远程调用
+	private fun Socket.call(id: Byte, msg: ByteArray) =
+		use {
+			it.getOutputStream().sendTcp(pack(id, this@RemoteHub.name, msg))
+			it.getInputStream().receiveTcp()
+		}
 
 	/**
 	 * 通过 TCP 发送，并阻塞接收反馈
+	 * @param name 目标终端名字
+	 * @param msg  报文
 	 */
 	fun call(name: String, msg: ByteArray) =
-		connect(name).call(TcpCmd.CallBack.id, name, msg)
+		connect(name).call(TcpCmd.CallBack.id, msg)
 
 	/**
 	 * 调用 TCP 插件服务
 	 */
 	fun call(id: Char, name: String, msg: ByteArray) =
-		connect(name).call(id.toByte(), name, msg)
+		connect(name).call(id.toByte(), msg)
 
 	/**
 	 * 监听并解析 TCP 包
@@ -279,20 +280,23 @@ class RemoteHub(
 		server
 			.accept()
 			.use { server ->
-				val (type, sender, payload) = server.getInputStream().receive()
+				val (type, sender, payload) =
+					server
+						.getInputStream()
+						.receiveTcp()
+						.let(::unpack)
 				updateGroup(sender)
-				fun reply(msg: ByteArray) =
-					server.getOutputStream().send(TcpCmd.Back.id, name, msg)
+				fun reply(msg: ByteArray) = server.getOutputStream().sendTcp(msg)
 				when (type.toTcpCmd()) {
 					TcpCmd.Call     -> commandReceived(sender, payload)
 					TcpCmd.CallBack -> commandReceived(sender, payload).let(::reply)
-					TcpCmd.Back     -> Unit
 					null            ->
 						type.toChar()
 							.takeIf(Char::isLetterOrDigit)
 							?.let(tcpPlugins::get)
 							?.invoke(this, sender, payload)
 							?.let(::reply)
+							?: Unit
 				}
 			}
 
@@ -358,8 +362,7 @@ class RemoteHub(
 	// 指令 ID
 	private enum class TcpCmd(val id: Byte) {
 		Call(0),
-		CallBack(1),
-		Back(2)
+		CallBack(1)
 	}
 
 	/**
@@ -405,7 +408,8 @@ class RemoteHub(
 			return buffer
 		}
 
-		// 打包
+		// 打包解包
+
 		@JvmStatic
 		fun pack(
 			type: Byte,
@@ -421,30 +425,29 @@ class RemoteHub(
 				write(payload)
 			}.toByteArray()
 
-		//从输入流读取一包
 		@JvmStatic
-		fun InputStream.readPack(length: Int = -1) =
-			DataInputStream(this).let {
-				val type = it.readByte()
-				val nameLength = it.readByte().toInt()
-				val name = String(it.readNBytes(nameLength))
-				val payload =
-					if (length > 0) it.readNBytes(length - 2 - nameLength)
-					else it.readBytes()
-				Triple(type, name, payload)
+		fun unpack(pack: ByteArray) =
+			pack.let(::ByteArrayInputStream)
+				.let(::DataInputStream)
+				.let {
+					val type = it.readByte()
+					val nameLength = it.readByte().toInt()
+					val name = String(it.readNBytes(nameLength))
+					val payload = it.readBytes()
+					Triple(type, name, payload)
+				}
+
+		// TCP 收发
+
+		@JvmStatic
+		fun OutputStream.sendTcp(pack: ByteArray) =
+			apply {
+				DataOutputStream(this).writeInt(pack.size)
+				write(pack)
 			}
 
-		// 发送一包到流
 		@JvmStatic
-		fun OutputStream.send(cmd: Byte, name: String, payload: ByteArray = ByteArray(0)
-		) {
-			val pack = pack(cmd, name, payload)
-			DataOutputStream(this).writeInt(pack.size)
-			write(pack)
-		}
-
-		// 从流接收一包
-		@JvmStatic
-		fun InputStream.receive() = readPack(DataInputStream(this).readInt())
+		fun InputStream.receiveTcp(): ByteArray =
+			readNBytes(DataInputStream(this).readInt())
 	}
 }

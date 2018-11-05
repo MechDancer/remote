@@ -61,7 +61,6 @@ object C {
 			broadcast("hello".toByteArray())
 			launch {
 				println("members: ${refresh(1000)}")
-				println("a: ${members["a"]}")
 			}
 			thread {
 				var i = 0
