@@ -23,7 +23,7 @@ import kotlin.math.min
  * 回调参数
  * @param newMemberDetected 发现新成员
  * @param broadcastReceived 收到广播
- * @param commandReceived   收到 TCP
+ * @param commandReceived   收到通用 TCP
  */
 class RemoteHub(
 	name: String,
@@ -80,6 +80,14 @@ class RemoteHub(
 		get() = alive.get()
 		set(value) = alive.set(if (value <= 0) Long.MAX_VALUE else value)
 
+	// 更新时间戳
+	private fun updateGroup(sender: String) {
+		val now = System.currentTimeMillis()
+		group[sender] = group[sender]
+			?.copy(stamp = now)
+			?: ConnectionInfo(null, now).also { newMemberDetected(sender) }
+	}
+
 	// 发送组播报文
 	private fun broadcast(cmd: Byte, payload: ByteArray = ByteArray(0)) =
 		pack(cmd, name, payload)
@@ -89,16 +97,8 @@ class RemoteHub(
 	// 广播自己的IP地址
 	private fun tcpAck() = broadcast(AddressAck.id, address.bytes)
 
-	// 更新时间戳
-	private fun updateGroup(sender: String) {
-		val now = System.currentTimeMillis()
-		group[sender] = group[sender]
-			?.copy(stamp = now)
-			?: ConnectionInfo(null, now).also { newMemberDetected(sender) }
-	}
-
 	// 解析收到的IP地址
-	private fun parse(sender: String, payload: ByteArray) {
+	private fun tcpParse(sender: String, payload: ByteArray) {
 		val address = payload
 			.let(::ByteArrayInputStream)
 			.let(::DataInputStream)
@@ -128,90 +128,6 @@ class RemoteHub(
 	 * 用于插件服务
 	 */
 	fun broadcast(id: Char, msg: ByteArray) = broadcast(id.toByte(), msg)
-
-	// 尝试连接一个远端 TCP 服务器
-	private fun connect(name: String): Socket {
-		while (true) {
-			group[name]
-				?.address
-				?.also { ip ->
-					runCatching { Socket(ip.address, ip.port) }
-						.onFailure { clearAddress(name) }
-						.onSuccess { return it }
-				}
-			broadcast(AddressAsk.id, name.toByteArray())
-			addressSignal.block(1000)
-		}
-	}
-
-	// 发送一包到流
-	private fun OutputStream.send(
-		cmd: Byte,
-		name: String,
-		payload: ByteArray = ByteArray(0)
-	) {
-		val pack = pack(cmd, name, payload)
-		DataOutputStream(this).writeInt(pack.size)
-		write(pack)
-	}
-
-	// 从流接收一包
-	private fun InputStream.receive() =
-		readPack(DataInputStream(this).readInt())
-
-	// 通用远程调用
-	private fun Socket.call(id: Byte, name: String, msg: ByteArray) =
-		use {
-			it.getOutputStream().send(id, this@RemoteHub.name, msg)
-			it.getInputStream().receive()
-				.let { pack ->
-					assert(pack.first == TcpCmd.Back.id)
-					assert(pack.second == name)
-					pack.third
-				}
-		}
-
-	/**
-	 * 通过 TCP 发送，并在传输完后立即返回
-	 */
-	fun send(name: String, msg: ByteArray) =
-		connect(name)
-			.getOutputStream()
-			.use { it.send(TcpCmd.Call.id, this.name, msg) }
-
-	/**
-	 * 通过 TCP 发送，并阻塞接收反馈
-	 */
-	fun call(name: String, msg: ByteArray) =
-		connect(name).call(TcpCmd.CallBack.id, name, msg)
-
-	/**
-	 * 调用 TCP 插件服务
-	 */
-	fun call(id: Char, name: String, msg: ByteArray) =
-		connect(name).call(id.toByte(), name, msg)
-
-	/**
-	 * 加载插件
-	 */
-	infix fun setup(plugin: RemotePlugin) {
-		assert(plugin.id.isLetterOrDigit())
-		when (plugin) {
-			is BroadcastPlugin -> udpPlugins[plugin.id] = plugin::invoke
-			is CallBackPlugin  -> tcpPlugins[plugin.id] = plugin::invoke
-			else               -> throw RuntimeException("unknown plugin type")
-		}
-	}
-
-	/**
-	 * 停止所有功能，释放资源
-	 * 调用此方法后再用终端进行收发操作将导致异常、阻塞或其他非预期的结果
-	 */
-	override fun close() {
-		default.leaveGroup(ADDRESS.address)
-		default.close()
-		server.close()
-	}
 
 	// 接收并解析 UDP 包
 	// s : socket   接收用套接字
@@ -249,7 +165,7 @@ class RemoteHub(
 					UdpCmd.YellActive -> broadcast(YellReply.id)
 					UdpCmd.YellReply  -> Unit
 					UdpCmd.AddressAsk -> if (name == String(payload)) tcpAck() else Unit
-					UdpCmd.AddressAck -> parse(sender, payload)
+					UdpCmd.AddressAck -> tcpParse(sender, payload)
 					UdpCmd.Broadcast  -> broadcastReceived(sender, payload)
 					null              ->
 						type.toChar()
@@ -309,6 +225,53 @@ class RemoteHub(
 		}
 	}
 
+	// 尝试连接一个远端 TCP 服务器
+	private fun connect(name: String): Socket {
+		while (true) {
+			group[name]
+				?.address
+				?.also { ip ->
+					runCatching { Socket(ip.address, ip.port) }
+						.onFailure { clearAddress(name) }
+						.onSuccess { return it }
+				}
+			broadcast(AddressAsk.id, name.toByteArray())
+			addressSignal.block(1000)
+		}
+	}
+
+	// 通用远程调用
+	private fun Socket.call(id: Byte, name: String, msg: ByteArray) =
+		use {
+			it.getOutputStream().send(id, this@RemoteHub.name, msg)
+			it.getInputStream().receive()
+				.let { pack ->
+					assert(pack.first == TcpCmd.Back.id)
+					assert(pack.second == name)
+					pack.third
+				}
+		}
+
+	/**
+	 * 通过 TCP 发送，并在传输完后立即返回
+	 */
+	fun send(name: String, msg: ByteArray) =
+		connect(name)
+			.getOutputStream()
+			.use { it.send(TcpCmd.Call.id, this.name, msg) }
+
+	/**
+	 * 通过 TCP 发送，并阻塞接收反馈
+	 */
+	fun call(name: String, msg: ByteArray) =
+		connect(name).call(TcpCmd.CallBack.id, name, msg)
+
+	/**
+	 * 调用 TCP 插件服务
+	 */
+	fun call(id: Char, name: String, msg: ByteArray) =
+		connect(name).call(id.toByte(), name, msg)
+
 	/**
 	 * 监听并解析 TCP 包
 	 */
@@ -332,6 +295,28 @@ class RemoteHub(
 							?.let(::reply)
 				}
 			}
+
+	/**
+	 * 加载插件
+	 */
+	infix fun setup(plugin: RemotePlugin) {
+		assert(plugin.id.isLetterOrDigit())
+		when (plugin) {
+			is BroadcastPlugin -> udpPlugins[plugin.id] = plugin::invoke
+			is CallBackPlugin  -> tcpPlugins[plugin.id] = plugin::invoke
+			else               -> throw RuntimeException("unknown plugin type")
+		}
+	}
+
+	/**
+	 * 停止所有功能，释放资源
+	 * 调用此方法后再用终端进行收发操作将导致异常、阻塞或其他非预期的结果
+	 */
+	override fun close() {
+		default.leaveGroup(ADDRESS.address)
+		default.close()
+		server.close()
+	}
 
 	init {
 		// 选网
@@ -436,14 +421,6 @@ class RemoteHub(
 				write(payload)
 			}.toByteArray()
 
-		// 把一包写入输出流
-		@JvmStatic
-		fun OutputStream.writePack(
-			type: Byte,
-			name: String,
-			payload: ByteArray
-		) = write(pack(type, name, payload))
-
 		//从输入流读取一包
 		@JvmStatic
 		fun InputStream.readPack(length: Int = -1) =
@@ -456,5 +433,18 @@ class RemoteHub(
 					else it.readBytes()
 				Triple(type, name, payload)
 			}
+
+		// 发送一包到流
+		@JvmStatic
+		fun OutputStream.send(cmd: Byte, name: String, payload: ByteArray = ByteArray(0)
+		) {
+			val pack = pack(cmd, name, payload)
+			DataOutputStream(this).writeInt(pack.size)
+			write(pack)
+		}
+
+		// 从流接收一包
+		@JvmStatic
+		fun InputStream.receive() = readPack(DataInputStream(this).readInt())
 	}
 }
