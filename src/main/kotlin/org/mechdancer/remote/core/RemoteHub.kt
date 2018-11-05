@@ -1,5 +1,6 @@
 package org.mechdancer.remote.core
 
+import org.mechdancer.remote.core.RemoteHub.UdpCmd.*
 import java.io.*
 import java.net.*
 import java.net.InetAddress.getByAddress
@@ -80,18 +81,17 @@ class RemoteHub(
 		set(value) = alive.set(if (value <= 0) Long.MAX_VALUE else value)
 
 	// 发送组播报文
-	private fun send(cmd: Byte, payload: ByteArray = ByteArray(0)) =
+	private fun broadcast(cmd: Byte, payload: ByteArray = ByteArray(0)) =
 		pack(cmd, name, payload)
 			.let { DatagramPacket(it, it.size, ADDRESS) }
 			.let(default::send)
 
 	// 广播自己的IP地址
-	private fun tcpAck() = send(UdpCmd.AddressAck.id, address.bytes)
+	private fun tcpAck() = broadcast(AddressAck.id, address.bytes)
 
 	// 更新时间戳
 	private fun updateGroup(sender: String) {
 		val now = System.currentTimeMillis()
-		if (sender == name) println("!!!!!!!!!!!!!!!!!!!!!!!!!!")
 		group[sender] = group[sender]
 			?.copy(stamp = now)
 			?: ConnectionInfo(null, now).also { newMemberDetected(sender) }
@@ -116,7 +116,18 @@ class RemoteHub(
 	 * 广播自己的名字
 	 * 使得所有在线节点也广播自己的名字，从而得知完整的组列表
 	 */
-	fun yell() = send(UdpCmd.YellActive.id)
+	fun yell() = broadcast(YellActive.id)
+
+	/**
+	 * 广播一包数据
+	 */
+	infix fun broadcast(msg: ByteArray) = broadcast(Broadcast.id, msg)
+
+	/**
+	 * 广播一包数据
+	 * 用于插件服务
+	 */
+	fun broadcast(id: Char, msg: ByteArray) = broadcast(id.toByte(), msg)
 
 	// 尝试连接一个远端 TCP 服务器
 	private fun connect(name: String): Socket {
@@ -128,62 +139,57 @@ class RemoteHub(
 						.onFailure { clearAddress(name) }
 						.onSuccess { return it }
 				}
-			send(UdpCmd.AddressAsk.id, name.toByteArray())
+			broadcast(AddressAsk.id, name.toByteArray())
 			addressSignal.block(1000)
 		}
 	}
+
+	// 发送一包到流
+	private fun OutputStream.send(
+		cmd: Byte,
+		name: String,
+		payload: ByteArray = ByteArray(0)
+	) {
+		val pack = pack(cmd, name, payload)
+		DataOutputStream(this).writeInt(pack.size)
+		write(pack)
+	}
+
+	// 从流接收一包
+	private fun InputStream.receive() =
+		readPack(DataInputStream(this).readInt())
+
+	// 通用远程调用
+	private fun Socket.call(id: Byte, name: String, msg: ByteArray) =
+		use {
+			it.getOutputStream().send(id, this@RemoteHub.name, msg)
+			it.getInputStream().receive()
+				.let { pack ->
+					assert(pack.first == TcpCmd.Back.id)
+					assert(pack.second == name)
+					pack.third
+				}
+		}
 
 	/**
 	 * 通过 TCP 发送，并在传输完后立即返回
 	 */
 	fun send(name: String, msg: ByteArray) =
-		connect(name).use {
-			it.getOutputStream()
-				.writePack(TcpCmd.Call.id, this.name, msg)
-		}
+		connect(name)
+			.getOutputStream()
+			.use { it.send(TcpCmd.Call.id, this.name, msg) }
 
 	/**
 	 * 通过 TCP 发送，并阻塞接收反馈
 	 */
 	fun call(name: String, msg: ByteArray) =
-		connect(name).use {
-			it.getOutputStream()
-				.writePack(TcpCmd.CallBack.id, this.name, msg)
-			it.shutdownOutput()
-			it.getInputStream()
-				.readPack()
-				.let { pack ->
-					assert(pack.second == name)
-					pack.third
-				}
-		}
+		connect(name).call(TcpCmd.CallBack.id, name, msg)
 
 	/**
 	 * 调用 TCP 插件服务
 	 */
 	fun call(id: Char, name: String, msg: ByteArray) =
-		connect(name).use {
-			it.getOutputStream()
-				.writePack(id.toByte(), this.name, msg)
-			it.shutdownOutput()
-			it.getInputStream()
-				.readPack()
-				.let { pack ->
-					assert(pack.second == name)
-					pack.third
-				}
-		}
-
-	/**
-	 * 广播一包数据
-	 */
-	infix fun broadcast(msg: ByteArray) = send(UdpCmd.Broadcast.id, msg)
-
-	/**
-	 * 广播一包数据
-	 * 用于插件服务
-	 */
-	fun broadcast(id: Char, msg: ByteArray) = send(id.toByte(), msg)
+		connect(name).call(id.toByte(), name, msg)
 
 	/**
 	 * 加载插件
@@ -195,7 +201,6 @@ class RemoteHub(
 			is CallBackPlugin  -> tcpPlugins[plugin.id] = plugin::invoke
 			else               -> throw RuntimeException("unknown plugin type")
 		}
-
 	}
 
 	/**
@@ -241,7 +246,7 @@ class RemoteHub(
 				updateGroup(sender)
 				// 响应指令
 				when (type.toUdpCmd()) {
-					UdpCmd.YellActive -> send(UdpCmd.YellReply.id)
+					UdpCmd.YellActive -> broadcast(YellReply.id)
 					UdpCmd.YellReply  -> Unit
 					UdpCmd.AddressAsk -> if (name == String(payload)) tcpAck() else Unit
 					UdpCmd.AddressAck -> parse(sender, payload)
@@ -311,10 +316,10 @@ class RemoteHub(
 		server
 			.accept()
 			.use { server ->
-				val (type, sender, payload) = server.getInputStream().readPack()
+				val (type, sender, payload) = server.getInputStream().receive()
 				updateGroup(sender)
 				fun reply(msg: ByteArray) =
-					server.getOutputStream().writePack(TcpCmd.Back.id, name, msg)
+					server.getOutputStream().send(TcpCmd.Back.id, name, msg)
 				when (type.toTcpCmd()) {
 					TcpCmd.Call     -> commandReceived(sender, payload)
 					TcpCmd.CallBack -> commandReceived(sender, payload).let(::reply)
@@ -415,7 +420,7 @@ class RemoteHub(
 			return buffer
 		}
 
-		// 打包一包
+		// 打包
 		@JvmStatic
 		fun pack(
 			type: Byte,
@@ -441,12 +446,14 @@ class RemoteHub(
 
 		//从输入流读取一包
 		@JvmStatic
-		fun InputStream.readPack() =
+		fun InputStream.readPack(length: Int = -1) =
 			DataInputStream(this).let {
 				val type = it.readByte()
-				val length = it.readByte().toInt()
-				val name = String(it.readNBytes(length))
-				val payload = it.readBytes()
+				val nameLength = it.readByte().toInt()
+				val name = String(it.readNBytes(nameLength))
+				val payload =
+					if (length > 0) it.readNBytes(length - 2 - nameLength)
+					else it.readBytes()
 				Triple(type, name, payload)
 			}
 	}

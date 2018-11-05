@@ -68,8 +68,7 @@ object C {
 				while (i++ % 200 < 100) {
 					i.toString()
 						.toByteArray()
-						.let { call("BB", it) }
-						.size
+						.let { String(call("BB", it)) }
 						.let(::println)
 					Thread.sleep(10)
 				}
