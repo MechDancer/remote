@@ -29,8 +29,8 @@ class RemoteHub(
 	name: String,
 	netFilter: (NetworkInterface) -> Boolean,
 	private val newMemberDetected: String.() -> Unit,
-	private val broadcastReceived: RemoteHub.(String, ByteArray) -> Unit,
-	private val commandReceived: RemoteHub.(String, ByteArray) -> ByteArray
+	private val broadcastReceived: Received,
+	private val commandReceived: CallBack
 ) : Closeable {
 	// 默认套接字
 	private val default = MulticastSocket(ADDRESS.port)
@@ -43,9 +43,9 @@ class RemoteHub(
 	// 存活时间
 	private val alive = AtomicLong(10000)
 	// UDP 插件服务
-	private val udpPlugins = mutableMapOf<Char, RemoteHub.(String, ByteArray) -> Unit>()
+	private val udpPlugins = mutableMapOf<Char, Received>()
 	// TCP 插件服务
-	private val tcpPlugins = mutableMapOf<Char, RemoteHub.(String, ByteArray) -> ByteArray>()
+	private val tcpPlugins = mutableMapOf<Char, CallBack>()
 
 	/**
 	 * 序列号
@@ -129,55 +129,6 @@ class RemoteHub(
 	 */
 	fun broadcast(id: Char, msg: ByteArray) = broadcast(id.toByte(), msg)
 
-	// 接收并解析 UDP 包
-	// s : socket   接收用套接字
-	// r : receiver 接收缓冲区
-	// e : end      结束时间
-	// l : loop     是否循环到时间用尽
-	private tailrec fun receive(
-		s: DatagramSocket,
-		r: DatagramPacket,
-		e: Long,
-		l: Boolean
-	) {
-		// 设置超时时间
-		s.soTimeout = (e - System.currentTimeMillis())
-			.let {
-				when {
-					it > Int.MAX_VALUE -> 0
-					it > 0             -> it.toInt()
-					else               -> return
-				}
-			}
-		// 接收，超时直接退出
-		r.runCatching(s::receive)
-			.onFailure { if (it is SocketTimeoutException) return else throw it }
-		// 解包
-		ByteArrayInputStream(r.data, 0, r.length)
-			.readBytes()
-			.let(::unpack)
-			.takeIf { it.second != name }
-			?.let {
-				val (type, sender, payload) = it
-				// 更新时间
-				updateGroup(sender)
-				// 响应指令
-				when (type.toUdpCmd()) {
-					UdpCmd.YellActive -> broadcast(YellReply.id)
-					UdpCmd.YellReply  -> Unit
-					UdpCmd.AddressAsk -> if (name == String(payload)) tcpAck() else Unit
-					UdpCmd.AddressAck -> tcpParse(sender, payload)
-					UdpCmd.Broadcast  -> broadcastReceived(sender, payload)
-					null              ->
-						type.toChar()
-							.takeIf(Char::isLetterOrDigit)
-							?.let(udpPlugins::get)
-							?.invoke(this, sender, payload)
-				}
-			}
-		return if (l) receive(s, r, e, l) else Unit
-	}
-
 	/**
 	 * 更新成员表
 	 *
@@ -196,34 +147,72 @@ class RemoteHub(
 	/**
 	 * 监听并解析 UDP 包
 	 *
-	 * @param timeout    超时时间，单位毫秒，方法最多阻塞这么长时间
+	 * @param timeout    超时时间，单位毫秒，方法最多阻塞这么长时间，0表示不超时
 	 * @param bufferSize 缓冲区大小，超过缓冲容量的数据包无法接收
 	 */
 	operator fun invoke(
 		timeout: Int = 0,
 		bufferSize: Int = 2048
 	) {
-		when (timeout) {
-			0    -> receive(
-				default,
-				DatagramPacket(ByteArray(bufferSize), bufferSize),
-				Long.MAX_VALUE,
-				false
-			)
-			else -> MulticastSocket(ADDRESS.port)
+		val buffer = DatagramPacket(ByteArray(bufferSize), bufferSize)
+		val socket: DatagramSocket
+		val endTime: Long
+		val loop = timeout != 0
+
+		if (loop) {
+			socket = MulticastSocket(ADDRESS.port)
 				.apply {
 					networkInterface = default.networkInterface
 					joinGroup(ADDRESS.address)
 				}
-				.use {
-					receive(
-						it,
-						DatagramPacket(ByteArray(bufferSize), bufferSize),
-						System.currentTimeMillis() + timeout,
-						true
-					)
+			endTime = System.currentTimeMillis() + timeout
+		} else {
+			socket = default
+			endTime = Long.MAX_VALUE
+		}
+
+		while (loop) {
+			// 设置超时时间
+			socket.soTimeout = (endTime - System.currentTimeMillis())
+				.let {
+					when {
+						it > Int.MAX_VALUE -> 0
+						it > 0             -> it.toInt()
+						else               -> return
+					}
+				}
+			// 接收，超时直接退出
+			try {
+				socket.receive(buffer)
+			} catch (_: SocketTimeoutException) {
+				break
+			}
+			// 解包
+			ByteArrayInputStream(buffer.data, 0, buffer.length)
+				.readBytes()
+				.let(::unpack)
+				.takeIf { it.second != name }
+				?.let {
+					val (type, sender, payload) = it
+					// 更新时间
+					updateGroup(sender)
+					// 响应指令
+					when (type.toUdpCmd()) {
+						UdpCmd.YellActive -> broadcast(YellReply.id)
+						UdpCmd.YellReply  -> Unit
+						UdpCmd.AddressAsk -> if (name == String(payload)) tcpAck() else Unit
+						UdpCmd.AddressAck -> tcpParse(sender, payload)
+						UdpCmd.Broadcast  -> broadcastReceived(sender, payload)
+						null              ->
+							type.toChar()
+								.takeIf(Char::isLetterOrDigit)
+								?.let(udpPlugins::get)
+								?.invoke(this, sender, payload)
+					}
 				}
 		}
+
+		if (socket != default) socket.close()
 	}
 
 	// 尝试连接一个远端 TCP 服务器

@@ -2,6 +2,9 @@ package org.mechdancer.remote.core
 
 import kotlin.concurrent.thread
 
+internal typealias Received = RemoteHub.(String, ByteArray) -> Unit
+internal typealias CallBack = RemoteHub.(String, ByteArray) -> ByteArray
+
 /**
  * 在后台线程中循环执行
  */
