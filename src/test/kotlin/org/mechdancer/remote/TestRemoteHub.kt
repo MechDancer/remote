@@ -39,7 +39,7 @@ object B {
 		}.run {
 			println(address)
 			launch { listen() }
-			launch { "members: ${refresh(1000)}".let(::println) }
+			launch { "members: ${refresh(100)}".let(::println) }
 			forever { invoke() }
 		}
 	}
@@ -58,8 +58,8 @@ object C {
 					.toByteArray()
 			}
 		}.run {
+			println(address)
 			broadcast("hello".toByteArray())
-			launch { "members: ${refresh(1000)}" }
 			thread {
 				var i = 0
 				while (i++ % 200 < 100) {
@@ -70,7 +70,7 @@ object C {
 					Thread.sleep(10)
 				}
 			}
-			launch { "members: ${refresh(1000)}".let(::println) }
+			launch { "members: ${refresh(100)}".let(::println) }
 			forever { invoke() }
 		}
 	}

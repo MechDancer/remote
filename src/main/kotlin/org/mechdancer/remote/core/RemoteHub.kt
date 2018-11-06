@@ -156,20 +156,18 @@ class RemoteHub(
 	/**
 	 * 更新成员表
 	 * @param timeout 以毫秒为单位的检查时间，方法最多阻塞这么长时间。
-	 *                设置在区间 (0, 500) 的检查时间将导致方法不启动重新检查，仅仅发出响应请求。
-	 *                同时此时间会覆盖之前设置的离线时间。
+	 *                此时间会覆盖之前设置的离线时间。
 	 */
 	fun refresh(timeout: Int): Set<String> {
 		assert(timeout > 0)
 
 		yell()
-		if (timeout >= 500)
-			NewMulticast().use {
-				udpReceiveLoop(it, 256, timeout) { pack ->
-					val (_, sender, _) = unpack(pack)
-					if (sender != name) updateGroup(sender)
-				}
+		multicastOn(null).use {
+			udpReceiveLoop(it, 256, timeout) { pack ->
+				val (_, sender, _) = unpack(pack)
+				if (sender != name) updateGroup(sender)
 			}
+		}
 		aliveTime = timeout + 20L
 		return members.keys
 	}
@@ -178,7 +176,6 @@ class RemoteHub(
 	 * 监听并解析 UDP 包
 	 * @param timeout    以毫秒为单位的超时时间，方法最多阻塞这么长时间。
 	 *                   默认值为 0，指示超时时间无穷大。
-	 *                   设置在区间 (0, 500) 的超时时间将导致方法立即返回。
 	 * @param bufferSize 缓冲区大小，超过缓冲容量的数据包无法接收。
 	 *                   默认值 65536 是 UDP 支持的最大包长度。
 	 */
@@ -186,16 +183,16 @@ class RemoteHub(
 		timeout: Int = 0,
 		bufferSize: Int = 65536
 	) {
+		assert(timeout > 0)
 		assert(bufferSize in 0..65536)
 		when (timeout) {
-			in 1..499 -> Unit
-			0         ->
+			0    ->
 				DatagramPacket(ByteArray(bufferSize), bufferSize)
 					.apply(default::receive)
 					.let { it.data.copyOfRange(0, it.length) }
 					.let(::processUdp)
-			else      -> {
-				NewMulticast().use {
+			else -> {
+				multicastOn(null).use {
 					udpReceiveLoop(it, bufferSize, timeout, ::processUdp)
 				}
 			}
@@ -306,7 +303,7 @@ class RemoteHub(
 				.asSequence()
 				.filter(NetworkInterface::isUp)
 				.filter(NetworkInterface::supportsMulticast)
-				.filterNot(NetworkInterface::isVirtual)
+				.filter { it.inetAddresses.hasMoreElements() }
 				.filter(netFilter)
 				.toList()
 				.run {
@@ -322,8 +319,7 @@ class RemoteHub(
 		// 定名
 		this.name = name.takeIf { it.isNotBlank() } ?: "Hub[$address]"
 		// 入组
-		default = NewMulticast()
-		default.networkInterface = network
+		default = multicastOn(network)
 	}
 
 	// 指令 ID
@@ -355,7 +351,11 @@ class RemoteHub(
 		val ADDRESS = InetSocketAddress(getByName("238.88.88.88"), 23333)
 
 		@JvmStatic
-		fun NewMulticast() = MulticastSocket(ADDRESS.port).apply { joinGroup(ADDRESS.address) }
+		fun multicastOn(net: NetworkInterface?) =
+			MulticastSocket(ADDRESS.port).apply {
+				net?.let(this::setNetworkInterface)
+				joinGroup(ADDRESS.address)
+			}
 
 		@JvmStatic
 		fun Byte.toUdpCmd() = UdpCmd.values().firstOrNull { it.id == this }
@@ -444,7 +444,7 @@ class RemoteHub(
 				socket.soTimeout =
 					(endTime - System.currentTimeMillis())
 						.toInt()
-						.takeIf { it >= 500 }
+						.takeIf { it > 0 }
 					?: return
 				// 接收，超时直接退出
 				try {
