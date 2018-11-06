@@ -39,7 +39,7 @@ object B {
 		}.run {
 			println(address)
 			launch { listen() }
-			launch { println("members: ${refresh(1000)}") }
+			launch { "members: ${refresh(1000)}".let(::println) }
 			forever { invoke() }
 		}
 	}
@@ -48,7 +48,7 @@ object B {
 object C {
 	@JvmStatic
 	fun main(args: Array<String>) {
-		remoteHub {
+		remoteHub("CC") {
 			newMemberDetected = ::println
 			broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
 			commandReceived = { name, ask ->
@@ -59,9 +59,7 @@ object C {
 			}
 		}.run {
 			broadcast("hello".toByteArray())
-			launch {
-				println("members: ${refresh(1000)}")
-			}
+			launch { "members: ${refresh(1000)}" }
 			thread {
 				var i = 0
 				while (i++ % 200 < 100) {
@@ -72,6 +70,7 @@ object C {
 					Thread.sleep(10)
 				}
 			}
+			launch { "members: ${refresh(1000)}".let(::println) }
 			forever { invoke() }
 		}
 	}

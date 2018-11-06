@@ -32,8 +32,9 @@ class RemoteHub(
 	private val broadcastReceived: Received,
 	private val commandReceived: CallBack
 ) : Closeable {
+	private val network: NetworkInterface
 	// 默认套接字
-	private val default = MulticastSocket(ADDRESS.port)
+	private val default: MulticastSocket
 	// TCP监听
 	private val server = ServerSocket(0)
 	// 组成员列表
@@ -129,90 +130,76 @@ class RemoteHub(
 	 */
 	fun broadcast(id: Char, msg: ByteArray) = broadcast(id.toByte(), msg)
 
+	// 处理 UDP 包
+	private fun processUdp(pack: ByteArray) =
+		unpack(pack)
+			.takeIf { it.second != name }
+			?.also {
+				val (cmd, sender, payload) = it
+				// 更新时间
+				updateGroup(sender)
+				// 响应指令
+				when (cmd.toUdpCmd()) {
+					UdpCmd.YellActive -> broadcast(YellReply.id)
+					UdpCmd.YellReply  -> Unit
+					UdpCmd.AddressAsk -> if (name == String(payload)) tcpAck() else Unit
+					UdpCmd.AddressAck -> tcpParse(sender, payload)
+					UdpCmd.Broadcast  -> broadcastReceived(sender, payload)
+					null              ->
+						cmd.toChar()
+							.takeIf(Char::isLetterOrDigit)
+							?.let(udpPlugins::get)
+							?.invoke(this@RemoteHub, sender, payload)
+				}
+			}
+
 	/**
 	 * 更新成员表
-	 *
-	 * 方法将阻塞 [timeout] ms
-	 * 在此时段内未出现的终端视作已离线
-	 *
-	 * @param timeout 检查时间，单位毫秒
+	 * @param timeout 以毫秒为单位的检查时间，方法最多阻塞这么长时间。
+	 *                设置在区间 (0, 500) 的检查时间将导致方法不启动重新检查，仅仅发出响应请求。
+	 *                同时此时间会覆盖之前设置的离线时间。
 	 */
 	fun refresh(timeout: Int): Set<String> {
+		assert(timeout > 0)
+
 		yell()
-		invoke(timeout)
-		aliveTime = timeout + 500L // 调用 invoke 构造套接字通常耗费不少于 400ms
+		if (timeout >= 500)
+			NewMulticast().use {
+				udpReceiveLoop(it, 256, timeout) { pack ->
+					val (_, sender, _) = unpack(pack)
+					if (sender != name) updateGroup(sender)
+				}
+			}
+		aliveTime = timeout + 20L
 		return members.keys
 	}
 
 	/**
 	 * 监听并解析 UDP 包
-	 *
-	 * @param timeout    超时时间，单位毫秒，方法最多阻塞这么长时间，0表示不超时
-	 * @param bufferSize 缓冲区大小，超过缓冲容量的数据包无法接收
+	 * @param timeout    以毫秒为单位的超时时间，方法最多阻塞这么长时间。
+	 *                   默认值为 0，指示超时时间无穷大。
+	 *                   设置在区间 (0, 500) 的超时时间将导致方法立即返回。
+	 * @param bufferSize 缓冲区大小，超过缓冲容量的数据包无法接收。
+	 *                   默认值 65536 是 UDP 支持的最大包长度。
 	 */
 	operator fun invoke(
 		timeout: Int = 0,
-		bufferSize: Int = 2048
+		bufferSize: Int = 65536
 	) {
-		val buffer = DatagramPacket(ByteArray(bufferSize), bufferSize)
-		val socket: DatagramSocket
-		val endTime: Long
-		val loop = timeout != 0
-
-		if (loop) {
-			socket = MulticastSocket(ADDRESS.port)
-				.apply {
-					networkInterface = default.networkInterface
-					joinGroup(ADDRESS.address)
+		assert(bufferSize in 0..65536)
+		when (timeout) {
+			in 1..499 -> Unit
+			0         ->
+				DatagramPacket(ByteArray(bufferSize), bufferSize)
+					.apply(default::receive)
+					.let { it.data.copyOfRange(0, it.length) }
+					.let(::processUdp)
+			else      -> {
+				NewMulticast().use {
+					udpReceiveLoop(it, bufferSize, timeout, ::processUdp)
 				}
-			endTime = System.currentTimeMillis() + timeout
-		} else {
-			socket = default
-			endTime = Long.MAX_VALUE
-		}
-
-		while (loop) {
-			// 设置超时时间
-			socket.soTimeout = (endTime - System.currentTimeMillis())
-				.let {
-					when {
-						it > Int.MAX_VALUE -> 0
-						it > 0             -> it.toInt()
-						else               -> return
-					}
-				}
-			// 接收，超时直接退出
-			try {
-				socket.receive(buffer)
-			} catch (_: SocketTimeoutException) {
-				break
 			}
-			// 解包
-			ByteArrayInputStream(buffer.data, 0, buffer.length)
-				.readBytes()
-				.let(::unpack)
-				.takeIf { it.second != name }
-				?.let {
-					val (type, sender, payload) = it
-					// 更新时间
-					updateGroup(sender)
-					// 响应指令
-					when (type.toUdpCmd()) {
-						UdpCmd.YellActive -> broadcast(YellReply.id)
-						UdpCmd.YellReply  -> Unit
-						UdpCmd.AddressAsk -> if (name == String(payload)) tcpAck() else Unit
-						UdpCmd.AddressAck -> tcpParse(sender, payload)
-						UdpCmd.Broadcast  -> broadcastReceived(sender, payload)
-						null              ->
-							type.toChar()
-								.takeIf(Char::isLetterOrDigit)
-								?.let(udpPlugins::get)
-								?.invoke(this, sender, payload)
-					}
-				}
 		}
-
-		if (socket != default) socket.close()
 	}
 
 	// 尝试连接一个远端 TCP 服务器
@@ -313,7 +300,7 @@ class RemoteHub(
 
 	init {
 		// 选网
-		val network =
+		network =
 			NetworkInterface
 				.getNetworkInterfaces()
 				.asSequence()
@@ -335,8 +322,8 @@ class RemoteHub(
 		// 定名
 		this.name = name.takeIf { it.isNotBlank() } ?: "Hub[$address]"
 		// 入组
+		default = NewMulticast()
 		default.networkInterface = network
-		default.joinGroup(ADDRESS.address)
 	}
 
 	// 指令 ID
@@ -366,6 +353,9 @@ class RemoteHub(
 
 	private companion object {
 		val ADDRESS = InetSocketAddress(getByName("238.88.88.88"), 23333)
+
+		@JvmStatic
+		fun NewMulticast() = MulticastSocket(ADDRESS.port).apply { joinGroup(ADDRESS.address) }
 
 		@JvmStatic
 		fun Byte.toUdpCmd() = UdpCmd.values().firstOrNull { it.id == this }
@@ -438,5 +428,32 @@ class RemoteHub(
 		@JvmStatic
 		fun InputStream.receiveTcp(): ByteArray =
 			readNBytes(DataInputStream(this).readInt())
+
+		// UDP 接收循环
+
+		@JvmStatic
+		fun udpReceiveLoop(
+			socket: DatagramSocket,
+			bufferSize: Int,
+			timeout: Int,
+			block: (ByteArray) -> Any?) {
+			val buffer = DatagramPacket(ByteArray(bufferSize), bufferSize)
+			val endTime = System.currentTimeMillis() + timeout
+			while (true) {
+				// 设置超时时间
+				socket.soTimeout =
+					(endTime - System.currentTimeMillis())
+						.toInt()
+						.takeIf { it >= 500 }
+					?: return
+				// 接收，超时直接退出
+				try {
+					socket.receive(buffer)
+				} catch (_: SocketTimeoutException) {
+					return
+				}
+				block(buffer.data.copyOfRange(0, buffer.length))
+			}
+		}
 	}
 }
