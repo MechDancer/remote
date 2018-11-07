@@ -25,6 +25,7 @@ import kotlin.math.min
  * @param broadcastReceived 收到广播
  * @param commandReceived   收到通用 TCP
  */
+@Suppress("unused")
 class RemoteHub(
 	name: String,
 	netFilter: (NetworkInterface) -> Boolean,
@@ -106,11 +107,6 @@ class RemoteHub(
 			.use { InetSocketAddress(getByAddress(it.readNBytes(4)), it.readInt()) }
 		group[sender] = group[sender]!!.copy(address = address)
 		addressSignal.awake()
-	}
-
-	// 清除一个地址
-	private fun clearAddress(sender: String) {
-		group[sender]?.copy(address = null)?.let { info -> group[sender] = info }
 	}
 
 	/**
@@ -205,9 +201,11 @@ class RemoteHub(
 			group[name]
 				?.address
 				?.also { ip ->
-					runCatching { Socket(ip.address, ip.port) }
-						.onFailure { clearAddress(name) }
-						.onSuccess { return it }
+					try {
+						return Socket(ip.address, ip.port)
+					} catch (_: SocketException) {
+						group[name] = group[name]!!.copy(address = null)
+					}
 				}
 			broadcast(AddressAsk.id, name.toByteArray())
 			addressSignal.block(1000)
@@ -297,7 +295,21 @@ class RemoteHub(
 
 	init {
 		// 选网
-		val network = selectNetwork() ?: throw RuntimeException("no available network")
+		val network = NetworkInterface
+			.getNetworkInterfaces()
+			.asSequence()
+			.filter(NetworkInterface::isUp)
+			.filter(NetworkInterface::supportsMulticast)
+			.filter { it.inetAddresses.hasMoreElements() }
+			.filter(netFilter)
+			.toList()
+			.run {
+				firstOrNull(::wlan)
+					?: firstOrNull(::eth)
+					?: firstOrNull { !it.isLoopback }
+					?: first()
+					?: throw RuntimeException("no available network")
+			}
 		address = InetSocketAddress(
 			network.inetAddresses.asSequence().first(),
 			server.localPort
@@ -342,22 +354,6 @@ class RemoteHub(
 				net?.let(this::setNetworkInterface)
 				joinGroup(ADDRESS.address)
 			}
-
-		@JvmStatic
-		fun selectNetwork(): NetworkInterface? =
-			NetworkInterface
-				.getNetworkInterfaces()
-				.asSequence()
-				.filter(NetworkInterface::isUp)
-				.filter(NetworkInterface::supportsMulticast)
-				.filter { it.inetAddresses.hasMoreElements() }
-				.toList()
-				.run {
-					firstOrNull(::wlan)
-						?: firstOrNull(::eth)
-						?: firstOrNull { !it.isLoopback }
-						?: first()
-				}
 
 		@JvmStatic
 		fun Byte.toUdpCmd() = UdpCmd.values().firstOrNull { it.id == this }
