@@ -82,9 +82,12 @@ class RemoteHub(
 	// 未知成员: 添加到表并初始化IP地址
 	// 已知成员: 更新时间戳
 	private fun updateGroup(sender: String) {
+		group[sender]
+			?.takeUnless { now - it.stamp > timeToLive }
+			?: newMemberDetected(sender)
 		group[sender] =
 			group[sender]?.copy(stamp = now)
-			?: ConnectionInfo(now, null).also { newMemberDetected(sender) }
+			?: ConnectionInfo(now, null).also { }
 	}
 
 	// 发送组播报文

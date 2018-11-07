@@ -24,7 +24,7 @@ apply{
 }
 
 group = "org.mechdancer"
-version = "0.1.5-dev-3"
+version = "0.1.5-dev-4"
 
 repositories {
     mavenCentral()
@@ -32,8 +32,8 @@ repositories {
 
 dependencies {
     compile(kotlin("stdlib-jdk8"))
+    compile("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.0.0")
     testCompile("junit", "junit", "+")
-    compile(kotlin("reflect"))
 }
 
 configure<JavaPluginConvention> {
