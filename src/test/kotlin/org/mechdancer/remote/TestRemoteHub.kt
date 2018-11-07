@@ -39,7 +39,7 @@ object B {
 		}.run {
 			println(address)
 			launch { listen() }
-			launch { "members: ${refresh(100)}".let(::println) }
+			launch { "members: ${refresh(200)}".let(::println) }
 			forever { invoke() }
 		}
 	}
@@ -70,7 +70,7 @@ object C {
 					Thread.sleep(10)
 				}
 			}
-			launch { "members: ${refresh(100)}".let(::println) }
+			launch { "members: ${refresh(200)}".let(::println) }
 			forever { invoke() }
 		}
 	}

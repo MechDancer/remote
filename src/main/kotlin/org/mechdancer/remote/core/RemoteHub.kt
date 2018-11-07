@@ -81,14 +81,10 @@ class RemoteHub(
 	// 更新成员信息
 	// 未知成员: 添加到表并初始化IP地址
 	// 已知成员: 更新时间戳
-	private fun updateGroup(sender: String, address: InetSocketAddress?) {
-		val old = group[sender]
-		if (old == null) {
-			group[sender] = ConnectionInfo(now, address)
-			newMemberDetected(sender)
-		} else {
-			group[sender] = old.copy(stamp = now)
-		}
+	private fun updateGroup(sender: String) {
+		group[sender] =
+			group[sender]?.copy(stamp = now)
+			?: ConnectionInfo(now, null).also { newMemberDetected(sender) }
 	}
 
 	// 发送组播报文
@@ -131,13 +127,13 @@ class RemoteHub(
 	fun broadcast(id: Char, msg: ByteArray) = broadcast(id.toByte(), msg)
 
 	// 处理 UDP 包
-	private fun processUdp(pack: DatagramPacket) =
-		unpack(pack.data.copyOfRange(0, pack.length))
+	private fun processUdp(pack: ByteArray) =
+		unpack(pack)
 			.takeIf { it.second != name }
 			?.also {
 				val (cmd, sender, payload) = it
 				// 更新时间
-				updateGroup(sender, InetSocketAddress(pack.address, pack.port))
+				updateGroup(sender)
 				// 响应指令
 				when (cmd.toUdpCmd()) {
 					UdpCmd.YellActive -> broadcast(YellReply.id)
@@ -164,8 +160,8 @@ class RemoteHub(
 		yell()
 		multicastOn(null).use {
 			udpReceiveLoop(it, 256, timeout) { pack ->
-				val (_, sender, _) = unpack(pack.actualData)
-				if (sender != name) updateGroup(sender, pack.actualAddress)
+				val (_, sender, _) = unpack(pack)
+				if (sender != name) updateGroup(sender)
 			}
 		}
 		timeToLive = (timeout * 1.5 + 20).toInt()
@@ -189,6 +185,7 @@ class RemoteHub(
 			0    ->
 				DatagramPacket(ByteArray(bufferSize), bufferSize)
 					.apply(default::receive)
+					.actualData
 					.let(::processUdp)
 			else -> {
 				multicastOn(null).use {
@@ -204,9 +201,12 @@ class RemoteHub(
 			group[other]
 				?.address
 				?.also { ip ->
+					val socket = Socket()
+					socket.soTimeout = 100
 					try {
-						return Socket(ip.address, ip.port)
-					} catch (_: SocketException) {
+						socket.connect(ip)
+						return socket
+					} catch (e: SocketException) {
 						group[other] = group[other]!!.copy(address = null)
 					}
 				}
@@ -259,7 +259,7 @@ class RemoteHub(
 						.getInputStream()
 						.receiveTcp()
 						.let(::unpack)
-				updateGroup(sender, null)
+				updateGroup(sender)
 				fun reply(msg: ByteArray) = server.getOutputStream().sendTcp(msg)
 				when (cmd.toTcpCmd()) {
 					TcpCmd.Call     -> commandReceived(sender, payload)
@@ -449,7 +449,7 @@ class RemoteHub(
 			socket: DatagramSocket,
 			bufferSize: Int,
 			timeout: Int,
-			block: (DatagramPacket) -> Any?) {
+			block: (ByteArray) -> Any?) {
 			val buffer = DatagramPacket(ByteArray(bufferSize), bufferSize)
 			val endTime = System.currentTimeMillis() + timeout
 			while (true) {
@@ -465,7 +465,7 @@ class RemoteHub(
 				} catch (_: SocketTimeoutException) {
 					return
 				}
-				block(buffer)
+				block(buffer.actualData)
 			}
 		}
 	}
