@@ -42,7 +42,7 @@ class RemoteHub(
 	// 地址询问阻塞
 	private val addressSignal = SignalBlocker()
 	// 存活时间
-	private val alive = AtomicInteger(10000)
+	private val aliveTime = AtomicInteger(10000)
 	// UDP 插件服务
 	private val udpPlugins = mutableMapOf<Char, Received>()
 	// TCP 插件服务
@@ -67,27 +67,28 @@ class RemoteHub(
 	 * 组成员列表
 	 */
 	val members: Map<String, InetSocketAddress?>
-		get() {
-			val now = System.currentTimeMillis()
-			return group.toMap()
-				.filterValues { now - it.stamp < aliveTime }
-				.mapValues { it.value.address }
-		}
+		get() = group.toMap()
+			.filterValues { now - it.stamp < timeToLive }
+			.mapValues { it.value.address }
 
 	/**
 	 * 存活时间条件
 	 */
-	var aliveTime: Int
-		get() = alive.get()
-		set(value) = alive.set(if (value <= 0) Int.MAX_VALUE else value)
+	var timeToLive: Int
+		get() = aliveTime.get()
+		set(value) = aliveTime.set(if (value <= 0) Int.MAX_VALUE else value)
 
-	// 更新时间戳
-	private fun updateGroup(sender: String) {
-		val now = System.currentTimeMillis()
-		group[sender] = group[sender]
-			?.copy(stamp = now)
-			?: ConnectionInfo(null, now)
-			.also { newMemberDetected(sender) }
+	// 更新成员信息
+	// 未知成员: 添加到表并初始化IP地址
+	// 已知成员: 更新时间戳
+	private fun updateGroup(sender: String, address: InetSocketAddress?) {
+		val old = group[sender]
+		if (old == null) {
+			group[sender] = ConnectionInfo(now, address)
+			newMemberDetected(sender)
+		} else {
+			group[sender] = old.copy(stamp = now)
+		}
 	}
 
 	// 发送组播报文
@@ -117,23 +118,26 @@ class RemoteHub(
 
 	/**
 	 * 广播一包数据
+	 * @param msg 数据报
 	 */
 	infix fun broadcast(msg: ByteArray) = broadcast(Broadcast.id, msg)
 
 	/**
 	 * 广播一包数据
 	 * 用于插件服务
+	 * @param id  插件识别号
+	 * @param msg 数据报
 	 */
 	fun broadcast(id: Char, msg: ByteArray) = broadcast(id.toByte(), msg)
 
 	// 处理 UDP 包
-	private fun processUdp(pack: ByteArray) =
-		unpack(pack)
+	private fun processUdp(pack: DatagramPacket) =
+		unpack(pack.data.copyOfRange(0, pack.length))
 			.takeIf { it.second != name }
 			?.also {
 				val (cmd, sender, payload) = it
 				// 更新时间
-				updateGroup(sender)
+				updateGroup(sender, InetSocketAddress(pack.address, pack.port))
 				// 响应指令
 				when (cmd.toUdpCmd()) {
 					UdpCmd.YellActive -> broadcast(YellReply.id)
@@ -160,12 +164,12 @@ class RemoteHub(
 		yell()
 		multicastOn(null).use {
 			udpReceiveLoop(it, 256, timeout) { pack ->
-				val (_, sender, _) = unpack(pack)
-				if (sender != name) updateGroup(sender)
+				val (_, sender, _) = unpack(pack.actualData)
+				if (sender != name) updateGroup(sender, pack.actualAddress)
 			}
 		}
-		aliveTime = (timeout * 1.5 + 20).toInt()
-		return members.keys
+		timeToLive = (timeout * 1.5 + 20).toInt()
+		return group.toMap().filterValues { now - it.stamp < timeToLive }.keys
 	}
 
 	/**
@@ -185,7 +189,6 @@ class RemoteHub(
 			0    ->
 				DatagramPacket(ByteArray(bufferSize), bufferSize)
 					.apply(default::receive)
-					.let { it.data.copyOfRange(0, it.length) }
 					.let(::processUdp)
 			else -> {
 				multicastOn(null).use {
@@ -196,53 +199,53 @@ class RemoteHub(
 	}
 
 	// 尝试连接一个远端 TCP 服务器
-	private fun connect(name: String): Socket {
+	private fun connect(other: String): Socket {
 		while (true) {
-			group[name]
+			group[other]
 				?.address
 				?.also { ip ->
 					try {
 						return Socket(ip.address, ip.port)
 					} catch (_: SocketException) {
-						group[name] = group[name]!!.copy(address = null)
+						group[other] = group[other]!!.copy(address = null)
 					}
 				}
-			broadcast(AddressAsk.id, name.toByteArray())
+			broadcast(AddressAsk.id, other.toByteArray())
 			addressSignal.block(1000)
 		}
 	}
 
 	/**
 	 * 通过 TCP 发送，并在传输完后立即返回
-	 * @param name 目标终端名字
-	 * @param msg  报文
+	 * @param other 目标终端名字
+	 * @param msg   报文
 	 */
-	fun send(name: String, msg: ByteArray) =
-		connect(name)
+	fun send(other: String, msg: ByteArray) =
+		connect(other)
 			.getOutputStream()
-			.sendTcp(pack(TcpCmd.Call.id, this.name, msg))
+			.sendTcp(pack(TcpCmd.Call.id, name, msg))
 			.close()
 
 	// 通用远程调用
 	private fun Socket.call(id: Byte, msg: ByteArray) =
 		use {
-			it.getOutputStream().sendTcp(pack(id, this@RemoteHub.name, msg))
+			it.getOutputStream().sendTcp(pack(id, name, msg))
 			it.getInputStream().receiveTcp()
 		}
 
 	/**
 	 * 通过 TCP 发送，并阻塞接收反馈
-	 * @param name 目标终端名字
-	 * @param msg  报文
+	 * @param other 目标终端名字
+	 * @param msg   报文
 	 */
-	fun call(name: String, msg: ByteArray) =
-		connect(name).call(TcpCmd.CallBack.id, msg)
+	fun call(other: String, msg: ByteArray) =
+		connect(other).call(TcpCmd.CallBack.id, msg)
 
 	/**
 	 * 调用 TCP 插件服务
 	 */
-	fun call(id: Char, name: String, msg: ByteArray) =
-		connect(name).call(id.toByte(), msg)
+	fun call(id: Char, other: String, msg: ByteArray) =
+		connect(other).call(id.toByte(), msg)
 
 	/**
 	 * 监听并解析 TCP 包
@@ -256,7 +259,7 @@ class RemoteHub(
 						.getInputStream()
 						.receiveTcp()
 						.let(::unpack)
-				updateGroup(sender)
+				updateGroup(sender, null)
 				fun reply(msg: ByteArray) = server.getOutputStream().sendTcp(msg)
 				when (cmd.toTcpCmd()) {
 					TcpCmd.Call     -> commandReceived(sender, payload)
@@ -337,15 +340,19 @@ class RemoteHub(
 
 	/**
 	 * 连接信息
-	 * @param address 地址
 	 * @param stamp   最后到达时间
+	 * @param address 地址
 	 */
 	private data class ConnectionInfo(
-		val address: InetSocketAddress?,
-		val stamp: Long
+		val stamp: Long,
+		val address: InetSocketAddress?
 	)
 
 	private companion object {
+		@JvmStatic
+		val now
+			get() = System.currentTimeMillis()
+
 		val ADDRESS = InetSocketAddress(getByName("238.88.88.88"), 23333)
 
 		@JvmStatic
@@ -389,15 +396,15 @@ class RemoteHub(
 
 		@JvmStatic
 		fun pack(
-			type: Byte,
-			name: String,
+			cmd: Byte,
+			sender: String,
 			payload: ByteArray
 		): ByteArray =
 			ByteArrayOutputStream().apply {
 				DataOutputStream(this).apply {
-					writeByte(type.toInt())
-					writeByte(name.length)
-					writeBytes(name)
+					writeByte(cmd.toInt())
+					writeByte(sender.length)
+					writeBytes(sender)
 				}
 				write(payload)
 			}.toByteArray()
@@ -407,11 +414,11 @@ class RemoteHub(
 			pack.let(::ByteArrayInputStream)
 				.let(::DataInputStream)
 				.let {
-					val type = it.readByte()
-					val nameLength = it.readByte().toInt()
-					val name = String(it.readNBytes(nameLength))
+					val cmd = it.readByte()
+					val senderLength = it.readByte().toInt()
+					val sender = String(it.readNBytes(senderLength))
 					val payload = it.readBytes()
-					Triple(type, name, payload)
+					Triple(cmd, sender, payload)
 				}
 
 		// TCP 收发
@@ -430,11 +437,19 @@ class RemoteHub(
 		// UDP 接收循环
 
 		@JvmStatic
+		val DatagramPacket.actualData
+			get() = data.copyOfRange(0, length)
+
+		@JvmStatic
+		val DatagramPacket.actualAddress
+			get() = InetSocketAddress(address, port)
+
+		@JvmStatic
 		fun udpReceiveLoop(
 			socket: DatagramSocket,
 			bufferSize: Int,
 			timeout: Int,
-			block: (ByteArray) -> Any?) {
+			block: (DatagramPacket) -> Any?) {
 			val buffer = DatagramPacket(ByteArray(bufferSize), bufferSize)
 			val endTime = System.currentTimeMillis() + timeout
 			while (true) {
@@ -450,7 +465,7 @@ class RemoteHub(
 				} catch (_: SocketTimeoutException) {
 					return
 				}
-				block(buffer.data.copyOfRange(0, buffer.length))
+				block(buffer)
 			}
 		}
 	}

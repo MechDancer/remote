@@ -31,10 +31,7 @@ object ReceiverConfig {
 	val receiver = remoteHub {
 		plugins {
 			topicReceiver { sender, topic, data ->
-				when (topic) {
-					"text" -> println("$sender: ${data as String}")
-					"num"  -> println("$sender: ${data as Int}")
-				}
+				println("$sender($topic): $data")
 			}
 		}
 	}
@@ -49,7 +46,7 @@ object TopicServer {
 		for (i in 1..20) {
 			text publish UUID.randomUUID().toString()
 			num publish Random.nextInt(55536)
-			//Thread.sleep(500)
+			Thread.sleep(500)
 		}
 		forever { }
 	}
