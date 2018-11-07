@@ -32,7 +32,6 @@ class RemoteHub(
 	private val broadcastReceived: Received,
 	private val commandReceived: CallBack
 ) : Closeable {
-	private val network: NetworkInterface
 	// 默认套接字
 	private val default: MulticastSocket
 	// TCP监听
@@ -297,7 +296,7 @@ class RemoteHub(
 
 	init {
 		// 选网
-		network =
+		val network =
 			NetworkInterface
 				.getNetworkInterfaces()
 				.asSequence()
