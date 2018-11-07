@@ -7,7 +7,7 @@ import java.net.InetAddress.getByAddress
 import java.net.InetAddress.getByName
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.min
 
 /**
@@ -41,7 +41,7 @@ class RemoteHub(
 	// 地址询问阻塞
 	private val addressSignal = SignalBlocker()
 	// 存活时间
-	private val alive = AtomicLong(10000)
+	private val alive = AtomicInteger(10000)
 	// UDP 插件服务
 	private val udpPlugins = mutableMapOf<Char, Received>()
 	// TCP 插件服务
@@ -76,16 +76,17 @@ class RemoteHub(
 	/**
 	 * 存活时间条件
 	 */
-	var aliveTime: Long
+	var aliveTime: Int
 		get() = alive.get()
-		set(value) = alive.set(if (value <= 0) Long.MAX_VALUE else value)
+		set(value) = alive.set(if (value <= 0) Int.MAX_VALUE else value)
 
 	// 更新时间戳
 	private fun updateGroup(sender: String) {
 		val now = System.currentTimeMillis()
 		group[sender] = group[sender]
 			?.copy(stamp = now)
-			?: ConnectionInfo(null, now).also { newMemberDetected(sender) }
+			?: ConnectionInfo(null, now)
+			.also { newMemberDetected(sender) }
 	}
 
 	// 发送组播报文
@@ -167,7 +168,7 @@ class RemoteHub(
 				if (sender != name) updateGroup(sender)
 			}
 		}
-		aliveTime = timeout + 20L
+		aliveTime = (timeout * 1.5 + 20).toInt()
 		return members.keys
 	}
 
@@ -252,18 +253,18 @@ class RemoteHub(
 		server
 			.accept()
 			.use { server ->
-				val (type, sender, payload) =
+				val (cmd, sender, payload) =
 					server
 						.getInputStream()
 						.receiveTcp()
 						.let(::unpack)
 				updateGroup(sender)
 				fun reply(msg: ByteArray) = server.getOutputStream().sendTcp(msg)
-				when (type.toTcpCmd()) {
+				when (cmd.toTcpCmd()) {
 					TcpCmd.Call     -> commandReceived(sender, payload)
 					TcpCmd.CallBack -> commandReceived(sender, payload).let(::reply)
 					null            ->
-						type.toChar()
+						cmd.toChar()
 							.takeIf(Char::isLetterOrDigit)
 							?.let(tcpPlugins::get)
 							?.invoke(this, sender, payload)
@@ -296,21 +297,7 @@ class RemoteHub(
 
 	init {
 		// 选网
-		val network =
-			NetworkInterface
-				.getNetworkInterfaces()
-				.asSequence()
-				.filter(NetworkInterface::isUp)
-				.filter(NetworkInterface::supportsMulticast)
-				.filter { it.inetAddresses.hasMoreElements() }
-				.filter(netFilter)
-				.toList()
-				.run {
-					firstOrNull(::wlan)
-						?: firstOrNull(::eth)
-						?: firstOrNull { !it.isLoopback }
-						?: first()
-				}
+		val network = selectNetwork() ?: throw RuntimeException("no available network")
 		address = InetSocketAddress(
 			network.inetAddresses.asSequence().first(),
 			server.localPort
@@ -355,6 +342,22 @@ class RemoteHub(
 				net?.let(this::setNetworkInterface)
 				joinGroup(ADDRESS.address)
 			}
+
+		@JvmStatic
+		fun selectNetwork(): NetworkInterface? =
+			NetworkInterface
+				.getNetworkInterfaces()
+				.asSequence()
+				.filter(NetworkInterface::isUp)
+				.filter(NetworkInterface::supportsMulticast)
+				.filter { it.inetAddresses.hasMoreElements() }
+				.toList()
+				.run {
+					firstOrNull(::wlan)
+						?: firstOrNull(::eth)
+						?: firstOrNull { !it.isLoopback }
+						?: first()
+				}
 
 		@JvmStatic
 		fun Byte.toUdpCmd() = UdpCmd.values().firstOrNull { it.id == this }
