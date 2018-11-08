@@ -68,15 +68,15 @@ dependencies {
 
    ```kotlin
    remoteHub(name = "Hub") {
-   			newMemberDetected = ::println
-   			broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
-   			commandReceived = { name, ask ->
-   				String(ask)
-   					.also { println("$name: \"$it\"") }
-   					.let { "ok: $it" }
-   					.toByteArray()
-   			}
-   		}
+     newMemberDetected = ::println
+   	 broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
+   	 commandReceived = { name, ask ->
+   	   String(ask)
+   		 .also { println("$name: \"$it\"") }
+   		 .let { "ok: $it" }
+   		 .toByteArray()
+     }
+   }
    ```
 
    其中展示的所有自定义内容都是可选的，下面是详细的说明：
@@ -130,14 +130,14 @@ dependencies {
    ```kotlin
    // 配置插件
    remoteHub {
-   		plugins {
-   			topicReceiver { sender, topic, data ->
-   				println("$sender($topic): $data")
-   			}
-   		}
-   	}
+     plugins {
+   	   topicReceiver { sender, topic, data ->
+   	     println("$sender($topic): $data")
+       }
+   	 }
+   }
    // 动态加载
    remoteHub() setup ReceivePlugin { sender, topic, data ->
-   			println("$sender($topic): $data")
-   		}
+     println("$sender($topic): $data")
+   }
    ```
