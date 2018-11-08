@@ -121,3 +121,23 @@ dependencies {
 
    使用 `call` 方法发送 TCP 单播，并阻塞以取得回复。
 
+4. 插件
+
+   插件是一些预置的处理机制或者服务，可以预先进行严格而独立的封装。插件通过**识别号**`id`来分别。id是一个字符`Char`，只能是字母或数字，大小写敏感，因此最多加载 26 × 2 + 10 = 62 个。
+
+   插件支持在构造时置入，也可以在运行间动态加载。
+
+   ```kotlin
+   // 配置插件
+   remoteHub {
+   		plugins {
+   			topicReceiver { sender, topic, data ->
+   				println("$sender($topic): $data")
+   			}
+   		}
+   	}
+   // 动态加载
+   remoteHub() setup ReceivePlugin { sender, topic, data ->
+   			println("$sender($topic): $data")
+   		}
+   ```
