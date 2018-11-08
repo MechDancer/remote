@@ -29,7 +29,7 @@ repositories {
     jcenter()
 }
 dependencies {
-    compile 'org.mechdancer:remote:0.1.0'
+    compile 'org.mechdancer:remote:+'
 }
 ```
 
@@ -47,7 +47,7 @@ dependencies {
 <dependency>
   <groupId>org.mechdancer</groupId>
   <artifactId>remote</artifactId>
-  <version>0.1.0</version>
+  <version>LATEST</version>
   <type>pom</type>
 </dependency>
 ```
@@ -68,14 +68,14 @@ dependencies {
 
    ```kotlin
    remoteHub(name = "Hub") {
-     newMemberDetected = ::println
-   	 broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
-   	 commandReceived = { name, ask ->
-   	   String(ask)
-   		 .also { println("$name: \"$it\"") }
-   		 .let { "ok: $it" }
-   		 .toByteArray()
-     }
+       newMemberDetected = ::println
+   	    broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
+   	    commandReceived = { name, ask ->
+   	        String(ask)
+   		        .also { println("$name: \"$it\"") }
+   		        .let { "ok: $it" }
+   		        .toByteArray()
+           }
    }
    ```
 
@@ -130,14 +130,14 @@ dependencies {
    ```kotlin
    // 配置插件
    remoteHub {
-     plugins {
-   	   topicReceiver { sender, topic, data ->
-   	     println("$sender($topic): $data")
+       plugins {
+   	    topicReceiver { sender, topic, data ->
+   	        println("$sender($topic): $data")
+           }
        }
-   	 }
    }
    // 动态加载
    remoteHub() setup ReceivePlugin { sender, topic, data ->
-     println("$sender($topic): $data")
+       println("$sender($topic): $data")
    }
    ```
