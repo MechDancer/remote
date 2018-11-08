@@ -8,6 +8,7 @@ import java.net.InetAddress.getByName
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.max
 import kotlin.math.min
 
 /**
@@ -167,7 +168,7 @@ class RemoteHub(
 				if (sender != name) updateGroup(sender)
 			}
 		}
-		timeToLive = (timeout * 1.5 + 20).toInt()
+		timeToLive = max(timeout + 20, 200)
 		return group.toMap().filterValues { now - it.stamp < timeToLive }.keys
 	}
 
@@ -184,18 +185,15 @@ class RemoteHub(
 	) {
 		assert(timeout > 0)
 		assert(bufferSize in 0..65536)
-		when (timeout) {
-			0    ->
-				DatagramPacket(ByteArray(bufferSize), bufferSize)
-					.apply(default::receive)
-					.actualData
-					.let(::processUdp)
-			else -> {
-				multicastOn(null).use {
-					udpReceiveLoop(it, bufferSize, timeout, ::processUdp)
-				}
+		if (timeout == 0)
+			DatagramPacket(ByteArray(bufferSize), bufferSize)
+				.apply(default::receive)
+				.actualData
+				.let(::processUdp)
+		else
+			multicastOn(null).use {
+				udpReceiveLoop(it, bufferSize, timeout, ::processUdp)
 			}
-		}
 	}
 
 	// 尝试连接一个远端 TCP 服务器
@@ -211,8 +209,10 @@ class RemoteHub(
 						return socket
 					} catch (e: SocketException) {
 						group[other] = group[other]!!.copy(address = null)
+						socket.close()
 					}
 				}
+
 			broadcast(AddressAsk.id, other.toByteArray())
 			addressSignal.block(1000)
 		}
@@ -254,14 +254,9 @@ class RemoteHub(
 	 * 监听并解析 TCP 包
 	 */
 	fun listen() =
-		server
-			.accept()
+		server.accept()
 			.use { server ->
-				val (cmd, sender, payload) =
-					server
-						.getInputStream()
-						.receiveTcp()
-						.let(::unpack)
+				val (cmd, sender, payload) = server.getInputStream().receiveTcp().let(::unpack)
 				updateGroup(sender)
 				fun reply(msg: ByteArray) = server.getOutputStream().sendTcp(msg)
 				when (cmd.toTcpCmd()) {
