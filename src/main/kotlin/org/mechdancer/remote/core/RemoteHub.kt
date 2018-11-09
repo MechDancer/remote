@@ -301,7 +301,7 @@ class RemoteHub(
 			.asSequence()
 			.filter(NetworkInterface::isUp)
 			.filter(NetworkInterface::supportsMulticast)
-			.filter { it.inetAddresses.hasMoreElements() }
+			.filter { it.inetAddresses.asSequence().any(::isHost) }
 			.filter(netFilter)
 			.toList()
 			.run {
@@ -312,7 +312,7 @@ class RemoteHub(
 					?: throw RuntimeException("no available network")
 			}
 		address = InetSocketAddress(
-			network.inetAddresses.asSequence().first(),
+			network.inetAddresses.asSequence().first(::isHost),
 			server.localPort
 		)
 		// 定名
@@ -371,6 +371,9 @@ class RemoteHub(
 
 		@JvmStatic
 		fun eth(net: NetworkInterface) = net.name.startsWith("eth")
+
+		@JvmStatic
+		fun isHost(address: InetAddress) = address.address[0] in 1..223
 
 		@JvmStatic
 		val InetSocketAddress.bytes: ByteArray
