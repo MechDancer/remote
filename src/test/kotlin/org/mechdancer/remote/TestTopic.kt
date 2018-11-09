@@ -5,8 +5,6 @@ import org.mechdancer.remote.PublisherConfig.server
 import org.mechdancer.remote.PublisherConfig.text
 import org.mechdancer.remote.ReceiverConfig.receiver
 import org.mechdancer.remote.builder.remoteHub
-import org.mechdancer.remote.core.forever
-import org.mechdancer.remote.core.launch
 import org.mechdancer.remote.topic.TopicPublisher
 import org.mechdancer.remote.topic.encode
 import java.io.ByteArrayInputStream

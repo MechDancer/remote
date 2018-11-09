@@ -85,7 +85,7 @@ class RemoteHub(
 	private fun updateGroup(sender: String) {
 		group[sender]
 			?.takeUnless { now - it.stamp > timeToLive }
-			?: newMemberDetected(sender)
+		?: newMemberDetected(sender)
 		group[sender] =
 			group[sender]?.copy(stamp = now)
 			?: ConnectionInfo(now, null).also { }
@@ -268,7 +268,7 @@ class RemoteHub(
 							?.let(tcpPlugins::get)
 							?.invoke(this, sender, payload)
 							?.let(::reply)
-							?: Unit
+						?: Unit
 				}
 			}
 
@@ -306,10 +306,10 @@ class RemoteHub(
 			.toList()
 			.run {
 				firstOrNull(::wlan)
-					?: firstOrNull(::eth)
-					?: firstOrNull { !it.isLoopback }
-					?: first()
-					?: throw RuntimeException("no available network")
+				?: firstOrNull(::eth)
+				?: firstOrNull { !it.isLoopback }
+				?: first()
+				?: throw RuntimeException("no available network")
 			}
 		address = InetSocketAddress(
 			network.inetAddresses.asSequence().first(::isHost),
@@ -373,7 +373,13 @@ class RemoteHub(
 		fun eth(net: NetworkInterface) = net.name.startsWith("eth")
 
 		@JvmStatic
-		fun isHost(address: InetAddress) = address.address[0] in 1..223
+		fun isHost(address: InetAddress) =
+			address
+				.let { it as? Inet4Address }
+				?.address
+				?.first()
+				?.let { it + if (it > 0) 0 else 256 }
+				?.takeIf { it in 1..223 } != null
 
 		@JvmStatic
 		val InetSocketAddress.bytes: ByteArray
