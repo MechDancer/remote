@@ -1,6 +1,7 @@
 # 远程接入协议
 
-[ ![Download](https://api.bintray.com/packages/mechdancer/maven/remote/images/download.svg) ](https://bintray.com/mechdancer/maven/remote/_latestVersion)
+[![Download](https://api.bintray.com/packages/mechdancer/maven/remote/images/download.svg)](https://bintray.com/mechdancer/maven/remote/_latestVersion)[![Build Status](https://travis-ci.com/MechDancer/remote.svg?branch=master)](https://travis-ci.com/MechDancer/remote)
+
 ## 设计思路
 
 本协议框架由 3 部分组成：
@@ -13,48 +14,6 @@
 
 * udp 组播：传递内部指令、进程信息和用户广播报文，承载基于广播的插件服务
 * tcp：传递有可靠性要求的用户报文、实现远程调用，承载点对点的插件服务
-
-## 开始使用
-
-* Gradle
-* Maven
-* Bintray
-
-您需要将其添加至  [仓库和依赖](https://docs.gradle.org/current/userguide/declaring_dependencies.html) 中。
-
-### Gradle
-
-```groovy
-repositories {
-    jcenter()
-}
-dependencies {
-    compile 'org.mechdancer:remote:+'
-}
-```
-
-### Maven
-
-```xml
-<repositories>
-   <repository>
-     <id>jcenter</id>
-     <name>JCenter</name>
-     <url>https://jcenter.bintray.com/</url>
-   </repository>
-</repositories>
-
-<dependency>
-  <groupId>org.mechdancer</groupId>
-  <artifactId>remote</artifactId>
-  <version>LATEST</version>
-  <type>pom</type>
-</dependency>
-```
-
-### Bintray
-
-您总可以从 bintray 直接下载 jar： [ ![Download](https://api.bintray.com/packages/mechdancer/maven/remote/images/download.svg) ](https://bintray.com/mechdancer/maven/remote/_latestVersion)
 
 ## 使用说明
 
@@ -141,3 +100,45 @@ dependencies {
        println("$sender($topic): $data")
    }
    ```
+   
+## 开始使用
+
+* Gradle
+* Maven
+* Bintray
+
+您需要将其添加至  [仓库和依赖](https://docs.gradle.org/current/userguide/declaring_dependencies.html) 中。
+
+### Gradle
+
+```groovy
+repositories {
+    jcenter()
+}
+dependencies {
+    compile 'org.mechdancer:remote:+'
+}
+```
+
+### Maven
+
+```xml
+<repositories>
+   <repository>
+     <id>jcenter</id>
+     <name>JCenter</name>
+     <url>https://jcenter.bintray.com/</url>
+   </repository>
+</repositories>
+
+<dependency>
+  <groupId>org.mechdancer</groupId>
+  <artifactId>remote</artifactId>
+  <version>LATEST</version>
+  <type>pom</type>
+</dependency>
+```
+
+### Bintray
+
+您总可以从 bintray 直接下载 jar： [![Download](https://api.bintray.com/packages/mechdancer/maven/remote/images/download.svg)](https://bintray.com/mechdancer/maven/remote/_latestVersion)
