@@ -3,51 +3,51 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 buildscript {
 
-    repositories {
-        mavenCentral()
-        jcenter()
-    }
+	repositories {
+		mavenCentral()
+		jcenter()
+	}
 
-    dependencies {
-        classpath("org.jetbrains.dokka:dokka-gradle-plugin")
-        classpath ("com.novoda:bintray-release:+")
-    }
+	dependencies {
+		classpath("org.jetbrains.dokka:dokka-gradle-plugin")
+		classpath("com.novoda:bintray-release:+")
+	}
 }
 
 plugins {
-    kotlin("jvm") version "1.3.0"
-    id("org.jetbrains.dokka") version "0.9.16"
+	kotlin("jvm") version "1.3.0"
+	id("org.jetbrains.dokka") version "0.9.16"
 }
 
-apply{
-    plugin("com.novoda.bintray-release")
+apply {
+	plugin("com.novoda.bintray-release")
 }
 
 group = "org.mechdancer"
 version = "0.1.5-dev-6"
 
 repositories {
-    mavenCentral()
+	mavenCentral()
 }
 
 dependencies {
-    compile(kotlin("stdlib-jdk8"))
-    compile("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.0.0")
-    testCompile("junit", "junit", "+")
+	compile(kotlin("stdlib-jdk8"))
+	compile("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.0.0")
+	testCompile("junit", "junit", "+")
 }
 
 configure<JavaPluginConvention> {
-    sourceCompatibility = JavaVersion.VERSION_1_8
+	sourceCompatibility = JavaVersion.VERSION_1_8
 }
 tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "1.8"
+	kotlinOptions.jvmTarget = "1.8"
 }
 
 configure<PublishExtension> {
-    userOrg = "mechdancer"
-    groupId = "org.mechdancer"
-    artifactId = "remote"
-    publishVersion = version.toString()
-    desc = "communication lib"
-    website = "https://github.com/MechDancer/remote"
+	userOrg = "mechdancer"
+	groupId = "org.mechdancer"
+	artifactId = "remote"
+	publishVersion = version.toString()
+	desc = "communication lib"
+	website = "https://github.com/MechDancer/remote"
 }

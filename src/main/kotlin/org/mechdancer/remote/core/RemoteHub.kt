@@ -34,18 +34,25 @@ class RemoteHub(
 	private val broadcastReceived: Received,
 	private val commandReceived: CallBack
 ) : Closeable {
+
 	// 默认套接字
 	private val default: MulticastSocket
+
 	// TCP监听
 	private val server = ServerSocket(0)
+
 	// 组成员列表
 	private val group = ConcurrentHashMap<String, ConnectionInfo>()
+
 	// 地址询问阻塞
 	private val addressSignal = SignalBlocker()
+
 	// 存活时间
 	private val aliveTime = AtomicInteger(10000)
+
 	// UDP 插件服务
 	private val udpPlugins = mutableMapOf<Char, Received>()
+
 	// TCP 插件服务
 	private val tcpPlugins = mutableMapOf<Char, CallBack>()
 
@@ -85,10 +92,10 @@ class RemoteHub(
 	private fun updateGroup(sender: String) {
 		group[sender]
 			?.takeUnless { now - it.stamp > timeToLive }
-		?: newMemberDetected(sender)
+			?: newMemberDetected(sender)
 		group[sender] =
-			group[sender]?.copy(stamp = now)
-			?: ConnectionInfo(now, null).also { }
+				group[sender]?.copy(stamp = now)
+				?: ConnectionInfo(now, null).also { }
 	}
 
 	// 发送组播报文
@@ -141,15 +148,13 @@ class RemoteHub(
 				// 响应指令
 				when (cmd.toUdpCmd()) {
 					UdpCmd.YellActive -> broadcast(YellReply.id)
-					UdpCmd.YellReply  -> Unit
+					UdpCmd.YellReply -> Unit
 					UdpCmd.AddressAsk -> if (name == String(payload)) tcpAck() else Unit
 					UdpCmd.AddressAck -> tcpParse(sender, payload)
-					UdpCmd.Broadcast  -> broadcastReceived(sender, payload)
-					null              ->
-						cmd.toChar()
-							.takeIf(Char::isLetterOrDigit)
-							?.let(udpPlugins::get)
-							?.invoke(this@RemoteHub, sender, payload)
+					UdpCmd.Broadcast -> broadcastReceived(sender, payload)
+					null -> cmd.toChar().takeIf(Char::isLetterOrDigit)
+						?.let(udpPlugins::get)
+						?.invoke(this@RemoteHub, sender, payload)
 				}
 			}
 
@@ -260,15 +265,15 @@ class RemoteHub(
 				updateGroup(sender)
 				fun reply(msg: ByteArray) = server.getOutputStream().sendTcp(msg)
 				when (cmd.toTcpCmd()) {
-					TcpCmd.Call     -> commandReceived(sender, payload)
+					TcpCmd.Call -> commandReceived(sender, payload)
 					TcpCmd.CallBack -> commandReceived(sender, payload).let(::reply)
-					null            ->
+					null ->
 						cmd.toChar()
 							.takeIf(Char::isLetterOrDigit)
 							?.let(tcpPlugins::get)
 							?.invoke(this, sender, payload)
 							?.let(::reply)
-						?: Unit
+							?: Unit
 				}
 			}
 
@@ -279,8 +284,8 @@ class RemoteHub(
 		assert(plugin.id.isLetterOrDigit())
 		when (plugin) {
 			is BroadcastPlugin -> udpPlugins[plugin.id] = plugin::invoke
-			is CallBackPlugin  -> tcpPlugins[plugin.id] = plugin::invoke
-			else               -> throw RuntimeException("unknown plugin type")
+			is CallBackPlugin -> tcpPlugins[plugin.id] = plugin::invoke
+			else -> throw RuntimeException("unknown plugin type")
 		}
 	}
 
@@ -306,10 +311,10 @@ class RemoteHub(
 			.toList()
 			.run {
 				firstOrNull(::wlan)
-				?: firstOrNull(::eth)
-				?: firstOrNull { !it.isLoopback }
-				?: first()
-				?: throw RuntimeException("no available network")
+					?: firstOrNull(::eth)
+					?: firstOrNull { !it.isLoopback }
+					?: first()
+					?: throw RuntimeException("no available network")
 			}
 		address = InetSocketAddress(
 			network.inetAddresses.asSequence().first(::isHost),
@@ -456,16 +461,17 @@ class RemoteHub(
 			socket: DatagramSocket,
 			bufferSize: Int,
 			timeout: Int,
-			block: (ByteArray) -> Any?) {
+			block: (ByteArray) -> Any?
+		) {
 			val buffer = DatagramPacket(ByteArray(bufferSize), bufferSize)
 			val endTime = System.currentTimeMillis() + timeout
 			while (true) {
 				// 设置超时时间
 				socket.soTimeout =
-					(endTime - System.currentTimeMillis())
-						.toInt()
-						.takeIf { it > 0 }
-					?: return
+						(endTime - System.currentTimeMillis())
+							.toInt()
+							.takeIf { it > 0 }
+						?: return
 				// 接收，超时直接退出
 				try {
 					socket.receive(buffer)
