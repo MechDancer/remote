@@ -2,8 +2,6 @@ package org.mechdancer.remote.builder
 
 import org.mechdancer.remote.core.RemoteHub
 import org.mechdancer.remote.core.RemotePlugin
-import org.mechdancer.remote.topic.ParserPlugin
-import org.mechdancer.remote.topic.ReceivePlugin
 import java.net.NetworkInterface
 
 /**
@@ -17,12 +15,6 @@ class RemoteCallbackBuilder(
 ) {
 	inner class Plugins {
 		infix fun setup(plugin: RemotePlugin) = plugins.add(plugin)
-
-		fun topicParserServer(vararg functions: Pair<String, (ByteArray) -> Any?>) =
-			setup(ParserPlugin(functions.associate { it }))
-
-		fun topicReceiver(block: (sender: String, topic: String, data: Any?) -> Unit) =
-			setup(ReceivePlugin(block))
 	}
 
 	internal val plugins = mutableSetOf<RemotePlugin>()

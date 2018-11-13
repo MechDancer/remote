@@ -94,8 +94,8 @@ class RemoteHub(
 			?.takeUnless { now - it.stamp > timeToLive }
 			?: newMemberDetected(sender)
 		group[sender] =
-				group[sender]?.copy(stamp = now)
-				?: ConnectionInfo(now, null).also { }
+			group[sender]?.copy(stamp = now)
+			?: ConnectionInfo(now, null).also { }
 	}
 
 	// 发送组播报文
@@ -148,13 +148,14 @@ class RemoteHub(
 				// 响应指令
 				when (cmd.toUdpCmd()) {
 					UdpCmd.YellActive -> broadcast(YellReply.id)
-					UdpCmd.YellReply -> Unit
+					UdpCmd.YellReply  -> Unit
 					UdpCmd.AddressAsk -> if (name == String(payload)) tcpAck() else Unit
 					UdpCmd.AddressAck -> tcpParse(sender, payload)
-					UdpCmd.Broadcast -> broadcastReceived(sender, payload)
-					null -> cmd.toChar().takeIf(Char::isLetterOrDigit)
-						?.let(udpPlugins::get)
-						?.invoke(this@RemoteHub, sender, payload)
+					UdpCmd.Broadcast  -> broadcastReceived(sender, payload)
+					null              ->
+						cmd.toChar().takeIf(Char::isLetterOrDigit)
+							?.let(udpPlugins::get)
+							?.invoke(this@RemoteHub, sender, payload)
 				}
 			}
 
@@ -265,9 +266,9 @@ class RemoteHub(
 				updateGroup(sender)
 				fun reply(msg: ByteArray) = server.getOutputStream().sendTcp(msg)
 				when (cmd.toTcpCmd()) {
-					TcpCmd.Call -> commandReceived(sender, payload)
+					TcpCmd.Call     -> commandReceived(sender, payload)
 					TcpCmd.CallBack -> commandReceived(sender, payload).let(::reply)
-					null ->
+					null            ->
 						cmd.toChar()
 							.takeIf(Char::isLetterOrDigit)
 							?.let(tcpPlugins::get)
@@ -284,8 +285,8 @@ class RemoteHub(
 		assert(plugin.id.isLetterOrDigit())
 		when (plugin) {
 			is BroadcastPlugin -> udpPlugins[plugin.id] = plugin::invoke
-			is CallBackPlugin -> tcpPlugins[plugin.id] = plugin::invoke
-			else -> throw RuntimeException("unknown plugin type")
+			is CallBackPlugin  -> tcpPlugins[plugin.id] = plugin::invoke
+			else               -> throw RuntimeException("unknown plugin type")
 		}
 	}
 
@@ -468,10 +469,10 @@ class RemoteHub(
 			while (true) {
 				// 设置超时时间
 				socket.soTimeout =
-						(endTime - System.currentTimeMillis())
-							.toInt()
-							.takeIf { it > 0 }
-						?: return
+					(endTime - System.currentTimeMillis())
+						.toInt()
+						.takeIf { it > 0 }
+					?: return
 				// 接收，超时直接退出
 				try {
 					socket.receive(buffer)
