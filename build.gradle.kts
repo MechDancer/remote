@@ -32,7 +32,6 @@ repositories {
 
 dependencies {
 	compile(kotlin("stdlib-jdk8"))
-	compile("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.0.0")
 	testCompile("junit", "junit", "+")
 }
 
