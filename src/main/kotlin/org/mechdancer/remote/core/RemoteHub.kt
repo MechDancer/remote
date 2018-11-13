@@ -1,21 +1,27 @@
 package org.mechdancer.remote.core
 
 import org.mechdancer.remote.core.RemoteHub.UdpCmd.*
-import java.io.*
+import org.mechdancer.remote.core.protocol.bytes
+import org.mechdancer.remote.core.protocol.inetSocketAddress
+import org.mechdancer.remote.core.protocol.readWithLength
+import org.mechdancer.remote.core.protocol.writeWithLength
+import java.io.Closeable
 import java.net.*
-import java.net.InetAddress.getByAddress
 import java.net.InetAddress.getByName
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.max
-import kotlin.math.min
 
 /**
  * 远程终端
+ * 不承担资源管理或调度功能
+ * 当前仅支持 IPV4 上的 UDP 组播及 TCP 单播
  *
  * 1. UDP 组播
  * 2. TCP 可靠传输
+ * 3. 在线成员嗅探
+ * 4. 插件服务
  *
  * 初始化参数
  * @param name      进程名
@@ -26,7 +32,6 @@ import kotlin.math.min
  * @param broadcastReceived 收到广播
  * @param commandReceived   收到通用 TCP
  */
-@Suppress("unused")
 class RemoteHub(
 	name: String,
 	netFilter: (NetworkInterface) -> Boolean,
@@ -37,22 +42,17 @@ class RemoteHub(
 
 	// 默认套接字
 	private val default: MulticastSocket
-
 	// TCP监听
-	private val server = ServerSocket(0)
-
+	private val server by lazy { ServerSocket(0) }
 	// 组成员列表
 	private val group = ConcurrentHashMap<String, ConnectionInfo>()
-
 	// 地址询问阻塞
 	private val addressSignal = SignalBlocker()
-
 	// 存活时间
 	private val aliveTime = AtomicInteger(10000)
 
 	// UDP 插件服务
 	private val udpPlugins = mutableMapOf<Char, Received>()
-
 	// TCP 插件服务
 	private val tcpPlugins = mutableMapOf<Char, CallBack>()
 
@@ -75,8 +75,8 @@ class RemoteHub(
 	 * 组成员列表
 	 */
 	val members: Map<String, InetSocketAddress?>
-		get() = group.toMap()
-			.filterValues { now - it.stamp < timeToLive }
+		get() = group
+			.filterValues { it.silenceTime < timeToLive }
 			.mapValues { it.value.address }
 
 	/**
@@ -91,16 +91,17 @@ class RemoteHub(
 	// 已知成员: 更新时间戳
 	private fun updateGroup(sender: String) {
 		group[sender]
-			?.takeUnless { now - it.stamp > timeToLive }
+			?.takeUnless { it.silenceTime > timeToLive }
 			?: newMemberDetected(sender)
 		group[sender] =
-			group[sender]?.copy(stamp = now)
-			?: ConnectionInfo(now, null).also { }
+			group[sender]?.copy(stamp = System.currentTimeMillis())
+			?: ConnectionInfo(System.currentTimeMillis(), null).also { }
 	}
 
 	// 发送组播报文
 	private fun broadcast(cmd: Byte, payload: ByteArray = ByteArray(0)) =
-		pack(cmd, name, payload)
+		RemotePackage(cmd, name, payload)
+			.bytes
 			.let { DatagramPacket(it, it.size, ADDRESS) }
 			.let(default::send)
 
@@ -109,11 +110,7 @@ class RemoteHub(
 
 	// 解析收到的IP地址
 	private fun tcpParse(sender: String, payload: ByteArray) {
-		val address = payload
-			.let(::ByteArrayInputStream)
-			.let(::DataInputStream)
-			.use { InetSocketAddress(getByAddress(it.readNBytes(4)), it.readInt()) }
-		group[sender] = group[sender]!!.copy(address = address)
+		group[sender] = group[sender]!!.copy(address = inetSocketAddress(payload))
 		addressSignal.awake()
 	}
 
@@ -139,21 +136,22 @@ class RemoteHub(
 
 	// 处理 UDP 包
 	private fun processUdp(pack: ByteArray) =
-		unpack(pack)
-			.takeIf { it.second != name }
+		RemotePackage(pack)
+			.takeIf { it.sender != name }
 			?.also {
-				val (cmd, sender, payload) = it
+				val (id, sender, payload) = it
 				// 更新时间
 				updateGroup(sender)
 				// 响应指令
-				when (cmd.toUdpCmd()) {
+				when (UdpCmd(id)) {
 					UdpCmd.YellActive -> broadcast(YellReply.id)
 					UdpCmd.YellReply  -> Unit
 					UdpCmd.AddressAsk -> if (name == String(payload)) tcpAck() else Unit
 					UdpCmd.AddressAck -> tcpParse(sender, payload)
 					UdpCmd.Broadcast  -> broadcastReceived(sender, payload)
 					null              ->
-						cmd.toChar().takeIf(Char::isLetterOrDigit)
+						id.toChar()
+							.takeIf(Char::isLetterOrDigit)
 							?.let(udpPlugins::get)
 							?.invoke(this@RemoteHub, sender, payload)
 				}
@@ -170,12 +168,12 @@ class RemoteHub(
 		yell()
 		multicastOn(null).use {
 			udpReceiveLoop(it, 256, timeout) { pack ->
-				val (_, sender, _) = unpack(pack)
+				val (_, sender, _) = RemotePackage(pack)
 				if (sender != name) updateGroup(sender)
 			}
 		}
 		timeToLive = max(timeout + 20, 200)
-		return group.toMap().filterValues { now - it.stamp < timeToLive }.keys
+		return group.toMap().filterValues { it.silenceTime < timeToLive }.keys
 	}
 
 	/**
@@ -232,14 +230,14 @@ class RemoteHub(
 	fun send(other: String, msg: ByteArray) =
 		connect(other)
 			.getOutputStream()
-			.sendTcp(pack(TcpCmd.Call.id, name, msg))
+			.writeWithLength(RemotePackage(TcpCmd.Call.id, name, msg).bytes)
 			.close()
 
 	// 通用远程调用
 	private fun Socket.call(id: Byte, msg: ByteArray) =
 		use {
-			it.getOutputStream().sendTcp(pack(id, name, msg))
-			it.getInputStream().receiveTcp()
+			it.getOutputStream().writeWithLength(RemotePackage(id, name, msg).bytes)
+			it.getInputStream().readWithLength()
 		}
 
 	/**
@@ -262,14 +260,14 @@ class RemoteHub(
 	fun listen() =
 		server.accept()
 			.use { server ->
-				val (cmd, sender, payload) = server.getInputStream().receiveTcp().let(::unpack)
+				val (id, sender, payload) = RemotePackage(server.getInputStream().readWithLength())
 				updateGroup(sender)
-				fun reply(msg: ByteArray) = server.getOutputStream().sendTcp(msg)
-				when (cmd.toTcpCmd()) {
+				fun reply(msg: ByteArray) = server.getOutputStream().writeWithLength(msg)
+				when (TcpCmd(id)) {
 					TcpCmd.Call     -> commandReceived(sender, payload)
 					TcpCmd.CallBack -> commandReceived(sender, payload).let(::reply)
 					null            ->
-						cmd.toChar()
+						id.toChar()
 							.takeIf(Char::isLetterOrDigit)
 							?.let(tcpPlugins::get)
 							?.invoke(this, sender, payload)
@@ -311,8 +309,8 @@ class RemoteHub(
 			.filter(netFilter)
 			.toList()
 			.run {
-				firstOrNull(::wlan)
-					?: firstOrNull(::eth)
+				firstOrNull { it.name.startsWith("wlan") }
+					?: firstOrNull { it.name.startsWith("eth") }
 					?: firstOrNull { !it.isLoopback }
 					?: first()
 					?: throw RuntimeException("no available network")
@@ -333,13 +331,25 @@ class RemoteHub(
 		YellReply(1),
 		AddressAsk(2),
 		AddressAck(3),
-		Broadcast(127)
+		Broadcast(127);
+
+		companion object {
+			@JvmStatic
+			operator fun invoke(byte: Byte) =
+				values().firstOrNull { it.id == byte }
+		}
 	}
 
 	// 指令 ID
 	private enum class TcpCmd(val id: Byte) {
 		Call(0),
-		CallBack(1)
+		CallBack(1);
+
+		companion object {
+			@JvmStatic
+			operator fun invoke(byte: Byte) =
+				values().firstOrNull { it.id == byte }
+		}
 	}
 
 	/**
@@ -350,13 +360,15 @@ class RemoteHub(
 	private data class ConnectionInfo(
 		val stamp: Long,
 		val address: InetSocketAddress?
-	)
+	) {
+		/**
+		 * 静默时间
+		 * 当前到最后一次出现的时间间隔（毫秒）
+		 */
+		val silenceTime get() = System.currentTimeMillis() - stamp
+	}
 
 	private companion object {
-		@JvmStatic
-		val now
-			get() = System.currentTimeMillis()
-
 		val ADDRESS = InetSocketAddress(getByName("238.88.88.88"), 23333)
 
 		@JvmStatic
@@ -367,18 +379,6 @@ class RemoteHub(
 			}
 
 		@JvmStatic
-		fun Byte.toUdpCmd() = UdpCmd.values().firstOrNull { it.id == this }
-
-		@JvmStatic
-		fun Byte.toTcpCmd() = TcpCmd.values().firstOrNull { it.id == this }
-
-		@JvmStatic
-		fun wlan(net: NetworkInterface) = net.name.startsWith("wlan")
-
-		@JvmStatic
-		fun eth(net: NetworkInterface) = net.name.startsWith("eth")
-
-		@JvmStatic
 		fun isHost(address: InetAddress) =
 			address
 				.let { it as? Inet4Address }
@@ -387,76 +387,12 @@ class RemoteHub(
 				?.let { it + if (it > 0) 0 else 256 }
 				?.takeIf { it in 1..223 } != null
 
-		@JvmStatic
-		val InetSocketAddress.bytes: ByteArray
-			get() =
-				ByteArrayOutputStream().apply {
-					write(address.address)
-					DataOutputStream(this).writeInt(port)
-				}.toByteArray()
-
-		@JvmStatic
-		@Suppress("EXTENSION_SHADOWED_BY_MEMBER")
-		@Deprecated(message = "only for who is below jdk11")
-		fun InputStream.readNBytes(len: Int): ByteArray {
-			val count = min(available(), len)
-			val buffer = ByteArray(count)
-			read(buffer, 0, count)
-			return buffer
-		}
-
-		// 打包解包
-
-		@JvmStatic
-		fun pack(
-			cmd: Byte,
-			sender: String,
-			payload: ByteArray
-		): ByteArray =
-			ByteArrayOutputStream().apply {
-				DataOutputStream(this).apply {
-					writeByte(cmd.toInt())
-					writeByte(sender.length)
-					writeBytes(sender)
-				}
-				write(payload)
-			}.toByteArray()
-
-		@JvmStatic
-		fun unpack(pack: ByteArray) =
-			pack.let(::ByteArrayInputStream)
-				.let(::DataInputStream)
-				.let {
-					val cmd = it.readByte()
-					val senderLength = it.readByte().toInt()
-					val sender = String(it.readNBytes(senderLength))
-					val payload = it.readBytes()
-					Triple(cmd, sender, payload)
-				}
-
-		// TCP 收发
-
-		@JvmStatic
-		fun OutputStream.sendTcp(pack: ByteArray) =
-			apply {
-				DataOutputStream(this).writeInt(pack.size)
-				write(pack)
-			}
-
-		@JvmStatic
-		fun InputStream.receiveTcp(): ByteArray =
-			readNBytes(DataInputStream(this).readInt())
-
-		// UDP 接收循环
-
+		// 拆解 UDP 数据包
 		@JvmStatic
 		val DatagramPacket.actualData
 			get() = data.copyOfRange(0, length)
 
-		@JvmStatic
-		val DatagramPacket.actualAddress
-			get() = InetSocketAddress(address, port)
-
+		// UDP 接收循环
 		@JvmStatic
 		fun udpReceiveLoop(
 			socket: DatagramSocket,
