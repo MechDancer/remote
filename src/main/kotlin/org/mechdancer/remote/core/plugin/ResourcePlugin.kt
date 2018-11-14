@@ -5,8 +5,6 @@ import org.mechdancer.remote.core.protocol.readWithLength
 import org.mechdancer.remote.core.protocol.writeWithLength
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
-import java.io.DataInputStream
-import java.io.DataOutputStream
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentSkipListSet
 
@@ -30,23 +28,21 @@ class ResourcePlugin : BroadcastPlugin {
         }
     }
 
-    private fun RemoteHub.ask(resourceId: String) {
+    private fun RemoteHub.ask(resourceId: String) =
         broadcast(Cmd.ResourceAsk join resourceId.toByteArray())
-    }
 
-    private fun RemoteHub.ack(resourceId: String, data: ByteArray) {
+    private fun RemoteHub.ack(resourceId: String, data: ByteArray) =
         broadcast(Cmd.ResourceAck join encodeAck(resourceId, data))
-    }
 
 
-    private fun askResource(resourceId: String) {
-        resourceToAsk += resourceId
-    }
+    private fun askResource(resourceId: String) =
+        resourceToAsk.add(resourceId)
 
     internal val onResourceAsk = { hub: RemoteHub, resourceId: String ->
         if (resourceId in resource.memory)
             hub.ack(resourceId, resource.memory[resourceId]!!)
     }
+
     internal val onResourceAck = { payload: ByteArray ->
         val (resourceId, data) = decodeAck(payload)
         if (resourceId in resource.queue) {
@@ -56,21 +52,18 @@ class ResourcePlugin : BroadcastPlugin {
     }
 
     private fun decodePayload(payload: ByteArray) =
-        Cmd.fromId(payload[0]) to payload.copyOfRange(1, payload.size - 1)
+        Cmd(payload[0]) to payload.copyOfRange(1, payload.lastIndex)
 
     private fun encodeAck(resourceId: String, data: ByteArray) =
-        ByteArrayOutputStream().also {
-            DataOutputStream(it).apply {
-                writeWithLength(resourceId.toByteArray())
-                write(data)
-            }
+        ByteArrayOutputStream().apply {
+            writeWithLength(resourceId.toByteArray())
+            write(data)
         }.toByteArray()
 
     private fun decodeAck(data: ByteArray) =
-        DataInputStream(ByteArrayInputStream(data)).run {
+        ByteArrayInputStream(data).run {
             String(readWithLength()) to readBytes()
         }
-
 
     inner class RemoteResource {
 
@@ -91,14 +84,16 @@ class ResourcePlugin : BroadcastPlugin {
         ResourceAsk(10),
         ResourceAck(11);
 
-        infix fun join(payload: ByteArray) = byteArrayOf(id) + payload
+        infix fun join(payload: ByteArray) =
+            ByteArray(payload.size + 1)
+                .apply {
+                    set(0, id)
+                    payload.copyInto(this, 1)
+                }
 
         companion object {
-            fun fromId(id: Byte) = when (id) {
-                10.toByte() -> ResourceAsk
-                11.toByte() -> ResourceAck
-                else        -> throw IllegalArgumentException()
-            }
+            operator fun invoke(id: Byte) =
+                values().firstOrNull { it.id == id }
         }
     }
 
