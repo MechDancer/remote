@@ -13,7 +13,6 @@ import java.io.OutputStream
  */
 fun OutputStream.writeWithLength(pack: ByteArray) =
 	apply {
-		assert(pack.size < 256)
 		DataOutputStream(this).writeInt(pack.size)
 		write(pack)
 	}
@@ -29,6 +28,9 @@ fun InputStream.readWithLength(): ByteArray =
 /**
  * 从输入流阻塞接收[n]个字节数据，直到无法继续接收或流关闭
  * 函数会直接打开等于目标长度的缓冲区，因此不要用于实现尽量读取的功能
+ * @receiver 源字节流
+ * @param n 长度
+ * @return 读取的字节数组
  */
 fun InputStream.waitNBytes(n: Int): ByteArray {
 	val buffer = ByteArray(n)
