@@ -1,16 +1,12 @@
 package org.mechdancer.remote
 
 import org.mechdancer.remote.builder.remoteHub
-import org.mechdancer.remote.core.network.multicastFilters
-import org.mechdancer.remote.core.network.wirelessFirst
 import kotlin.concurrent.thread
 
 object A {
     @JvmStatic
     fun main(args: Array<String>) {
         remoteHub("A") {
-            filters1 = multicastFilters
-            filters2 = wirelessFirst
             newMemberDetected = ::println
             broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
             commandReceived = { name, ask ->
@@ -30,8 +26,6 @@ object B {
     @JvmStatic
     fun main(args: Array<String>) {
         remoteHub("BB") {
-            filters1 = multicastFilters
-            filters2 = wirelessFirst
             newMemberDetected = ::println
             broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
             commandReceived = { name, ask ->
@@ -53,8 +47,6 @@ object C {
     @JvmStatic
     fun main(args: Array<String>) {
         remoteHub("CC") {
-            filters1 = multicastFilters
-            filters2 = wirelessFirst
             newMemberDetected = ::println
             broadcastReceived = { name, msg -> println("$name: ${String(msg)}") }
             commandReceived = { name, ask ->

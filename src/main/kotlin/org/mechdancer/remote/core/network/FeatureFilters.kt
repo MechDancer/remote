@@ -20,13 +20,13 @@ fun NetworkInterface.notVirtual() =
     isVirtual
         || displayName.toLowerCase().contains("virtual")
 
-val multicastFilters: List<NetFilter> =
+val MULTICAST_FILTERS: List<NetFilter> =
     listOf(
         NetworkInterface::supportsMulticast,
         NetworkInterface::notVirtual
     )
 
-val wirelessFirst: List<NetFilter> =
+val WIRELESS_FIRST: List<NetFilter> =
     listOf(
         NetworkInterface::wireless,
         NetworkInterface::ethernet,
