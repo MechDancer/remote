@@ -24,18 +24,18 @@ import kotlin.math.max
  *
  * 初始化参数
  *
- * @param name      进程名
- * @param netFilter 自定义选网策略
+ * @param name    进程名
+ * @param network 组播使用的（去往外网的）网络接口
  *
  * 回调参数
  *
  *  @param newMemberDetected 发现新成员
- * @param broadcastReceived 收到广播
- * @param commandReceived   收到通用 TCP
+ * @param broadcastReceived  收到广播
+ * @param commandReceived    收到通用 TCP
  */
 class RemoteHub(
     name: String,
-    netFilter: (NetworkInterface) -> Boolean,
+    network: NetworkInterface,
     private val newMemberDetected: String.() -> Unit,
     private val broadcastReceived: Received,
     private val commandReceived: CallBack
@@ -288,22 +288,6 @@ class RemoteHub(
     }
 
     init {
-        // 选网
-        val network = NetworkInterface
-            .getNetworkInterfaces()
-            .asSequence()
-            .filter(NetworkInterface::isUp)
-            .filter(NetworkInterface::supportsMulticast)
-            .filter { it.inetAddresses.asSequence().any(::isHost) }
-            .filter(netFilter)
-            .toList()
-            .run {
-                firstOrNull { it.name.startsWith("wlan") }
-                    ?: firstOrNull { it.name.startsWith("eth") }
-                    ?: firstOrNull { !it.isLoopback }
-                    ?: first()
-                    ?: throw RuntimeException("no available network")
-            }
         address = InetSocketAddress(
             network.inetAddresses.asSequence().first(::isHost),
             server.localPort
@@ -372,10 +356,10 @@ class RemoteHub(
             while (true) {
                 // 设置超时时间
                 socket.soTimeout =
-                        (endTime - System.currentTimeMillis())
-                            .toInt()
-                            .takeIf { it > 0 }
-                        ?: return
+                    (endTime - System.currentTimeMillis())
+                        .toInt()
+                        .takeIf { it > 0 }
+                    ?: return
                 // 接收，超时直接退出
                 try {
                     socket.receive(buffer)
