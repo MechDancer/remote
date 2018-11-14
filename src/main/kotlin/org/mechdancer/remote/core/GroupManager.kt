@@ -9,6 +9,7 @@ class GroupManager {
 
 	/**
 	 * 加入新成员或更新沉默时间
+	 *
 	 * @param name 名字
 	 * @return 名字是否是首次出现
 	 */
@@ -17,6 +18,7 @@ class GroupManager {
 
 	/**
 	 * 获取成员的沉默时间
+	 *
 	 * @param names 感兴趣的成员名单，不写表示获取所有成员
 	 * @return 所有感兴趣成员的沉默时间
 	 */
@@ -30,8 +32,9 @@ class GroupManager {
 
 	/**
 	 * 按沉默时间筛选
+	 *
 	 * @param time 最大沉默时间
-	 * @return 沉默时间短于[time]的组成员
+	 * @return 沉默时间短于 [time] 的组成员
 	 */
 	infix fun filterByTime(time: Long) =
 		silenceTime()

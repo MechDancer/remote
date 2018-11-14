@@ -14,17 +14,19 @@ import kotlin.math.max
  * 不承担资源管理或调度功能
  * 当前仅支持 IPV4 上的 UDP 组播及 TCP 单播
  *
- * 1. UDP 组播
- * 2. TCP 可靠传输
- * 3. 在线成员嗅探
- * 4. 插件服务
+ * * 1. UDP 组播
+ * * 2. TCP 可靠传输
+ * * 3. 在线成员嗅探
+ * * 4. 插件服务
  *
  * 初始化参数
+ *
  * @param name      进程名
  * @param netFilter 自定义选网策略
  *
  * 回调参数
- * @param newMemberDetected 发现新成员
+ *
+ *  @param newMemberDetected 发现新成员
  * @param broadcastReceived 收到广播
  * @param commandReceived   收到通用 TCP
  */
@@ -70,8 +72,8 @@ class RemoteHub(
 	 */
 	val members: Map<String, InetSocketAddress?>
 		get() {
-			val alives = groupManager filterByTime timeToLive.toLong()
-			return addressManager.filterKeys { it in alives }
+			val livingMembers = groupManager filterByTime timeToLive.toLong()
+			return addressManager.filterKeys { it in livingMembers }
 		}
 
 	/**
@@ -103,12 +105,13 @@ class RemoteHub(
 
 	/**
 	 * 广播自己的名字
-	 * 使得所有在线节点也广播自己的名字，从而得知完整的组列表
+	 * 使得所有在线节点也广播自己的名字，从而得知完整的组列表。
 	 */
 	fun yell() = broadcast(YellActive.id)
 
 	/**
 	 * 广播一包数据
+	 *
 	 * @param msg 数据报
 	 */
 	infix fun broadcast(msg: ByteArray) = broadcast(Broadcast.id, msg)
@@ -116,6 +119,7 @@ class RemoteHub(
 	/**
 	 * 广播一包数据
 	 * 用于插件服务
+	 *
 	 * @param id  插件识别号
 	 * @param msg 数据报
 	 */
@@ -146,6 +150,7 @@ class RemoteHub(
 
 	/**
 	 * 更新成员表
+	 *
 	 * @param timeout 以毫秒为单位的检查时间，方法最多阻塞这么长时间。
 	 *                此时间会覆盖之前设置的离线时间。
 	 */
@@ -165,6 +170,7 @@ class RemoteHub(
 
 	/**
 	 * 监听并解析 UDP 包
+	 *
 	 * @param timeout    以毫秒为单位的超时时间，方法最多阻塞这么长时间。
 	 *                   默认值为 0，指示超时时间无穷大。
 	 * @param bufferSize 缓冲区大小，超过缓冲容量的数据包无法接收。
@@ -198,6 +204,7 @@ class RemoteHub(
 
 	/**
 	 * 通过 TCP 发送，并在传输完后立即返回
+	 *
 	 * @param other 目标终端名字
 	 * @param msg   报文
 	 */
@@ -216,6 +223,7 @@ class RemoteHub(
 
 	/**
 	 * 通过 TCP 发送，并阻塞接收反馈
+	 *
 	 * @param other 目标终端名字
 	 * @param msg   报文
 	 */
@@ -264,7 +272,7 @@ class RemoteHub(
 
 	/**
 	 * 停止所有功能，释放资源
-	 * 调用此方法后再用终端进行收发操作将导致异常、阻塞或其他非预期的结果
+	 * 调用此方法后再用终端进行收发操作将导致异常、阻塞或其他非预期的结果。
 	 */
 	override fun close() {
 		default.leaveGroup(ADDRESS.address)
@@ -320,7 +328,6 @@ class RemoteHub(
 		CallBack(1);
 
 		companion object {
-			@JvmStatic
 			operator fun invoke(byte: Byte) =
 				values().firstOrNull { it.id == byte }
 		}
@@ -329,14 +336,12 @@ class RemoteHub(
 	private companion object {
 		val ADDRESS = InetSocketAddress(getByName("238.88.88.88"), 23333)
 
-		@JvmStatic
 		fun multicastOn(net: NetworkInterface?) =
 			MulticastSocket(ADDRESS.port).apply {
 				net?.let(this::setNetworkInterface)
 				joinGroup(ADDRESS.address)
 			}
 
-		@JvmStatic
 		fun isHost(address: InetAddress) =
 			address
 				.let { it as? Inet4Address }
@@ -346,12 +351,10 @@ class RemoteHub(
 				?.takeIf { it in 1..223 } != null
 
 		// 拆解 UDP 数据包
-		@JvmStatic
 		val DatagramPacket.actualData
 			get() = data.copyOfRange(0, length)
 
 		// UDP 接收循环
-		@JvmStatic
 		fun udpReceiveLoop(
 			socket: DatagramSocket,
 			bufferSize: Int,

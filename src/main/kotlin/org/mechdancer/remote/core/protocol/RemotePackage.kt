@@ -6,7 +6,9 @@ import java.io.DataInputStream
 import java.io.DataOutputStream
 
 /**
- * 通用数据包，用于无连接通信或建立连接
+ * 通用数据包
+ * 用于无连接通信或建立连接.
+ *
  * @param command 指令识别号
  * @param sender  发送方名字
  * @param payload 数据负载
@@ -35,7 +37,7 @@ internal class RemotePackage(
 
 	companion object {
 		/**
-		 * 从字节数组构建
+		 * 从字节数组构建。
 		 */
 		@JvmStatic
 		operator fun invoke(pack: ByteArray) =
