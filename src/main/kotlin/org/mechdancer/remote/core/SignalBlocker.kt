@@ -3,7 +3,7 @@ package org.mechdancer.remote.core
 /**
  * 信号阻塞
  */
-class SignalBlocker {
+internal class SignalBlocker {
 	private val core = Object()
 
 	fun block(timeout: Long = 0) =

@@ -1,7 +1,5 @@
-package org.mechdancer.remote.core
+package org.mechdancer.remote.core.protocol
 
-import org.mechdancer.remote.core.protocol.readWithLength
-import org.mechdancer.remote.core.protocol.writeWithLength
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
@@ -13,7 +11,7 @@ import java.io.DataOutputStream
  * @param sender  发送方名字
  * @param payload 数据负载
  */
-class RemotePackage(
+internal class RemotePackage(
 	val command: Byte,
 	val sender: String,
 	val payload: ByteArray

@@ -1,15 +1,11 @@
 package org.mechdancer.remote.core
 
+import org.mechdancer.remote.core.RemoteHub.TcpCmd.Call
 import org.mechdancer.remote.core.RemoteHub.UdpCmd.*
-import org.mechdancer.remote.core.protocol.bytes
-import org.mechdancer.remote.core.protocol.inetSocketAddress
-import org.mechdancer.remote.core.protocol.readWithLength
-import org.mechdancer.remote.core.protocol.writeWithLength
+import org.mechdancer.remote.core.protocol.*
 import java.io.Closeable
 import java.net.*
 import java.net.InetAddress.getByName
-import java.util.*
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.max
 
@@ -43,11 +39,14 @@ class RemoteHub(
 	// 默认套接字
 	private val default: MulticastSocket
 	// TCP监听
-	private val server by lazy { ServerSocket(0) }
+	private val server = ServerSocket(0)
 	// 组成员列表
-	private val group = ConcurrentHashMap<String, ConnectionInfo>()
+	private val addressManager = AddressManager()
 	// 地址询问阻塞
 	private val addressSignal = SignalBlocker()
+
+	// 组成员列表
+	private val groupManager = GroupManager()
 	// 存活时间
 	private val aliveTime = AtomicInteger(10000)
 
@@ -55,11 +54,6 @@ class RemoteHub(
 	private val udpPlugins = mutableMapOf<Char, Received>()
 	// TCP 插件服务
 	private val tcpPlugins = mutableMapOf<Char, CallBack>()
-
-	/**
-	 * 序列号
-	 */
-	val uuid: UUID = UUID.randomUUID()
 
 	/**
 	 * 终端名字
@@ -75,9 +69,10 @@ class RemoteHub(
 	 * 组成员列表
 	 */
 	val members: Map<String, InetSocketAddress?>
-		get() = group
-			.filterValues { it.silenceTime < timeToLive }
-			.mapValues { it.value.address }
+		get() {
+			val alives = groupManager filterByTime timeToLive.toLong()
+			return addressManager.filterKeys { it in alives }
+		}
 
 	/**
 	 * 存活时间条件
@@ -87,16 +82,8 @@ class RemoteHub(
 		set(value) = aliveTime.set(if (value <= 0) Int.MAX_VALUE else value)
 
 	// 更新成员信息
-	// 未知成员: 添加到表并初始化IP地址
-	// 已知成员: 更新时间戳
-	private fun updateGroup(sender: String) {
-		group[sender]
-			?.takeUnless { it.silenceTime > timeToLive }
-			?: newMemberDetected(sender)
-		group[sender] =
-			group[sender]?.copy(stamp = System.currentTimeMillis())
-			?: ConnectionInfo(System.currentTimeMillis(), null).also { }
-	}
+	private fun updateGroup(sender: String) =
+		sender.takeIf(groupManager::detect)?.let(newMemberDetected)
 
 	// 发送组播报文
 	private fun broadcast(cmd: Byte, payload: ByteArray = ByteArray(0)) =
@@ -110,7 +97,7 @@ class RemoteHub(
 
 	// 解析收到的IP地址
 	private fun tcpParse(sender: String, payload: ByteArray) {
-		group[sender] = group[sender]!!.copy(address = inetSocketAddress(payload))
+		addressManager[sender] = inetSocketAddress(payload)
 		addressSignal.awake()
 	}
 
@@ -173,7 +160,7 @@ class RemoteHub(
 			}
 		}
 		timeToLive = max(timeout + 20, 200)
-		return group.toMap().filterValues { it.silenceTime < timeToLive }.keys
+		return groupManager filterByTime timeToLive.toLong()
 	}
 
 	/**
@@ -203,20 +190,7 @@ class RemoteHub(
 	// 尝试连接一个远端 TCP 服务器
 	private fun connect(other: String): Socket {
 		while (true) {
-			group[other]
-				?.address
-				?.also { ip ->
-					val socket = Socket()
-					socket.soTimeout = 100
-					try {
-						socket.connect(ip)
-						return socket
-					} catch (e: SocketException) {
-						group[other] = group[other]!!.copy(address = null)
-						socket.close()
-					}
-				}
-
+			(addressManager connect other)?.also { return it }
 			broadcast(AddressAsk.id, other.toByteArray())
 			addressSignal.block(1000)
 		}
@@ -230,7 +204,7 @@ class RemoteHub(
 	fun send(other: String, msg: ByteArray) =
 		connect(other)
 			.getOutputStream()
-			.writeWithLength(RemotePackage(TcpCmd.Call.id, name, msg).bytes)
+			.writeWithLength(RemotePackage(Call.id, name, msg).bytes)
 			.close()
 
 	// 通用远程调用
@@ -350,22 +324,6 @@ class RemoteHub(
 			operator fun invoke(byte: Byte) =
 				values().firstOrNull { it.id == byte }
 		}
-	}
-
-	/**
-	 * 连接信息
-	 * @param stamp   最后到达时间
-	 * @param address 地址
-	 */
-	private data class ConnectionInfo(
-		val stamp: Long,
-		val address: InetSocketAddress?
-	) {
-		/**
-		 * 静默时间
-		 * 当前到最后一次出现的时间间隔（毫秒）
-		 */
-		val silenceTime get() = System.currentTimeMillis() - stamp
 	}
 
 	private companion object {
