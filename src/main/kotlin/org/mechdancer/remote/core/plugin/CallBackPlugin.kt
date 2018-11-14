@@ -1,4 +1,6 @@
-package org.mechdancer.remote.core
+package org.mechdancer.remote.core.plugin
+
+import org.mechdancer.remote.core.RemoteHub
 
 /**
  * 远程调用解析插件

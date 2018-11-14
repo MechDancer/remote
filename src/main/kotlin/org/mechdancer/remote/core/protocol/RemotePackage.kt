@@ -39,7 +39,6 @@ internal class RemotePackage(
 		/**
 		 * 从字节数组构建。
 		 */
-		@JvmStatic
 		operator fun invoke(pack: ByteArray) =
 			pack.let(::ByteArrayInputStream)
 				.let(::DataInputStream)
