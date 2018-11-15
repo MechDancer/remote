@@ -15,6 +15,9 @@ object M {
                 }
             }
         }.run {
+            thread {
+                println((this[ResourcePlugin]!!["Foo"]?.let { String(it) }))
+            }
             forever { invoke() }
         }
     }
@@ -25,11 +28,12 @@ object N {
     fun main(args: Array<String>) {
         remoteHub("N") {
             plugins {
-                resourcePlugin { }
+                resourcePlugin {
+                    resources += "Foo" to "Bar".toByteArray()
+                }
             }
         }.run {
             thread {
-                Thread.sleep(2000)
                 println((this[ResourcePlugin]!!["Apple"]?.let { String(it) }))
             }
             forever { invoke() }
