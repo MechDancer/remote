@@ -3,9 +3,9 @@ package org.mechdancer.remote.builder
 import org.mechdancer.remote.core.CallBack
 import org.mechdancer.remote.core.Received
 import org.mechdancer.remote.core.RemotePlugin
-import org.mechdancer.remote.core.network.MULTICAST_FILTERS
-import org.mechdancer.remote.core.network.NetFilter
-import org.mechdancer.remote.core.network.WIRELESS_FIRST
+import org.mechdancer.remote.util.network.MULTICAST_FILTERS
+import org.mechdancer.remote.util.network.NetFilter
+import org.mechdancer.remote.util.network.WIRELESS_FIRST
 import java.net.NetworkInterface
 
 /**

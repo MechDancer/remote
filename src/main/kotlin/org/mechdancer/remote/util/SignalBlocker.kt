@@ -1,4 +1,4 @@
-package org.mechdancer.remote.core
+package org.mechdancer.remote.util
 
 /**
  * 信号阻塞

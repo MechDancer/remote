@@ -1,7 +1,7 @@
 package org.mechdancer.remote.builder
 
 import org.mechdancer.remote.core.RemoteHub
-import org.mechdancer.remote.core.network.filterNetwork
+import org.mechdancer.remote.util.network.filterNetwork
 import java.net.NetworkInterface
 
 /**

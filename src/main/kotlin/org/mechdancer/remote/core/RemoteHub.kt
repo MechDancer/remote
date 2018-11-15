@@ -3,6 +3,7 @@ package org.mechdancer.remote.core
 import org.mechdancer.remote.core.RemoteHub.TcpCmd.Call
 import org.mechdancer.remote.core.RemoteHub.UdpCmd.*
 import org.mechdancer.remote.core.protocol.*
+import org.mechdancer.remote.util.SignalBlocker
 import java.io.Closeable
 import java.net.*
 import java.net.InetAddress.getByName
@@ -60,7 +61,7 @@ class RemoteHub(
     private val aliveTime = AtomicInteger(10000)
 
     // 插件服务
-    private val _plugins = mutableSetOf<RemotePlugin>()
+    private val _plugins = hashSetOf<RemotePlugin>()
 
     val plugins = object : Set<RemotePlugin> by _plugins {}
 
@@ -155,7 +156,7 @@ class RemoteHub(
                             ?.let { pluginId ->
                                 _plugins.find { it.id == pluginId }
                             }
-                            ?.invoke(this@RemoteHub, sender, payload)
+                            ?.onBroadcast(this@RemoteHub, sender, payload)
                 }
             }
 

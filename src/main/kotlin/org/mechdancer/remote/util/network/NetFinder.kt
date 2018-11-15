@@ -1,4 +1,4 @@
-package org.mechdancer.remote.core.network
+package org.mechdancer.remote.util.network
 
 import org.mechdancer.remote.builder.remoteHub
 import java.net.NetworkInterface
