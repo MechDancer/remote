@@ -16,7 +16,7 @@ object M {
             }
         }.run {
             thread {
-                println((this[ResourcePlugin]!!["Foo"]?.let { String(it) }))
+                println((this[ResourcePlugin]["Foo"]?.let { String(it) }))
             }
             forever { invoke() }
         }
@@ -34,7 +34,7 @@ object N {
             }
         }.run {
             thread {
-                println((this[ResourcePlugin]!!["Apple"]?.let { String(it) }))
+                println((this[ResourcePlugin]["Apple"]?.let { String(it) }))
             }
             forever { invoke() }
         }

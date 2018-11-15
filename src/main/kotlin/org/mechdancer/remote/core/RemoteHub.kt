@@ -283,12 +283,12 @@ class RemoteHub(
      * 卸载插件
      */
     infix fun <T : RemotePlugin> teardown(key: RemotePlugin.Key<T>): T =
-        this[key]?.let {
+        this[key].let {
             it.onTeardown()
-            plugins.remove(key) as? T
-        } ?: throw IllegalArgumentException("未找到该插件 id: ${key.id}")
+            plugins.remove(key) as T
+        }
 
-    operator fun <T : RemotePlugin> get(key: RemotePlugin.Key<T>): T? = plugins[key] as? T
+    operator fun <T : RemotePlugin> get(key: RemotePlugin.Key<T>): T = plugins[key] as? T
         ?: throw IllegalArgumentException("未找到该插件 id: ${key.id}")
 
     /**
@@ -375,10 +375,10 @@ class RemoteHub(
             while (true) {
                 // 设置超时时间
                 socket.soTimeout =
-                    (endTime - System.currentTimeMillis())
-                        .toInt()
-                        .takeIf { it > 10 }
-                    ?: return
+                        (endTime - System.currentTimeMillis())
+                            .toInt()
+                            .takeIf { it > 10 }
+                        ?: return
                 // 接收，超时直接退出
                 try {
                     socket.receive(buffer)
