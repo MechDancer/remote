@@ -11,15 +11,22 @@ import java.util.concurrent.*
 class ResourcePlugin(private val retryPeriod: Long, vararg resources: Pair<String, ByteArray>) :
     RemotePlugin(ResourcePlugin) {
 
+    //工作线程池
     private val worker = Executors.newFixedThreadPool(3)
 
     private val resource = RemoteResource(resources)
 
+    //主机引用
     private lateinit var master: RemoteHub
 
+    //需要请求的资源
     private val resourceToAsk = LinkedTransferQueue<String>()
 
+    //已经请求的资源
     private val asked = ConcurrentSkipListMap<String, Long>()
+
+    //资源已经请求的次数
+    //暂未使用
     private val askedTimes = ConcurrentSkipListMap<String, Int>()
 
 
@@ -27,11 +34,13 @@ class ResourcePlugin(private val retryPeriod: Long, vararg resources: Pair<Strin
         master = host
         worker.submit {
             while (true) {
+                //有没有需要发的请求？
                 ask(resourceToAsk.take())
             }
         }
         worker.submit {
             while (true)
+            //发过了，但 retryPeriod 毫秒之后没人回，再发一次
                 asked.forEach { id, stamp ->
                     if (System.currentTimeMillis() - stamp > retryPeriod)
                         ask(id)
@@ -79,12 +88,14 @@ class ResourcePlugin(private val retryPeriod: Long, vararg resources: Pair<Strin
         resourceToAsk.add(resourceId)
 
     internal val onResourceAsk = { resourceId: String ->
+        //有人请求，如果我有就回复
         if (resource.memory.containsKey(resourceId))
             ack(resourceId, resource.memory[resourceId]!!)
     }
 
     internal val onResourceAck = { payload: ByteArray ->
         val (resourceId, data) = decodeAck(payload)
+        //如果内部队列需要这个请求，就存下结果
         if (resourceId in resource.queue) {
             resource.memory[resourceId] = data
             resource.queue.remove(resourceId)
@@ -126,11 +137,16 @@ class ResourcePlugin(private val retryPeriod: Long, vararg resources: Pair<Strin
         internal val queue = ConcurrentSkipListSet<String>()
 
         fun get(resourceId: String, timeout: Long): ByteArray? {
+
+            //本地有直接返回
             if (resourceId in memory)
                 return memory[resourceId]!!
+            //加到内部请求队列
             else queue.add(resourceId)
+            //添加外部请求队列
             askResource(resourceId)
             val start = System.currentTimeMillis()
+            //超时返回 null
             while (resourceId in queue) {
                 if (System.currentTimeMillis() - start > timeout) {
                     asked.remove(resourceId)
