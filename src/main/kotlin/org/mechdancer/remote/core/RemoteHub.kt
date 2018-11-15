@@ -282,13 +282,14 @@ class RemoteHub(
     /**
      * 卸载插件
      */
-    infix fun <T : RemotePlugin> teardown(key: RemotePlugin.Key<T>): T? =
+    infix fun <T : RemotePlugin> teardown(key: RemotePlugin.Key<T>): T =
         this[key]?.let {
             it.onTeardown()
             plugins.remove(key) as? T
-        }
+        } ?: throw IllegalArgumentException("未找到该插件 id: ${key.id}")
 
     operator fun <T : RemotePlugin> get(key: RemotePlugin.Key<T>): T? = plugins[key] as? T
+        ?: throw IllegalArgumentException("未找到该插件 id: ${key.id}")
 
     /**
      * 停止所有功能，释放资源
