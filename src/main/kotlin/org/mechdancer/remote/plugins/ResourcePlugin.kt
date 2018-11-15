@@ -10,8 +10,7 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.*
 
-class ResourcePlugin(private val retryPeriod: Long, vararg resources: Pair<String, ByteArray>) :
-    RemotePlugin() {
+class ResourcePlugin(private val retryPeriod: Long, vararg resources: Pair<String, ByteArray>) : RemotePlugin {
     override val id = '0'
 
     //工作线程池

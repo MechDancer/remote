@@ -1,7 +1,7 @@
 package org.mechdancer.remote.core
 
 inline fun <reified T : RemotePlugin> RemoteHub.getPlugin() =
-    pluginView.find { it is T }?.let { it as T }
+    plugins.find { it is T }?.let { it as T }
 
 inline fun <reified T : RemotePlugin> RemoteHub.broadcastBy(msg: ByteArray) =
     getPlugin<T>()?.let { broadcast(it.id, msg) }

@@ -3,22 +3,22 @@ package org.mechdancer.remote.core
 /**
  * 远程终端插件
  */
-abstract class RemotePlugin {
+interface RemotePlugin {
     /**
      * 指令识别号
      */
-    abstract val id: Char
+    val id: Char
 
     /**
      * 加载到终端时调用
      * @param host 目标终端
      */
-    open fun onSetup(host: RemoteHub) {}
+    fun onSetup(host: RemoteHub) {}
 
     /**
      * 从终端卸载时调用
      */
-    open fun onTeardown() {}
+    fun onTeardown() {}
 
     /**
      * 收到相关广播时调用
@@ -27,7 +27,7 @@ abstract class RemotePlugin {
      * @param sender   发送终端
      * @param payload  数据负载
      */
-    open operator fun invoke(
+    operator fun invoke(
         receiver: RemoteHub,
         sender: String,
         payload: ByteArray
@@ -40,7 +40,7 @@ abstract class RemotePlugin {
      * @param sender   发送终端
      * @param payload  数据负载
      */
-    open fun onCall(
+    fun onCall(
         receiver: RemoteHub,
         sender: String,
         payload: ByteArray

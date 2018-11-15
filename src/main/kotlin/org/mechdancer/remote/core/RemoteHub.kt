@@ -60,9 +60,9 @@ class RemoteHub(
     private val aliveTime = AtomicInteger(10000)
 
     // 插件服务
-    private val plugins = mutableSetOf<RemotePlugin>()
+    private val _plugins = mutableSetOf<RemotePlugin>()
 
-    val pluginView = object : Set<RemotePlugin> by plugins {}
+    val plugins = object : Set<RemotePlugin> by _plugins {}
 
     /**
      * 终端名字
@@ -153,7 +153,7 @@ class RemoteHub(
                         id.toChar()
                             .takeIf(Char::isLetterOrDigit)
                             ?.let { pluginId ->
-                                plugins.find { it.id == pluginId }
+                                _plugins.find { it.id == pluginId }
                             }
                             ?.invoke(this@RemoteHub, sender, payload)
                 }
@@ -263,7 +263,7 @@ class RemoteHub(
                         id.toChar()
                             .takeIf(Char::isLetterOrDigit)
                             ?.let { pluginId ->
-                                plugins.find { it.id == pluginId }
+                                _plugins.find { it.id == pluginId }
                             }
                             ?.onCall(this, sender, payload)
                             ?.let(::reply)
@@ -276,7 +276,7 @@ class RemoteHub(
      */
     infix fun setup(plugin: RemotePlugin) {
         assert(plugin.id.isLetterOrDigit())
-        plugins += plugin
+        _plugins += plugin
         plugin.onSetup(this)
     }
 
@@ -284,8 +284,8 @@ class RemoteHub(
      * 卸载插件
      */
     infix fun teardown(plugin: RemotePlugin) {
-        assert(plugin in plugins)
-        plugins -= plugin
+        assert(plugin in _plugins)
+        _plugins -= plugin
         plugin.onTeardown()
     }
 
@@ -294,8 +294,8 @@ class RemoteHub(
      * 调用此方法后再用终端进行收发操作将导致异常、阻塞或其他非预期的结果。
      */
     override fun close() {
-        plugins.toSet().forEach(::teardown)
-        plugins.clear()
+        _plugins.toSet().forEach(::teardown)
+        _plugins.clear()
         default.leaveGroup(ADDRESS.address)
         default.close()
         server.close()
