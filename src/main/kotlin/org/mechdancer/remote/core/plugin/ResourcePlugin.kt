@@ -7,6 +7,8 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentSkipListSet
+import java.util.concurrent.Executors
+import java.util.concurrent.LinkedBlockingQueue
 
 class ResourcePlugin : BroadcastPlugin {
 
@@ -14,33 +16,45 @@ class ResourcePlugin : BroadcastPlugin {
 
     val resource = RemoteResource()
 
-    private val resourceToAsk = ConcurrentSkipListSet<String>()
+    private lateinit var master: RemoteHub
+
+    private val resourceToAsk = LinkedBlockingQueue<String>()
+
+    private val worker = Executors.newSingleThreadExecutor()
+
+    override fun onSetup(host: RemoteHub) {
+        master = host
+        worker.submit {
+            while (true)
+                ask(resourceToAsk.take())
+        }
+    }
 
     override fun invoke(host: RemoteHub, guest: String, payload: ByteArray) {
         val (cmd, data) = decodePayload(payload)
         when (cmd) {
-            Cmd.ResourceAsk -> onResourceAsk(host, String(data))
+            Cmd.ResourceAsk -> onResourceAsk(String(data))
             Cmd.ResourceAck -> onResourceAck(payload)
-        }
-        resourceToAsk.forEach {
-            host.ask(it)
-            resourceToAsk.remove(it)
         }
     }
 
-    private fun RemoteHub.ask(resourceId: String) =
-        broadcast(Cmd.ResourceAsk join resourceId.toByteArray())
+    override fun onTeardown() {
+        worker.shutdown()
+    }
 
-    private fun RemoteHub.ack(resourceId: String, data: ByteArray) =
-        broadcast(Cmd.ResourceAck join encodeAck(resourceId, data))
+    private fun ask(resourceId: String) =
+        master.broadcast(Cmd.ResourceAsk join resourceId.toByteArray())
+
+    private fun ack(resourceId: String, data: ByteArray) =
+        master.broadcast(Cmd.ResourceAck join encodeAck(resourceId, data))
 
 
     private fun askResource(resourceId: String) =
-        resourceToAsk.add(resourceId)
+        resourceToAsk.offer(resourceId)
 
-    internal val onResourceAsk = { hub: RemoteHub, resourceId: String ->
+    internal val onResourceAsk = { resourceId: String ->
         if (resourceId in resource.memory)
-            hub.ack(resourceId, resource.memory[resourceId]!!)
+            ack(resourceId, resource.memory[resourceId]!!)
     }
 
     internal val onResourceAck = { payload: ByteArray ->
