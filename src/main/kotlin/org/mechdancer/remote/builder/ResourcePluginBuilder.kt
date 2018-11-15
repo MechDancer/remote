@@ -1,6 +1,6 @@
 package org.mechdancer.remote.builder
 
-import org.mechdancer.remote.core.plugin.ResourcePlugin
+import org.mechdancer.remote.plugins.ResourcePlugin
 
 class ResourcePluginBuilder {
     val resources = mutableMapOf<String, ByteArray>()
@@ -10,7 +10,7 @@ fun RemoteCallbackBuilder.Plugins.resourcePlugin(retry: Long = 2000, block: Reso
     setup(
         ResourcePlugin(
             retry, *ResourcePluginBuilder()
-        .also(block)
-        .resources
-        .map { entry -> entry.toPair() }
-        .toTypedArray()))
+                .also(block)
+                .resources
+                .map { entry -> entry.toPair() }
+                .toTypedArray()))

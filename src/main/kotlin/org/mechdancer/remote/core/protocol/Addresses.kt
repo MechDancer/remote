@@ -10,7 +10,7 @@ import java.net.InetSocketAddress
 /**
  * 从字节数组恢复完整地址
  */
-fun inetSocketAddress(byteArray: ByteArray) =
+internal fun inetSocketAddress(byteArray: ByteArray) =
 	byteArray
 		.let(::ByteArrayInputStream)
 		.let(::DataInputStream)
@@ -24,7 +24,7 @@ fun inetSocketAddress(byteArray: ByteArray) =
 /**
  * 地址打包到字节数组
  */
-val InetSocketAddress.bytes: ByteArray
+internal val InetSocketAddress.bytes: ByteArray
 	get() =
 		ByteArrayOutputStream().apply {
 			write(address.address)

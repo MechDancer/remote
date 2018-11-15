@@ -11,7 +11,7 @@ import java.io.OutputStream
  * @param    pack 数据包
  * @return   输出流
  */
-fun OutputStream.writeWithLength(pack: ByteArray) =
+internal fun OutputStream.writeWithLength(pack: ByteArray) =
 	apply {
 		DataOutputStream(this).writeInt(pack.size)
 		write(pack)
@@ -22,7 +22,7 @@ fun OutputStream.writeWithLength(pack: ByteArray) =
  * @receiver 输入流
  * @return   数据包
  */
-fun InputStream.readWithLength(): ByteArray =
+internal fun InputStream.readWithLength(): ByteArray =
 	waitNBytes(DataInputStream(this).readInt())
 
 /**
@@ -33,7 +33,7 @@ fun InputStream.readWithLength(): ByteArray =
  * @param n 长度
  * @return 读取的字节数组
  */
-fun InputStream.waitNBytes(n: Int): ByteArray {
+internal fun InputStream.waitNBytes(n: Int): ByteArray {
 	val buffer = ByteArray(n)
 	for (i in 0 until n) {
 		buffer[i] = read()

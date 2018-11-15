@@ -2,7 +2,7 @@ package org.mechdancer.remote
 
 import org.mechdancer.remote.builder.remoteHub
 import org.mechdancer.remote.builder.resourcePlugin
-import org.mechdancer.remote.core.plugin.ResourcePlugin
+import org.mechdancer.remote.plugins.ResourcePlugin
 import kotlin.concurrent.thread
 
 object M {

@@ -1,12 +1,14 @@
-package org.mechdancer.remote.core.plugin
+package org.mechdancer.remote.plugins
 
 import org.mechdancer.remote.core.RemoteHub
+import org.mechdancer.remote.core.RemotePlugin
 import org.mechdancer.remote.core.protocol.readWithLength
 import org.mechdancer.remote.core.protocol.writeWithLength
+import org.mechdancer.remote.plugins.ResourcePlugin.Cmd.ResourceAck
+import org.mechdancer.remote.plugins.ResourcePlugin.Cmd.ResourceAsk
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.*
-
 
 class ResourcePlugin(private val retryPeriod: Long, vararg resources: Pair<String, ByteArray>) :
     RemotePlugin(ResourcePlugin) {
@@ -29,7 +31,6 @@ class ResourcePlugin(private val retryPeriod: Long, vararg resources: Pair<Strin
     //暂未使用
     private val askedTimes = ConcurrentSkipListMap<String, Int>()
 
-
     override fun onSetup(host: RemoteHub) {
         master = host
         worker.submit {
@@ -48,12 +49,12 @@ class ResourcePlugin(private val retryPeriod: Long, vararg resources: Pair<Strin
         }
     }
 
-    override fun invoke(host: RemoteHub, sender: String, payload: ByteArray) {
+    override fun invoke(receiver: RemoteHub, sender: String, payload: ByteArray) {
         val (cmd, data) = decodePayload(payload)
         when (cmd) {
-            Cmd.ResourceAsk -> onResourceAsk(String(data))
-            Cmd.ResourceAck -> onResourceAck(data)
-            null            -> throw IllegalArgumentException()
+            ResourceAsk -> onResourceAsk(String(data))
+            ResourceAck -> onResourceAck(data)
+            null        -> throw IllegalArgumentException()
         }
     }
 
@@ -75,14 +76,13 @@ class ResourcePlugin(private val retryPeriod: Long, vararg resources: Pair<Strin
         resource.get(resourceId, timeout)
 
     private fun ask(resourceId: String) {
-        master.broadcast(key, Cmd.ResourceAsk join resourceId.toByteArray())
+        master.broadcast(key, ResourceAsk join resourceId.toByteArray())
         asked[resourceId] = System.currentTimeMillis()
         askedTimes[resourceId] = askedTimes[resourceId]?.let { it + 1 } ?: 1
     }
 
     private fun ack(resourceId: String, data: ByteArray) =
-        master.broadcast(key, Cmd.ResourceAck join encodeAck(resourceId, data))
-
+        master.broadcast(key, ResourceAck join encodeAck(resourceId, data))
 
     private fun askResource(resourceId: String) =
         resourceToAsk.add(resourceId)
@@ -126,7 +126,6 @@ class ResourcePlugin(private val retryPeriod: Long, vararg resources: Pair<Strin
 
             override fun compareTo(other: Delayed): Int =
                 (this.getDelay(TimeUnit.MILLISECONDS) - other.getDelay(TimeUnit.MILLISECONDS)).toInt()
-
 
             override fun getDelay(unit: TimeUnit): Long =
                 unit.convert(time - System.currentTimeMillis(), TimeUnit.MILLISECONDS)
@@ -176,7 +175,7 @@ class ResourcePlugin(private val retryPeriod: Long, vararg resources: Pair<Strin
         }
     }
 
-    companion object : RemotePlugin.Key<ResourcePlugin> {
+    companion object : Key<ResourcePlugin> {
         override val id: Char = '0'
     }
 }

@@ -1,48 +1,50 @@
-package org.mechdancer.remote.core.plugin
+package org.mechdancer.remote.core
 
-import org.mechdancer.remote.core.RemoteHub
-
+/**
+ * 远程终端插件
+ * @param key 键
+ */
 abstract class RemotePlugin(val key: Key<*>) {
-
-
     /**
-     * 插件加载
+     * 加载到终端时调用
      */
     open fun onSetup(host: RemoteHub) {}
 
     /**
-     * 插件卸载
+     * 从终端卸载时调用
      */
     open fun onTeardown() {}
 
     /**
-     * 广播接收回调
+     * 收到相关广播时调用
      *
-     * @param host    接收终端
+     * @param receiver 接收终端
      * @param sender   发送终端
-     * @param payload 数据负载
+     * @param payload  数据负载
      */
     open operator fun invoke(
-        host: RemoteHub,
+        receiver: RemoteHub,
         sender: String,
         payload: ByteArray
     ) = Unit
 
     /**
-     * 调用接收回调
+     * 收到相关单播时调用
      *
-     * @param host    接收终端
+     * @param receiver 接收终端
      * @param sender   发送终端
-     * @param payload 数据负载
+     * @param payload  数据负载
      */
     open fun onCall(
-        host: RemoteHub,
+        receiver: RemoteHub,
         sender: String,
         payload: ByteArray
     ): ByteArray = byteArrayOf()
 
-
-    interface Key<R : RemotePlugin> {
+    /**
+     * 键类型
+     */
+    interface Key<out RemotePlugin> {
         /**
          * 指令识别号
          */

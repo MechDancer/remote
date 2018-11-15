@@ -2,7 +2,6 @@ package org.mechdancer.remote.core
 
 import org.mechdancer.remote.core.RemoteHub.TcpCmd.Call
 import org.mechdancer.remote.core.RemoteHub.UdpCmd.*
-import org.mechdancer.remote.core.plugin.RemotePlugin
 import org.mechdancer.remote.core.protocol.*
 import java.io.Closeable
 import java.net.*
@@ -315,7 +314,6 @@ class RemoteHub(
     }
 
     override fun toString(): String = name
-
 
     // 指令 ID
     private enum class UdpCmd(val id: Byte) {
