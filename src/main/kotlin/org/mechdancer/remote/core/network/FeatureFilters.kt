@@ -16,20 +16,22 @@ fun NetworkInterface.ethernet() =
     name.toLowerCase().startsWith("eth")
         || displayName.toLowerCase().contentEquals("ethernet")
 
-fun NetworkInterface.notVirtual() =
-    !isVirtual
-        && !displayName.toLowerCase().contains("virtual")
+fun NetworkInterface.virtual() =
+    isVirtual
+        || displayName.toLowerCase().contains("virtual")
+
+operator fun NetFilter.not() = { net: NetworkInterface -> !this(net) }
 
 val MULTICAST_FILTERS: List<NetFilter> =
     listOf(
+        !NetworkInterface::isLoopback,
         NetworkInterface::supportsMulticast,
-        NetworkInterface::notVirtual
+        !NetworkInterface::virtual
     )
 
 val WIRELESS_FIRST: List<NetFilter> =
     listOf(
         NetworkInterface::wireless,
         NetworkInterface::ethernet,
-        NetworkInterface::notVirtual,
-        NetworkInterface::isLoopback
+        !NetworkInterface::virtual
     )
