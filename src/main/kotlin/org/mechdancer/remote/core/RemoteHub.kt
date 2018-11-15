@@ -129,10 +129,10 @@ class RemoteHub(
      * 广播一包数据
      * 用于插件服务
      *
-     * @param id  插件识别号
+     * @param key  插件识别号
      * @param msg 数据报
      */
-    fun broadcast(id: Char, msg: ByteArray) = broadcast(id.toByte(), msg)
+    fun broadcast(key: RemotePlugin.Key<*>, msg: ByteArray) = broadcast(key.id.toByte(), msg)
 
     // 处理 UDP 包
     private fun processUdp(pack: ByteArray) =
@@ -288,7 +288,7 @@ class RemoteHub(
             plugins.remove(key) as? T
         }
 
-    operator fun <T : RemotePlugin> get(key: RemotePlugin.Key<T>) = plugins[key]
+    operator fun <T : RemotePlugin> get(key: RemotePlugin.Key<T>): T? = plugins[key] as? T
 
     /**
      * 停止所有功能，释放资源
@@ -312,6 +312,9 @@ class RemoteHub(
         // 入组
         default = multicastOn(network)
     }
+
+    override fun toString(): String = name
+
 
     // 指令 ID
     private enum class UdpCmd(val id: Byte) {

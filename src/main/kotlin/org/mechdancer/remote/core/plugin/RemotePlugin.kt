@@ -19,12 +19,12 @@ abstract class RemotePlugin(val key: Key<*>) {
      * 广播接收回调
      *
      * @param host    接收终端
-     * @param guest   发送终端
+     * @param sender   发送终端
      * @param payload 数据负载
      */
     open operator fun invoke(
         host: RemoteHub,
-        guest: String,
+        sender: String,
         payload: ByteArray
     ) = Unit
 
@@ -32,12 +32,12 @@ abstract class RemotePlugin(val key: Key<*>) {
      * 调用接收回调
      *
      * @param host    接收终端
-     * @param guest   发送终端
+     * @param sender   发送终端
      * @param payload 数据负载
      */
     open fun onCall(
         host: RemoteHub,
-        guest: String,
+        sender: String,
         payload: ByteArray
     ): ByteArray = byteArrayOf()
 
