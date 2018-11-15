@@ -10,19 +10,24 @@ import org.mechdancer.remote.core.network.selectNetwork
  * @param block 请求回调
  */
 fun remoteHub(
-    name: String = "",
-    block: RemoteCallbackBuilder.() -> Unit = {}
+	name: String = "",
+	block: RemoteCallbackBuilder.() -> Unit = {}
 ) = RemoteCallbackBuilder()
-    .apply(block)
-    .let { info ->
-        RemoteHub(
-            name,
-            selectNetwork(info.filters1, info.filters2)
-                ?: throw RuntimeException("no available network"),
-            info.newMemberDetected,
-            info.broadcastReceived,
-            info.commandReceived
-        ).also { hub ->
-            info.plugins.forEach(hub::setup)
-        }
-    }
+	.apply(block)
+	.let { info ->
+		RemoteHub(
+			name,
+			info.network
+				?: selectNetwork(
+					info.filters1,
+					info.filters2,
+					info.filterFinal
+				)
+				?: throw RuntimeException("no available network"),
+			info.newMemberDetected,
+			info.broadcastReceived,
+			info.commandReceived
+		).also { hub ->
+			info.plugins.forEach(hub::setup)
+		}
+	}

@@ -17,8 +17,8 @@ fun NetworkInterface.ethernet() =
         || displayName.toLowerCase().contentEquals("ethernet")
 
 fun NetworkInterface.notVirtual() =
-    isVirtual
-        || displayName.toLowerCase().contains("virtual")
+    !isVirtual
+        && !displayName.toLowerCase().contains("virtual")
 
 val MULTICAST_FILTERS: List<NetFilter> =
     listOf(
