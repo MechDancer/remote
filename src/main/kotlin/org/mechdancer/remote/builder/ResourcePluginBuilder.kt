@@ -6,11 +6,12 @@ class ResourcePluginBuilder {
     val resources = mutableMapOf<String, ByteArray>()
 }
 
-fun RemoteCallbackBuilder.Plugins.resourcePlugin(retry: Long = 2000, block: ResourcePluginBuilder.() -> Unit) =
-    setup(
-        ResourcePlugin(
-            retry, *ResourcePluginBuilder()
-                .also(block)
-                .resources
-                .map { entry -> entry.toPair() }
-                .toTypedArray()))
+fun RemoteCallbackBuilder.Plugins.resourcePlugin(
+    retry: Long = 2000,
+    block: ResourcePluginBuilder.() -> Unit
+) = setup(ResourcePlugin(
+    retry, *ResourcePluginBuilder()
+        .also(block)
+        .resources
+        .map { entry -> entry.toPair() }
+        .toTypedArray()))

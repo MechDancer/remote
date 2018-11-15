@@ -59,8 +59,10 @@ class RemoteHub(
     // 存活时间
     private val aliveTime = AtomicInteger(10000)
 
-    //插件服务
-    private val plugins = mutableMapOf<RemotePlugin.Key<*>, RemotePlugin>()
+    // 插件服务
+    private val plugins = mutableSetOf<RemotePlugin>()
+
+    val pluginView = object : Set<RemotePlugin> by plugins {}
 
     /**
      * 终端名字
@@ -128,10 +130,10 @@ class RemoteHub(
      * 广播一包数据
      * 用于插件服务
      *
-     * @param key  插件识别号
+     * @param id  插件识别号
      * @param msg 数据报
      */
-    fun broadcast(key: RemotePlugin.Key<*>, msg: ByteArray) = broadcast(key.id.toByte(), msg)
+    fun broadcast(id: Char, msg: ByteArray) = broadcast(id.toByte(), msg)
 
     // 处理 UDP 包
     private fun processUdp(pack: ByteArray) =
@@ -151,7 +153,7 @@ class RemoteHub(
                         id.toChar()
                             .takeIf(Char::isLetterOrDigit)
                             ?.let { pluginId ->
-                                plugins[plugins.keys.find { it.id == pluginId }]
+                                plugins.find { it.id == pluginId }
                             }
                             ?.invoke(this@RemoteHub, sender, payload)
                 }
@@ -261,7 +263,7 @@ class RemoteHub(
                         id.toChar()
                             .takeIf(Char::isLetterOrDigit)
                             ?.let { pluginId ->
-                                plugins[plugins.keys.find { it.id == pluginId }]
+                                plugins.find { it.id == pluginId }
                             }
                             ?.onCall(this, sender, payload)
                             ?.let(::reply)
@@ -273,29 +275,26 @@ class RemoteHub(
      * 加载插件
      */
     infix fun setup(plugin: RemotePlugin) {
-        assert(plugin.key.id.isLetterOrDigit())
-        plugins[plugin.key] = plugin
+        assert(plugin.id.isLetterOrDigit())
+        plugins += plugin
         plugin.onSetup(this)
     }
 
     /**
      * 卸载插件
      */
-    infix fun <T : RemotePlugin> teardown(key: RemotePlugin.Key<T>): T =
-        this[key].let {
-            it.onTeardown()
-            plugins.remove(key) as T
-        }
-
-    operator fun <T : RemotePlugin> get(key: RemotePlugin.Key<T>): T = plugins[key] as? T
-        ?: throw IllegalArgumentException("未找到该插件 id: ${key.id}")
+    infix fun teardown(plugin: RemotePlugin) {
+        assert(plugin in plugins)
+        plugins -= plugin
+        plugin.onTeardown()
+    }
 
     /**
      * 停止所有功能，释放资源
      * 调用此方法后再用终端进行收发操作将导致异常、阻塞或其他非预期的结果。
      */
     override fun close() {
-        plugins.forEach { _, plugin -> plugin.onTeardown() }
+        plugins.toSet().forEach(::teardown)
         plugins.clear()
         default.leaveGroup(ADDRESS.address)
         default.close()
@@ -373,10 +372,10 @@ class RemoteHub(
             while (true) {
                 // 设置超时时间
                 socket.soTimeout =
-                        (endTime - System.currentTimeMillis())
-                            .toInt()
-                            .takeIf { it > 10 }
-                        ?: return
+                    (endTime - System.currentTimeMillis())
+                        .toInt()
+                        .takeIf { it > 10 }
+                    ?: return
                 // 接收，超时直接退出
                 try {
                     socket.receive(buffer)

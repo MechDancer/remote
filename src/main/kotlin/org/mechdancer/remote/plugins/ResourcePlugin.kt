@@ -11,7 +11,8 @@ import java.io.ByteArrayOutputStream
 import java.util.concurrent.*
 
 class ResourcePlugin(private val retryPeriod: Long, vararg resources: Pair<String, ByteArray>) :
-    RemotePlugin(ResourcePlugin) {
+    RemotePlugin() {
+    override val id = '0'
 
     //工作线程池
     private val worker = Executors.newFixedThreadPool(3)
@@ -19,7 +20,7 @@ class ResourcePlugin(private val retryPeriod: Long, vararg resources: Pair<Strin
     private val resource = RemoteResource(resources)
 
     //主机引用
-    private lateinit var master: RemoteHub
+    private lateinit var host: RemoteHub
 
     //需要请求的资源
     private val resourceToAsk = LinkedTransferQueue<String>()
@@ -32,7 +33,7 @@ class ResourcePlugin(private val retryPeriod: Long, vararg resources: Pair<Strin
     private val askedTimes = ConcurrentSkipListMap<String, Int>()
 
     override fun onSetup(host: RemoteHub) {
-        master = host
+        this.host = host
         worker.submit {
             while (true) {
                 //有没有需要发的请求？
@@ -76,13 +77,13 @@ class ResourcePlugin(private val retryPeriod: Long, vararg resources: Pair<Strin
         resource.get(resourceId, timeout)
 
     private fun ask(resourceId: String) {
-        master.broadcast(key, ResourceAsk join resourceId.toByteArray())
+        host.broadcast(id, ResourceAsk join resourceId.toByteArray())
         asked[resourceId] = System.currentTimeMillis()
         askedTimes[resourceId] = askedTimes[resourceId]?.let { it + 1 } ?: 1
     }
 
     private fun ack(resourceId: String, data: ByteArray) =
-        master.broadcast(key, ResourceAck join encodeAck(resourceId, data))
+        host.broadcast(id, ResourceAck join encodeAck(resourceId, data))
 
     private fun askResource(resourceId: String) =
         resourceToAsk.add(resourceId)
@@ -170,13 +171,8 @@ class ResourcePlugin(private val retryPeriod: Long, vararg resources: Pair<Strin
                 }
 
         companion object {
-            operator fun invoke(id: Byte) =
-                values().firstOrNull { it.id == id }
+            operator fun invoke(id: Byte) = values().find { it.id == id }
         }
-    }
-
-    companion object : Key<ResourcePlugin> {
-        override val id: Char = '0'
     }
 }
 

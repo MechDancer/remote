@@ -2,11 +2,16 @@ package org.mechdancer.remote.core
 
 /**
  * 远程终端插件
- * @param key 键
  */
-abstract class RemotePlugin(val key: Key<*>) {
+abstract class RemotePlugin {
+    /**
+     * 指令识别号
+     */
+    abstract val id: Char
+
     /**
      * 加载到终端时调用
+     * @param host 目标终端
      */
     open fun onSetup(host: RemoteHub) {}
 
@@ -40,14 +45,4 @@ abstract class RemotePlugin(val key: Key<*>) {
         sender: String,
         payload: ByteArray
     ): ByteArray = byteArrayOf()
-
-    /**
-     * 键类型
-     */
-    interface Key<out RemotePlugin> {
-        /**
-         * 指令识别号
-         */
-        val id: Char
-    }
 }
