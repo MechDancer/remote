@@ -29,8 +29,8 @@ import kotlin.math.max
  *
  * 回调参数
  * @param newMemberDetected 发现新成员
- * @param broadcastReceived  收到广播
- * @param commandReceived    收到通用 TCP
+ * @param broadcastReceived 收到广播
+ * @param commandReceived   收到通用 TCP
  */
 @Suppress("UNCHECKED_CAST")
 class RemoteHub(
@@ -371,10 +371,10 @@ class RemoteHub(
             while (true) {
                 // 设置超时时间
                 socket.soTimeout =
-                        (endTime - System.currentTimeMillis())
-                            .toInt()
-                            .takeIf { it > 10 }
-                        ?: return
+                    (endTime - System.currentTimeMillis())
+                        .toInt()
+                        .takeIf { it > 10 }
+                    ?: return
                 // 接收，超时直接退出
                 try {
                     socket.receive(buffer)
