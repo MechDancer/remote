@@ -2,6 +2,7 @@ package org.mechdancer.remote.builder
 
 import org.mechdancer.remote.core.RemoteHub
 import org.mechdancer.remote.core.network.selectNetwork
+import org.mechdancer.remote.core.plugin.RemotePlugin
 import java.net.NetworkInterface
 
 /**
@@ -34,6 +35,6 @@ fun remoteHub(
 			info.broadcastReceived,
 			info.commandReceived
 		).also { hub ->
-			info.plugins.forEach(hub::setup)
+			info.plugins.forEach { hub.setup<RemotePlugin>(it) }
 		}
 	}

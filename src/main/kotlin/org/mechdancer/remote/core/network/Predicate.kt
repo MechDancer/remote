@@ -4,16 +4,22 @@ package org.mechdancer.remote.core.network
  * 从严筛选原则
  * 顺序使用一套从宽到严的规则尽量精细选择
  *
- * @return
- * * 没有候选项或仅剩一个候选项，立即返回
- * * 还有多个候选项但规则已用尽，立即返回
- * * 应用最高级规则筛选并递归
+ * @return 逐个调用规则进行筛选，直到规则用尽或候选项不到两个
  */
-tailrec infix fun <T> Collection<T>.tryFilter(
-	filters: Collection<(T) -> Boolean>
-): Collection<T> =
-	takeIf { it.size < 2 || filters.isEmpty() }
-		?: filter(filters.first()) tryFilter filters.drop(1)
+infix fun <T> Collection<T>.tryFilter(
+	filters: Iterable<(T) -> Boolean>
+): Collection<T> {
+	if (size < 2)
+		return this
+	var receiver = this
+	for (filter in filters)
+		receiver = receiver
+			.filter(filter)
+			.takeUnless { it.size < 2 }
+			?: break
+
+	return receiver
+}
 
 /**
  * 从优筛选原则
@@ -25,12 +31,13 @@ tailrec infix fun <T> Collection<T>.tryFilter(
  * * 否则尝试应用下一条规则
  */
 infix fun <T> Collection<T>.tryBest(
-	filters: Collection<(T) -> Boolean>
+	filters: Iterable<(T) -> Boolean>
 ): Collection<T> {
-	if (size < 2) return this
+	if (size < 2)
+		return this
 	for (filter in filters)
 		return filter(filter)
-			.takeIf(Collection<*>::isNotEmpty)
+			.takeIf(Iterable<*>::any)
 			?: continue
 	return this
 }
@@ -41,8 +48,8 @@ infix fun <T> Collection<T>.tryBest(
  *
  * @exception AssertionError 传入空的集合引发此异常
  */
-tailrec infix fun <T> Collection<T>.waitSingle(
+tailrec infix fun <T> Iterable<T>.waitSingle(
 	filter: (T) -> Boolean
-): T = also { assert(it.isNotEmpty()) }
+): T = also { assert(it.any()) }
 	.singleOrNull(filter)
 	?: waitSingle(filter)
