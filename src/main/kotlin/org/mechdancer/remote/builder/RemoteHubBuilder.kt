@@ -2,6 +2,7 @@ package org.mechdancer.remote.builder
 
 import org.mechdancer.remote.core.RemoteHub
 import org.mechdancer.remote.core.network.selectNetwork
+import java.net.NetworkInterface
 
 /**
  * 建造一个广播服务器
@@ -10,20 +11,25 @@ import org.mechdancer.remote.core.network.selectNetwork
  * @param block 请求回调
  */
 fun remoteHub(
-	name: String = "",
+	name: String? = null,
+	network: NetworkInterface? = null,
 	block: RemoteCallbackBuilder.() -> Unit = {}
 ) = RemoteCallbackBuilder()
 	.apply(block)
 	.let { info ->
 		RemoteHub(
 			name,
-			info.network
+			network
 				?: selectNetwork(
 					info.filters1,
 					info.filters2,
 					info.filterFinal
 				)
 				?: throw RuntimeException("no available network"),
+
+			null,
+			null,
+
 			info.newMemberDetected,
 			info.broadcastReceived,
 			info.commandReceived

@@ -1,5 +1,6 @@
 package org.mechdancer.remote.core.network
 
+import org.mechdancer.remote.builder.remoteHub
 import java.net.NetworkInterface
 
 typealias NetFilter = (NetworkInterface) -> Boolean
@@ -24,3 +25,10 @@ fun selectNetwork(
 		.tryBest(filters2)
 		.takeIf(Collection<*>::isNotEmpty)
 		?.waitSingle(filterFinal)
+
+/**
+ * 检查网络中是否包含特定成员
+ * @param name 目标成员名字
+ */
+operator fun NetworkInterface.contains(name: String) =
+	name in remoteHub("", this) refresh 600

@@ -7,17 +7,14 @@ import java.io.DataOutputStream
 import java.net.InetAddress
 import java.net.InetSocketAddress
 
-private const val LENGTH = 4 + Int.SIZE_BYTES
-
 /**
  * 从字节数组恢复完整地址
  */
 fun inetSocketAddress(byteArray: ByteArray) =
 	byteArray
-		.takeIf { it.size == LENGTH }
-		?.let(::ByteArrayInputStream)
-		?.let(::DataInputStream)
-		?.use {
+		.let(::ByteArrayInputStream)
+		.let(::DataInputStream)
+		.use {
 			InetSocketAddress(
 				InetAddress.getByAddress(it.waitNBytes(4)),
 				it.readInt()

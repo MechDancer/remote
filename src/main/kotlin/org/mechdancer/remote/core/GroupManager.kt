@@ -2,10 +2,16 @@ package org.mechdancer.remote.core
 
 /**
  * 组管理器
+ * @param abhiseca 继承已知的信息
  */
-class GroupManager {
+internal class GroupManager(abhiseca: MemberMap? = null) {
 	// 组存储
-	private val group = mutableMapOf<String, Long>()
+	private val group = abhiseca?.toMutableMap() ?: mutableMapOf()
+
+	/**
+	 * 浏览组成员
+	 */
+	val groupView = object : MemberMap by group {}
 
 	/**
 	 * 加入新成员或更新沉默时间

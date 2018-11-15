@@ -24,21 +24,27 @@ import kotlin.math.max
  *
  * 初始化参数
  *
- * @param name    进程名
- * @param network 组播使用的（去往外网的）网络接口
+ * @param name       进程名
+ * @param network    组播使用的（去往外网的）网络接口
+ * @param memberMap  已知组成员集，专用于复制终端修改常量
+ * @param addressMap 已知 TCP 地址集，专用于复制终端修改常量
  *
  * 回调参数
- *
- *  @param newMemberDetected 发现新成员
+ * @param newMemberDetected 发现新成员
  * @param broadcastReceived  收到广播
  * @param commandReceived    收到通用 TCP
  */
 class RemoteHub(
-	name: String,
+	name: String?,
 	network: NetworkInterface,
+
+	memberMap: MemberMap?,
+	addressMap: AddressMap?,
+
 	private val newMemberDetected: String.() -> Unit,
 	private val broadcastReceived: Received,
 	private val commandReceived: CallBack
+
 ) : Closeable {
 
 	// 默认套接字
@@ -46,12 +52,12 @@ class RemoteHub(
 	// TCP监听
 	private val server = ServerSocket(0)
 	// 组成员列表
-	private val addressManager = AddressManager()
+	private val addressManager = AddressManager(addressMap)
 	// 地址询问阻塞
 	private val addressSignal = SignalBlocker()
 
 	// 组成员列表
-	private val groupManager = GroupManager()
+	private val groupManager = GroupManager(memberMap)
 	// 存活时间
 	private val aliveTime = AtomicInteger(10000)
 
@@ -159,7 +165,7 @@ class RemoteHub(
 	 * @param timeout 以毫秒为单位的检查时间，方法最多阻塞这么长时间。
 	 *                此时间会覆盖之前设置的离线时间。
 	 */
-	fun refresh(timeout: Int): Set<String> {
+	infix fun refresh(timeout: Int): Set<String> {
 		assert(timeout > 0)
 
 		yell()
@@ -295,7 +301,7 @@ class RemoteHub(
 			server.localPort
 		)
 		// 定名
-		this.name = name.takeIf { it.isNotBlank() } ?: "Hub[$address]"
+		this.name = name ?: "Hub[$address]"
 		// 入组
 		default = multicastOn(network)
 	}
@@ -360,7 +366,7 @@ class RemoteHub(
 				socket.soTimeout =
 					(endTime - System.currentTimeMillis())
 						.toInt()
-						.takeIf { it > 0 }
+						.takeIf { it > 10 }
 					?: return
 				// 接收，超时直接退出
 				try {
