@@ -10,9 +10,7 @@ import java.util.concurrent.ConcurrentSkipListSet
 import java.util.concurrent.Executors
 import java.util.concurrent.LinkedBlockingQueue
 
-class ResourcePlugin : BroadcastPlugin {
-
-    override val key: RemotePlugin.Key<*> = ResourcePlugin
+class ResourcePlugin : RemotePlugin(ResourcePlugin) {
 
     val resource = RemoteResource()
 

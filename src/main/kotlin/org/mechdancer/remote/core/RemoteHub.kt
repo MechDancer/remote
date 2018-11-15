@@ -2,8 +2,6 @@ package org.mechdancer.remote.core
 
 import org.mechdancer.remote.core.RemoteHub.TcpCmd.Call
 import org.mechdancer.remote.core.RemoteHub.UdpCmd.*
-import org.mechdancer.remote.core.plugin.BroadcastPlugin
-import org.mechdancer.remote.core.plugin.CallBackPlugin
 import org.mechdancer.remote.core.plugin.RemotePlugin
 import org.mechdancer.remote.core.protocol.*
 import java.io.Closeable
@@ -62,10 +60,8 @@ class RemoteHub(
     // 存活时间
     private val aliveTime = AtomicInteger(10000)
 
-    // UDP 插件服务
-    private val udpPlugins = mutableMapOf<Char, BroadcastPlugin>()
-    // TCP 插件服务
-    private val tcpPlugins = mutableMapOf<Char, CallBackPlugin>()
+    //插件服务
+    private val plugins = mutableMapOf<RemotePlugin.Key<*>, RemotePlugin>()
 
     /**
      * 终端名字
@@ -155,7 +151,9 @@ class RemoteHub(
                     null              ->
                         id.toChar()
                             .takeIf(Char::isLetterOrDigit)
-                            ?.let(udpPlugins::get)
+                            ?.let { pluginId ->
+                                plugins[plugins.keys.find { it.id == pluginId }]
+                            }
                             ?.invoke(this@RemoteHub, sender, payload)
                 }
             }
@@ -263,8 +261,10 @@ class RemoteHub(
                     null            ->
                         id.toChar()
                             .takeIf(Char::isLetterOrDigit)
-                            ?.let(tcpPlugins::get)
-                            ?.invoke(this, sender, payload)
+                            ?.let { pluginId ->
+                                plugins[plugins.keys.find { it.id == pluginId }]
+                            }
+                            ?.onCall(this, sender, payload)
                             ?.let(::reply)
                             ?: Unit
                 }
@@ -273,37 +273,30 @@ class RemoteHub(
     /**
      * 加载插件
      */
-    infix fun <T : RemotePlugin> setup(plugin: RemotePlugin): RemotePlugin.Key<T> {
+    infix fun setup(plugin: RemotePlugin) {
         assert(plugin.key.id.isLetterOrDigit())
-        when (plugin) {
-            is BroadcastPlugin -> udpPlugins[plugin.key.id] = plugin
-            is CallBackPlugin  -> tcpPlugins[plugin.key.id] = plugin
-            else               -> throw RuntimeException("unknown plugin type")
-        }
+        plugins[plugin.key] = plugin
         plugin.onSetup(this)
-        return plugin.key as RemotePlugin.Key<T>
     }
 
     /**
      * 卸载插件
      */
     infix fun <T : RemotePlugin> teardown(key: RemotePlugin.Key<T>): T? =
-        key.id.let {
-            udpPlugins.remove(it) ?: tcpPlugins.remove(it)
-        }.let { it as T? }?.also { it.onTeardown() }
+        this[key]?.let {
+            it.onTeardown()
+            plugins.remove(key) as? T
+        }
 
-    operator fun <T : RemotePlugin> get(key: RemotePlugin.Key<T>) =
-        (udpPlugins.values union tcpPlugins.values).find { it.key == key } as? T
+    operator fun <T : RemotePlugin> get(key: RemotePlugin.Key<T>) = plugins[key]
 
     /**
      * 停止所有功能，释放资源
      * 调用此方法后再用终端进行收发操作将导致异常、阻塞或其他非预期的结果。
      */
     override fun close() {
-        tcpPlugins.forEach { _, v -> v.onTeardown() }
-        tcpPlugins.clear()
-        udpPlugins.forEach { _, v -> v.onTeardown() }
-        udpPlugins.clear()
+        plugins.forEach { _, plugin -> plugin.onTeardown() }
+        plugins.clear()
         default.leaveGroup(ADDRESS.address)
         default.close()
         server.close()
