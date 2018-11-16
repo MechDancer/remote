@@ -6,7 +6,7 @@ package org.mechdancer.remote.core
  * @param T  目标插件类型
  * @return   终端未加载此类插件则返回空
  */
-inline fun <reified T : RemotePlugin> RemoteHub.getPlugin() =
+inline fun <reified T : RemotePlugin> RemoteHub.get() =
     plugins.find { it is T }?.let { it as T }
 
 /**
@@ -16,7 +16,7 @@ inline fun <reified T : RemotePlugin> RemoteHub.getPlugin() =
  * @return   终端未加载此类插件则返回空
  */
 inline fun <reified T : RemotePlugin> RemoteHub.broadcastBy(msg: ByteArray) =
-    getPlugin<T>()?.let { broadcast(it.id, msg) }
+    get<T>()?.let { broadcast(it.id, msg) }
 
 /**
  * 按类型卸载插件
@@ -25,4 +25,4 @@ inline fun <reified T : RemotePlugin> RemoteHub.broadcastBy(msg: ByteArray) =
  * @return   终端未加载此类插件则返回空
  */
 inline fun <reified T : RemotePlugin> RemoteHub.teardown() =
-    getPlugin<T>()?.also(this::teardown)
+    get<T>()?.also(this::teardown)

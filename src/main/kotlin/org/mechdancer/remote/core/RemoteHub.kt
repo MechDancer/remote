@@ -221,8 +221,7 @@ class RemoteHub(
         addressManager
             .connect(other)!!
             .getOutputStream()
-            .writeWithLength(RemotePackage(Send.id, name, msg).bytes)
-            .close()
+            .use { it.writeWithLength(RemotePackage(Send.id, name, msg).bytes) }
 
     // 通用远程调用
     private fun Socket.call(id: Byte, msg: ByteArray) =
