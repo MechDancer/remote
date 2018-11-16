@@ -33,7 +33,6 @@ import kotlin.math.max
  * @param broadcastReceived 收到广播
  * @param commandReceived   收到通用 TCP
  */
-@Suppress("UNCHECKED_CAST")
 class RemoteHub(
     name: String?,
     network: NetworkInterface,
@@ -49,22 +48,22 @@ class RemoteHub(
 
     // 默认套接字
     private val default: MulticastSocket
-    // TCP监听
+    // TCP 监听
     private val server = ServerSocket(0)
-    // 组成员列表
-    private val addressManager = AddressManager(addressMap)
-    // 地址询问阻塞
-    private val addressSignal = SignalBlocker()
+    // TCP 可用连接数
+    private val listenerCount = AtomicInteger(0)
 
     // 组成员列表
     private val groupManager = GroupManager(memberMap)
     // 存活时间
     private val aliveTime = AtomicInteger(10000)
+    // 对端地址管理
+    private val addressManager = AddressManager(addressMap) {
+        broadcast(AddressAsk.id, it.toByteArray())
+    }
 
     // 插件服务
     private val _plugins = hashSetOf<RemotePlugin>()
-
-    val plugins = object : Set<RemotePlugin> by _plugins {}
 
     /**
      * 终端名字
@@ -82,7 +81,7 @@ class RemoteHub(
     val members: Map<String, InetSocketAddress?>
         get() {
             val livingMembers = groupManager filterByTime timeToLive.toLong()
-            return addressManager.filterKeys { it in livingMembers }
+            return addressManager.view.filterKeys { it in livingMembers }
         }
 
     /**
@@ -91,6 +90,11 @@ class RemoteHub(
     var timeToLive: Int
         get() = aliveTime.get()
         set(value) = aliveTime.set(if (value <= 0) Int.MAX_VALUE else value)
+
+    /**
+     * 浏览插件
+     */
+    val plugins = object : Set<RemotePlugin> by _plugins {}
 
     // 更新成员信息
     private fun updateGroup(sender: String) =
@@ -112,7 +116,6 @@ class RemoteHub(
     private fun tcpParse(sender: String, payload: ByteArray) {
         if (sender.isBlank()) return
         addressManager[sender] = inetSocketAddress(payload)
-        addressSignal.awake()
     }
 
     /**
@@ -206,15 +209,6 @@ class RemoteHub(
             }
     }
 
-    // 尝试连接一个远端 TCP 服务器
-    private fun connect(other: String): Socket {
-        while (true) {
-            (addressManager connect other)?.also { return it }
-            broadcast(AddressAsk.id, other.toByteArray())
-            addressSignal.block(1000)
-        }
-    }
-
     /**
      * 通过 TCP 发送，并在传输完后立即返回
      *
@@ -222,7 +216,8 @@ class RemoteHub(
      * @param msg   报文
      */
     fun send(other: String, msg: ByteArray) =
-        connect(other)
+        addressManager
+            .connect(other)!!
             .getOutputStream()
             .writeWithLength(RemotePackage(Call.id, name, msg).bytes)
             .close()
@@ -235,25 +230,31 @@ class RemoteHub(
         }
 
     /**
-     * 通过 TCP 发送，并阻塞接收反馈
-     *
+     * 调用一个远程过程
      * @param other 目标终端名字
      * @param msg   报文
      */
     fun call(other: String, msg: ByteArray) =
-        connect(other).call(TcpCmd.CallBack.id, msg)
+        addressManager.connect(other)!!.call(TcpCmd.CallBack.id, msg)
 
     /**
-     * 调用 TCP 插件服务
+     * 调用一个远程过程
+     * 用于插件服务
+     * @param id  插件识别号
+     * @param other 目标终端名字
+     * @param msg 数据报
      */
     fun call(id: Char, other: String, msg: ByteArray) =
-        connect(other).call(id.toByte(), msg)
+        addressManager.connect(other)!!.call(id.toByte(), msg)
 
     /**
      * 监听并解析 TCP 包
      */
     fun listen() =
-        server.accept()
+        server
+            .also { listenerCount.incrementAndGet() }
+            .accept()
+            .also { listenerCount.decrementAndGet() }
             .use { server ->
                 val (id, sender, payload) = RemotePackage(server.getInputStream().readWithLength())
                 updateGroup(sender)
@@ -316,11 +317,11 @@ class RemoteHub(
 
     // 指令 ID
     private enum class UdpCmd(override val id: Byte) : Command {
-        YellActive(0),
-        YellReply(1),
-        AddressAsk(2),
-        AddressAck(3),
-        Broadcast(127);
+        YellActive(0),  // 存在性请求
+        YellReply(1),   // 存在性回复
+        AddressAsk(2),  // 地址请求
+        AddressAck(3),  // 地址回复
+        Broadcast(127); // 通用广播
 
         companion object {
             private val memory = CommandMemory(values())
@@ -342,18 +343,20 @@ class RemoteHub(
     private companion object {
         val ADDRESS = InetSocketAddress(getByName("238.88.88.88"), 23333)
 
+        // 构造组播套接字
         fun multicastOn(net: NetworkInterface?) =
             MulticastSocket(ADDRESS.port).apply {
                 net?.let(this::setNetworkInterface)
                 joinGroup(ADDRESS.address)
             }
 
+        // 检查地址是不是合理的 IPV4 单播地址
         fun isHost(address: InetAddress) =
             address
                 .let { it as? Inet4Address }
                 ?.address
                 ?.first()
-                ?.let { it + if (it > 0) 0 else 256 }
+                ?.let { it + if (it >= 0) 0 else 256 }
                 ?.takeIf { it in 1..223 } != null
 
         // 拆解 UDP 数据包
@@ -368,15 +371,9 @@ class RemoteHub(
             block: (ByteArray) -> Any?
         ) {
             val buffer = DatagramPacket(ByteArray(bufferSize), bufferSize)
-            val endTime = System.currentTimeMillis() + timeout
+            val ending = endTime(timeout.toLong())
             while (true) {
-                // 设置超时时间
-                socket.soTimeout =
-                    (endTime - System.currentTimeMillis())
-                        .toInt()
-                        .takeIf { it > 10 }
-                    ?: return
-                // 接收，超时直接退出
+                socket.soTimeout = blockTime(ending)?.toInt() ?: return
                 try {
                     socket.receive(buffer)
                 } catch (_: SocketTimeoutException) {
