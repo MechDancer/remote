@@ -1,10 +1,12 @@
 package org.mechdancer.remote.core
 
 import org.mechdancer.remote.core.RemoteHub.TcpCmd.Call
+import org.mechdancer.remote.core.RemoteHub.TcpCmd.Send
 import org.mechdancer.remote.core.RemoteHub.UdpCmd.*
 import org.mechdancer.remote.core.internal.*
 import org.mechdancer.remote.core.internal.Command.CommandMemory
 import org.mechdancer.remote.core.protocol.*
+import org.mechdancer.remote.network.isV4Host
 import java.io.Closeable
 import java.net.*
 import java.net.InetAddress.getByName
@@ -149,12 +151,12 @@ class RemoteHub(
                 updateGroup(sender)
                 // 响应指令
                 when (UdpCmd[id]) {
-                    UdpCmd.YellActive -> broadcast(YellReply.id)
-                    UdpCmd.YellReply  -> Unit
-                    UdpCmd.AddressAsk -> if (name == String(payload)) tcpAck() else Unit
-                    UdpCmd.AddressAck -> tcpParse(sender, payload)
-                    UdpCmd.Broadcast  -> broadcastReceived(sender, payload)
-                    null              ->
+                    YellActive -> broadcast(YellReply.id)
+                    YellReply  -> Unit
+                    AddressAsk -> if (name == String(payload)) tcpAck() else Unit
+                    AddressAck -> tcpParse(sender, payload)
+                    Broadcast  -> broadcastReceived(sender, payload)
+                    null       ->
                         id.toChar()
                             .takeIf(Char::isLetterOrDigit)
                             ?.let { pluginId ->
@@ -219,7 +221,7 @@ class RemoteHub(
         addressManager
             .connect(other)!!
             .getOutputStream()
-            .writeWithLength(RemotePackage(Call.id, name, msg).bytes)
+            .writeWithLength(RemotePackage(Send.id, name, msg).bytes)
             .close()
 
     // 通用远程调用
@@ -235,7 +237,7 @@ class RemoteHub(
      * @param msg   报文
      */
     fun call(other: String, msg: ByteArray) =
-        addressManager.connect(other)!!.call(TcpCmd.CallBack.id, msg)
+        addressManager.connect(other)!!.call(Call.id, msg)
 
     /**
      * 调用一个远程过程
@@ -260,9 +262,9 @@ class RemoteHub(
                 updateGroup(sender)
                 fun reply(msg: ByteArray) = server.getOutputStream().writeWithLength(msg)
                 when (TcpCmd[id]) {
-                    TcpCmd.Call     -> commandReceived(sender, payload)
-                    TcpCmd.CallBack -> commandReceived(sender, payload).let(::reply)
-                    null            ->
+                    Send -> commandReceived(sender, payload)
+                    Call -> commandReceived(sender, payload).let(::reply)
+                    null ->
                         id.toChar()
                             .takeIf(Char::isLetterOrDigit)
                             ?.let { pluginId ->
@@ -303,13 +305,8 @@ class RemoteHub(
     }
 
     init {
-        address = InetSocketAddress(
-            network.inetAddresses.asSequence().first(::isHost),
-            server.localPort
-        )
-        // 定名
+        address = InetSocketAddress(network.inetAddresses.asSequence().first(InetAddress::isV4Host), server.localPort)
         this.name = name ?: "Hub[$address]"
-        // 入组
         default = multicastOn(network)
     }
 
@@ -331,8 +328,8 @@ class RemoteHub(
 
     // 指令 ID
     private enum class TcpCmd(override val id: Byte) : Command {
-        Call(0),
-        CallBack(1);
+        Send(0),
+        Call(1);
 
         companion object {
             private val memory = CommandMemory(values())
@@ -349,15 +346,6 @@ class RemoteHub(
                 net?.let(this::setNetworkInterface)
                 joinGroup(ADDRESS.address)
             }
-
-        // 检查地址是不是合理的 IPV4 单播地址
-        fun isHost(address: InetAddress) =
-            address
-                .let { it as? Inet4Address }
-                ?.address
-                ?.first()
-                ?.let { it + if (it >= 0) 0 else 256 }
-                ?.takeIf { it in 1..223 } != null
 
         // 拆解 UDP 数据包
         val DatagramPacket.actualData
