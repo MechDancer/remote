@@ -1,4 +1,4 @@
-package org.mechdancer.remote.util
+package org.mechdancer.remote.core.internal
 
 /**
  * 信号阻塞
@@ -8,7 +8,6 @@ internal class SignalBlocker {
 
 	/**
 	 * 阻塞等待信号
-	 *
 	 * @param timeout 用毫秒表示的阻塞时间
 	 */
 	fun block(timeout: Long = 0) =

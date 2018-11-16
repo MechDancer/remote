@@ -1,4 +1,4 @@
-package org.mechdancer.remote.core
+package org.mechdancer.remote.core.internal
 
 import java.net.InetSocketAddress
 import java.net.Socket

@@ -1,8 +1,8 @@
 package org.mechdancer.remote
 
 import org.mechdancer.remote.builder.remoteHub
-import org.mechdancer.remote.util.network.contains
-import org.mechdancer.remote.util.network.waitSingle
+import org.mechdancer.remote.network.contains
+import org.mechdancer.remote.network.waitSingle
 import kotlin.concurrent.thread
 
 object A {

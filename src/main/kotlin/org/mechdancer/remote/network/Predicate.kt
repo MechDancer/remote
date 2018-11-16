@@ -1,4 +1,4 @@
-package org.mechdancer.remote.util.network
+package org.mechdancer.remote.network
 
 /**
  * 从严筛选原则

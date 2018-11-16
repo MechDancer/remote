@@ -1,5 +1,6 @@
-package org.mechdancer.remote.core
+package org.mechdancer.remote.core.internal
 
+import org.mechdancer.remote.core.RemoteHub
 import java.net.InetSocketAddress
 
 internal typealias Received = RemoteHub.(String, ByteArray) -> Unit

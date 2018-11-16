@@ -2,12 +2,12 @@ package org.mechdancer.remote.core
 
 /**
  * 远程终端插件
+ * @param id 指令识别号
  */
-abstract class RemotePlugin {
-    /**
-     * 指令识别号
-     */
-    abstract val id: Char
+abstract class RemotePlugin(val id: Char) {
+    init {
+        assert(id.isLetterOrDigit())
+    }
 
     /**
      * 加载到终端时调用
@@ -23,28 +23,18 @@ abstract class RemotePlugin {
     /**
      * 收到相关广播时调用
      *
-     * @param receiver 接收终端
      * @param sender   发送终端
      * @param payload  数据负载
      */
-    open fun onBroadcast(
-        receiver: RemoteHub,
-        sender: String,
-        payload: ByteArray
-    ) = Unit
+    open fun onBroadcast(sender: String, payload: ByteArray) = Unit
 
     /**
      * 收到相关单播时调用
      *
-     * @param receiver 接收终端
      * @param sender   发送终端
      * @param payload  数据负载
      */
-    open fun onCall(
-        receiver: RemoteHub,
-        sender: String,
-        payload: ByteArray
-    ): ByteArray = byteArrayOf()
+    open fun onCall(sender: String, payload: ByteArray): ByteArray = byteArrayOf()
 
     override fun equals(other: Any?) =
         this === other || other is RemotePlugin && id == other.id

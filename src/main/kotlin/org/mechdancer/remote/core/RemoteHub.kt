@@ -2,8 +2,9 @@ package org.mechdancer.remote.core
 
 import org.mechdancer.remote.core.RemoteHub.TcpCmd.Call
 import org.mechdancer.remote.core.RemoteHub.UdpCmd.*
+import org.mechdancer.remote.core.internal.*
+import org.mechdancer.remote.core.internal.Command.CommandMemory
 import org.mechdancer.remote.core.protocol.*
-import org.mechdancer.remote.util.SignalBlocker
 import java.io.Closeable
 import java.net.*
 import java.net.InetAddress.getByName
@@ -144,7 +145,7 @@ class RemoteHub(
                 // 更新时间
                 updateGroup(sender)
                 // 响应指令
-                when (UdpCmd(id)) {
+                when (UdpCmd[id]) {
                     UdpCmd.YellActive -> broadcast(YellReply.id)
                     UdpCmd.YellReply  -> Unit
                     UdpCmd.AddressAsk -> if (name == String(payload)) tcpAck() else Unit
@@ -156,7 +157,7 @@ class RemoteHub(
                             ?.let { pluginId ->
                                 _plugins.find { it.id == pluginId }
                             }
-                            ?.onBroadcast(this@RemoteHub, sender, payload)
+                            ?.onBroadcast(sender, payload)
                 }
             }
 
@@ -257,7 +258,7 @@ class RemoteHub(
                 val (id, sender, payload) = RemotePackage(server.getInputStream().readWithLength())
                 updateGroup(sender)
                 fun reply(msg: ByteArray) = server.getOutputStream().writeWithLength(msg)
-                when (TcpCmd(id)) {
+                when (TcpCmd[id]) {
                     TcpCmd.Call     -> commandReceived(sender, payload)
                     TcpCmd.CallBack -> commandReceived(sender, payload).let(::reply)
                     null            ->
@@ -266,7 +267,7 @@ class RemoteHub(
                             ?.let { pluginId ->
                                 _plugins.find { it.id == pluginId }
                             }
-                            ?.onCall(this, sender, payload)
+                            ?.onCall(sender, payload)
                             ?.let(::reply)
                             ?: Unit
                 }
@@ -285,9 +286,8 @@ class RemoteHub(
      * 卸载插件
      */
     infix fun teardown(plugin: RemotePlugin) {
-        assert(plugin in _plugins)
-        _plugins -= plugin
-        plugin.onTeardown()
+        if (_plugins.remove(plugin))
+            plugin.onTeardown()
     }
 
     /**
@@ -296,7 +296,6 @@ class RemoteHub(
      */
     override fun close() {
         _plugins.toSet().forEach(::teardown)
-        _plugins.clear()
         default.leaveGroup(ADDRESS.address)
         default.close()
         server.close()
@@ -316,7 +315,7 @@ class RemoteHub(
     override fun toString(): String = name
 
     // 指令 ID
-    private enum class UdpCmd(val id: Byte) {
+    private enum class UdpCmd(override val id: Byte) : Command {
         YellActive(0),
         YellReply(1),
         AddressAsk(2),
@@ -324,19 +323,19 @@ class RemoteHub(
         Broadcast(127);
 
         companion object {
-            operator fun invoke(byte: Byte) =
-                values().firstOrNull { it.id == byte }
+            private val memory = CommandMemory(values())
+            operator fun get(id: Byte) = memory[id]
         }
     }
 
     // 指令 ID
-    private enum class TcpCmd(val id: Byte) {
+    private enum class TcpCmd(override val id: Byte) : Command {
         Call(0),
         CallBack(1);
 
         companion object {
-            operator fun invoke(byte: Byte) =
-                values().firstOrNull { it.id == byte }
+            private val memory = CommandMemory(values())
+            operator fun get(id: Byte) = memory[id]
         }
     }
 
