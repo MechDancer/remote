@@ -35,7 +35,7 @@ import kotlin.math.max
  * @param broadcastReceived 收到广播
  * @param commandReceived   收到通用 TCP
  */
-class RemoteHub(
+class RemoteHub internal constructor(
     name: String?,
     network: NetworkInterface,
 

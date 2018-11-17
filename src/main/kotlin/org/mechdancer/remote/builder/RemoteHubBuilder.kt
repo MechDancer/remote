@@ -33,6 +33,6 @@ fun remoteHub(
             info.broadcastReceived,
             info.commandReceived
         ).also { hub ->
-            info.plugins.forEach { hub.setup(it) }
+            info.plugins.cache.forEach { hub setup it }
         }
     }

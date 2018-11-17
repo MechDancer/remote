@@ -2,7 +2,7 @@ package org.mechdancer.remote.builder
 
 import org.mechdancer.remote.plugins.ResourcePlugin
 
-class ResourcePluginBuilder {
+class ResourcePluginBuilder internal constructor() {
     val resources = mutableMapOf<String, ByteArray>()
 }
 

@@ -2,7 +2,7 @@ package org.mechdancer.remote
 
 import org.mechdancer.remote.builder.remoteHub
 import org.mechdancer.remote.builder.resourcePlugin
-import org.mechdancer.remote.core.get
+import org.mechdancer.remote.core.findPlugin
 import org.mechdancer.remote.plugins.ResourcePlugin
 import kotlin.concurrent.thread
 
@@ -17,7 +17,7 @@ object M {
             }
         }.run {
             thread {
-                println((get<ResourcePlugin>()!!["Foo"]?.let { String(it) }))
+                println((findPlugin<ResourcePlugin>()!!["Foo"]?.let { String(it) }))
             }
             forever { invoke() }
         }
@@ -35,7 +35,7 @@ object N {
             }
         }.run {
             thread {
-                println((get<ResourcePlugin>()!!["Apple"]?.let { String(it) }))
+                println((findPlugin<ResourcePlugin>()!!["Apple"]?.let { String(it) }))
             }
             forever { invoke() }
         }

@@ -3,7 +3,7 @@ package org.mechdancer.remote.core.internal
 /**
  * 命令接口
  */
-internal interface Command {
+interface Command {
     /**
      * 命令识别码
      */
