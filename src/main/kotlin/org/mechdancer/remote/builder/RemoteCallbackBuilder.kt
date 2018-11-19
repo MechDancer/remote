@@ -12,22 +12,21 @@ import java.net.NetworkInterface
  * 消息回调 Dsl 建造者
  */
 class RemoteCallbackBuilder internal constructor() {
-	var filters1: Collection<NetFilter> = MULTICAST_FILTERS
-	var filters2: Collection<NetFilter> = WIRELESS_FIRST
-	var selector: (Collection<NetworkInterface>) -> NetworkInterface? =
-		Collection<NetworkInterface>::firstOrNull
-	var newMemberDetected: String.() -> Unit = {}
-	var broadcastReceived: Received = { _, _ -> }
-	var commandReceived: CallBack = { _, _ -> ByteArray(0) }
+    var filters1: Collection<NetFilter> = MULTICAST_FILTERS
+    var filters2: Collection<NetFilter> = WIRELESS_FIRST
+    var selector: (Collection<NetworkInterface>) -> NetworkInterface? = Collection<NetworkInterface>::firstOrNull
 
-	inner class Plugins internal constructor() {
-		internal val cache = mutableSetOf<RemotePlugin>()
+    var newMemberDetected: String.() -> Unit = {}
+    var broadcastReceived: Received = { _, _ -> }
+    var commandReceived: CallBack = { _, _ -> ByteArray(0) }
 
-		infix fun setup(plugin: RemotePlugin) = cache.add(plugin)
-	}
+    inner class Plugins internal constructor() {
+        internal val cache = mutableSetOf<RemotePlugin>()
 
-	val plugins = Plugins()
+        infix fun setup(plugin: RemotePlugin) = cache.add(plugin)
+    }
 
-	fun plugins(block: Plugins.() -> Unit) = plugins.apply(block)
+    val plugins = Plugins()
 
+    fun plugins(block: Plugins.() -> Unit) = plugins.apply(block)
 }

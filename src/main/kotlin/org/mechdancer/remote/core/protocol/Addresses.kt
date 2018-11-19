@@ -11,22 +11,22 @@ import java.net.InetSocketAddress
  * 从字节数组恢复完整地址
  */
 internal fun inetSocketAddress(byteArray: ByteArray) =
-	byteArray
-		.let(::ByteArrayInputStream)
-		.let(::DataInputStream)
-		.use {
-			InetSocketAddress(
-				InetAddress.getByAddress(it.waitNBytes(4)),
-				it.readInt()
-			)
-		}
+    byteArray
+        .let(::ByteArrayInputStream)
+        .let(::DataInputStream)
+        .use {
+            InetSocketAddress(
+                InetAddress.getByAddress(it.waitNBytes(4)),
+                it.readInt()
+            )
+        }
 
 /**
  * 地址打包到字节数组
  */
 internal val InetSocketAddress.bytes: ByteArray
-	get() =
-		ByteArrayOutputStream().apply {
-			write(address.address)
-			DataOutputStream(this).writeInt(port)
-		}.toByteArray()
+    get() =
+        ByteArrayOutputStream().apply {
+            write(address.address)
+            DataOutputStream(this).writeInt(port)
+        }.toByteArray()

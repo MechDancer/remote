@@ -9,9 +9,13 @@ class ResourcePluginBuilder internal constructor() {
 fun RemoteCallbackBuilder.Plugins.resourcePlugin(
     retry: Long = 2000,
     block: ResourcePluginBuilder.() -> Unit
-) = setup(ResourcePlugin(
-    retry, *ResourcePluginBuilder()
-        .also(block)
-        .resources
-        .map { entry -> entry.toPair() }
-        .toTypedArray()))
+) = setup(
+    ResourcePlugin(
+        retry,
+        *ResourcePluginBuilder()
+            .also(block)
+            .resources
+            .map { it.toPair() }
+            .toTypedArray()
+    )
+)

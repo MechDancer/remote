@@ -8,6 +8,7 @@ import kotlin.math.max
 /**
  * 地址管理器
  * @param abhiseca 继承已知的信息
+ * @param ask      地址请求函数
  */
 internal class AddressManager(
     abhiseca: AddressMap? = null,
@@ -16,13 +17,13 @@ internal class AddressManager(
     // 地址映射
     private val core = abhiseca?.toMutableMap() ?: mutableMapOf()
 
-    // 阻塞信号
-    private val blocker = SignalBlocker()
-
     /**
      * 浏览地址映射
      */
     val view = object : AddressMap by core {}
+
+    // 阻塞信号
+    private val blocker = SignalBlocker()
 
     /**
      * 尝试获取一个地址
