@@ -4,7 +4,7 @@ import org.mechdancer.remote.core.RemoteHub.TcpCmd.Call
 import org.mechdancer.remote.core.RemoteHub.TcpCmd.Send
 import org.mechdancer.remote.core.RemoteHub.UdpCmd.*
 import org.mechdancer.remote.core.internal.*
-import org.mechdancer.remote.core.internal.Command.CommandMemory
+import org.mechdancer.remote.core.internal.Command.Companion.memoryOf
 import org.mechdancer.remote.core.protocol.*
 import org.mechdancer.remote.network.isV4Host
 import java.io.Closeable
@@ -28,7 +28,6 @@ import kotlin.math.max
  * @param name       进程名
  * @param network    组播使用的（去往外网的）网络接口
  * @param memberMap  已知组成员集，专用于复制终端修改常量
- * @param addressMap 已知 TCP 地址集，专用于复制终端修改常量
  *
  * 回调参数
  * @param newMemberDetected 发现新成员
@@ -40,7 +39,7 @@ class RemoteHub internal constructor(
     network: NetworkInterface,
 
     memberMap: MemberMap?,
-    addressMap: AddressMap?,
+    addressManager: AddressManager?,
 
     private val newMemberDetected: String.() -> Unit,
     private val broadcastReceived: Received,
@@ -57,12 +56,13 @@ class RemoteHub internal constructor(
 
     // 组成员列表
     private val groupManager = GroupManager(memberMap)
-    // 存活时间
+    // 存活时间v
     private val aliveTime = AtomicInteger(10000)
     // 对端地址管理
-    private val addressManager = AddressManager(addressMap) {
-        broadcast(AddressAsk.id, it.toByteArray())
-    }
+    private val addressManager =
+        addressManager ?: AddressManager {
+            broadcast(AddressAsk.id, it.toByteArray())
+        }
 
     // 插件服务
     private val _plugins = hashSetOf<RemotePlugin>()
@@ -320,7 +320,7 @@ class RemoteHub internal constructor(
         Broadcast(127); // 通用广播
 
         companion object {
-            private val memory = CommandMemory(values())
+            private val memory = memoryOf<UdpCmd>()
             operator fun get(id: Byte) = memory[id]
         }
     }
@@ -331,7 +331,7 @@ class RemoteHub internal constructor(
         Call(1);
 
         companion object {
-            private val memory = CommandMemory(values())
+            private val memory = memoryOf<TcpCmd>()
             operator fun get(id: Byte) = memory[id]
         }
     }
@@ -358,9 +358,9 @@ class RemoteHub internal constructor(
             block: (ByteArray) -> Any?
         ) {
             val buffer = DatagramPacket(ByteArray(bufferSize), bufferSize)
-            val ending = endTime(timeout.toLong())
+            val ending = endTime(timeout)
             while (true) {
-                socket.soTimeout = blockTime(ending)?.toInt() ?: return
+                socket.soTimeout = blockTime(ending) ?: return
                 try {
                     socket.receive(buffer)
                 } catch (_: SocketTimeoutException) {

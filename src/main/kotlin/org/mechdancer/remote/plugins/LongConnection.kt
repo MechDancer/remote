@@ -1,8 +1,8 @@
 package org.mechdancer.remote.plugins
 
+import org.mechdancer.remote.core.AddressManager
 import org.mechdancer.remote.core.RemoteHub
 import org.mechdancer.remote.core.RemotePlugin
-import org.mechdancer.remote.core.internal.AddressManager
 import org.mechdancer.remote.core.protocol.bytes
 import org.mechdancer.remote.core.protocol.inetSocketAddress
 import org.mechdancer.remote.core.protocol.readWithLength
@@ -33,12 +33,12 @@ class LongConnection : RemotePlugin('C') {
     private val endpoints = AddressManager {
         // 发送连接请求
         host?.broadcast(id,
-            ByteArrayOutputStream()
-                .apply {
-                    writeWithLength(it.toByteArray())
-                    write(address!!.bytes)
-                }
-                .toByteArray()
+                        ByteArrayOutputStream()
+                            .apply {
+                                writeWithLength(it.toByteArray())
+                                write(address!!.bytes)
+                            }
+                            .toByteArray()
         ) ?: throw UnsupportedOperationException("plugin must be setup first")
     }
 

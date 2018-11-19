@@ -16,8 +16,8 @@ internal class SignalBlocker {
      * 阻塞等待信号
      * @param timeout 用毫秒表示的阻塞时间
      */
-    infix fun block(timeout: Long) {
-        if (timeout > 0) synchronized(core) { core.wait(timeout) }
+    infix fun block(timeout: Int) {
+        if (timeout > 0) synchronized(core) { core.wait(timeout.toLong()) }
     }
 
     /**

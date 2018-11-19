@@ -23,4 +23,27 @@ interface Command {
         operator fun get(id: Byte): C? =
             core[id] ?: list.find { it.id == id }.also { core[id] = it }
     }
+
+    /**
+     * 基于指令构造包
+     */
+    fun lead(vararg payloads: ByteArray) =
+        ByteArray(payloads.sumBy(ByteArray::size) + 1)
+            .apply {
+                set(0, id)
+                var i = 1
+                for (payload in payloads) {
+                    payload.copyInto(this, i)
+                    i += payload.size
+                }
+            }
+
+    companion object {
+        /**
+         * 自动构造缓存
+         * @param C 指令类型
+         */
+        inline fun <reified C> memoryOf() where C : Command, C : Enum<C> =
+            Command.CommandMemory(enumValues<C>())
+    }
 }

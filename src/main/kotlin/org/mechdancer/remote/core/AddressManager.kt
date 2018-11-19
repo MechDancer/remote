@@ -1,21 +1,22 @@
-package org.mechdancer.remote.core.internal
+package org.mechdancer.remote.core
 
+import org.mechdancer.remote.core.internal.AddressMap
+import org.mechdancer.remote.core.internal.SignalBlocker
+import org.mechdancer.remote.core.internal.blockTime
+import org.mechdancer.remote.core.internal.endTime
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.SocketTimeoutException
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.max
 
 /**
  * 地址管理器
- * @param abhiseca 继承已知的信息
- * @param ask      地址请求函数
+ * @param ask 地址请求函数
  */
-internal class AddressManager(
-    abhiseca: AddressMap? = null,
-    private val ask: (String) -> Unit
-) {
+class AddressManager(private val ask: (String) -> Unit) {
     // 地址映射
-    private val core = abhiseca?.toMutableMap() ?: mutableMapOf()
+    private val core = ConcurrentHashMap<String, InetSocketAddress>()
 
     /**
      * 浏览地址映射
@@ -33,8 +34,8 @@ internal class AddressManager(
      */
     operator fun get(
         name: String,
-        retry: Long = 500,
-        timeout: Long = Long.MAX_VALUE
+        retry: Int = 500,
+        timeout: Int = Int.MAX_VALUE
     ): InetSocketAddress? {
         val ending = endTime(timeout)
         while (true) {
@@ -46,10 +47,20 @@ internal class AddressManager(
 
     /**
      * 置入一个地址
+     * @param name 终端名字
+     * @param address 终端地址
      */
     operator fun set(name: String, address: InetSocketAddress) {
         core[name] = address
         blocker.awake()
+    }
+
+    /**
+     * 移除一个地址
+     * @param name 终端名字
+     */
+    infix fun remove(name: String) {
+        core -= name
     }
 
     /**
@@ -63,8 +74,8 @@ internal class AddressManager(
      */
     fun connectOnce(
         name: String,
-        retry: Long = 500,
-        timeout: Long = Long.MAX_VALUE
+        retry: Int = 500,
+        timeout: Int = Int.MAX_VALUE
     ): Socket? {
         val ending = endTime(timeout)
         // 尝试获取 IP 地址
@@ -104,8 +115,8 @@ internal class AddressManager(
      */
     fun connect(
         name: String,
-        retry: Long = 500,
-        timeout: Long = Long.MAX_VALUE
+        retry: Int = 500,
+        timeout: Int = Int.MAX_VALUE
     ): Socket? {
         val ending = endTime(timeout)
         while (true)

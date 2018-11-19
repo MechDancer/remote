@@ -3,7 +3,7 @@ package org.mechdancer.remote.plugins
 import org.mechdancer.remote.core.RemoteHub
 import org.mechdancer.remote.core.RemotePlugin
 import org.mechdancer.remote.core.internal.Command
-import org.mechdancer.remote.core.internal.Command.CommandMemory
+import org.mechdancer.remote.core.internal.Command.Companion.memoryOf
 import org.mechdancer.remote.core.protocol.readWithLength
 import org.mechdancer.remote.core.protocol.writeWithLength
 import org.mechdancer.remote.plugins.ResourcePlugin.Cmd.ResourceAck
@@ -80,13 +80,13 @@ class ResourcePlugin(
         resource.get(resourceId, timeout)
 
     private fun ask(resourceId: String) {
-        host.broadcast(id, ResourceAsk join resourceId.toByteArray())
+        host.broadcast(id, ResourceAsk.lead(resourceId.toByteArray()))
         asked[resourceId] = System.currentTimeMillis()
         askedTimes[resourceId] = askedTimes[resourceId]?.let { it + 1 } ?: 1
     }
 
     private fun ack(resourceId: String, data: ByteArray) =
-        host.broadcast(id, ResourceAck join encodeAck(resourceId, data))
+        host.broadcast(id, ResourceAck.lead(encodeAck(resourceId, data)))
 
     private fun askResource(resourceId: String) =
         resourceToAsk.add(resourceId)
@@ -167,15 +167,9 @@ class ResourcePlugin(
         ResourceAsk(10),
         ResourceAck(11);
 
-        infix fun join(payload: ByteArray) =
-            ByteArray(payload.size + 1)
-                .apply {
-                    set(0, id)
-                    payload.copyInto(this, 1)
-                }
 
         companion object {
-            private val memory = CommandMemory(values())
+            private val memory = memoryOf<Cmd>()
             operator fun get(id: Byte) = memory[id]
         }
     }
