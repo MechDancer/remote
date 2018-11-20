@@ -13,34 +13,32 @@ inline fun <reified D : Dependency> hashOf() =
  * 找到一种依赖项
  * @param R 依赖项类型
  */
-inline fun <reified R : Dependency> Iterable<Dependency>.get(): List<R> =
-    mapNotNull { it as? R }
+inline fun <reified R : Dependency> Hub.get(): List<R> =
+    dependenies.mapNotNull { it as? R }
 
 /**
  * 找到一种依赖项
  * @param R 依赖项类型
  */
-inline fun <reified R : Dependency> Iterable<Dependency>.maybe(): R? =
-    mapNotNull { it as? R }.singleOrNull()
+inline fun <reified R : Dependency> Hub.maybe(): R? =
+    dependenies.mapNotNull { it as? R }.singleOrNull()
 
 /**
  * 找到一种依赖项
  * @param R 依赖项类型
  */
-inline fun <reified R : Dependency> Iterable<Dependency>.must(): R =
-    mapNotNull { it as? R }.singleOrNull()
+inline fun <reified R : Dependency> Hub.must(): R =
+    dependenies.mapNotNull { it as? R }.singleOrNull()
         ?: throw DependencyNotExistException(R::class)
 
 /**
- * 向终端添加新的依赖项并立即扫描
+ * 向终端添加新的依赖项
  */
-operator fun RemoteHub.plusAssign(dependency: Dependency) {
+operator fun Hub.plusAssign(dependency: Dependency) =
     setup(dependency)
-    syncDependencies()
-}
 
 /**
  * 构造终端并扫描
  */
-fun remoteHub(name: String, block: RemoteHub.() -> Unit) =
-    RemoteHub(name).apply(block).apply { syncDependencies() }
+fun buildHub(block: Hub.() -> Unit) =
+    Hub().apply(block)

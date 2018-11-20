@@ -2,11 +2,12 @@ package org.mechdancer.version2.dependency.functions.basic
 
 import org.mechdancer.remote.core.internal.Command
 import org.mechdancer.remote.core.protocol.RemotePackage
-import org.mechdancer.version2.dependency.Dependency
+import org.mechdancer.version2.dependency.AbstractModule
 import org.mechdancer.version2.dependency.functions.basic.GroupMonitor.Cmd.Ack
 import org.mechdancer.version2.dependency.functions.basic.GroupMonitor.Cmd.Ask
-import org.mechdancer.version2.dependency.resource.basic.Group
+import org.mechdancer.version2.dependency.resources.basic.Group
 import org.mechdancer.version2.hashOf
+import org.mechdancer.version2.maybe
 import org.mechdancer.version2.must
 
 /**
@@ -14,24 +15,30 @@ import org.mechdancer.version2.must
  */
 class GroupMonitor(
     private val detected: (String) -> Unit
-) : MulticastListener() {
-    private lateinit var broadcaster: MulticastBroadcaster
-    private lateinit var group: Group
+) : AbstractModule(), MulticastListener {
+    private var broadcaster: MulticastBroadcaster? = null
+    private var group: Group? = null
 
     override val dependencies
-        get() = setOf(group, broadcaster)
+        get() = setOf(MulticastBroadcaster::class, Group::class)
 
-    override fun loadDependencies(all: Iterable<Dependency>) {
-        group = all.must()
-        broadcaster = all.must()
+    override fun sync() {
+        broadcaster = host.maybe()
+        group = host.maybe()
     }
 
-    fun yell() = broadcaster.broadcast(Ask)
+    fun yell() {
+        broadcaster ?: run { broadcaster = host.must(); broadcaster!! }
+        broadcaster!!.broadcast(Ask)
+    }
 
-    override fun invoke(remotePackage: RemotePackage) {
+    override fun process(remotePackage: RemotePackage) {
+        broadcaster ?: run { broadcaster = host.must() }
+        group ?: run { group = host.must() }
+
         val (id, name, _) = remotePackage
-        group.update(name, now()) ?: detected(name)
-        if (id == Ask.id) broadcaster.broadcast(Ack)
+        group!!.update(name, now()) ?: detected(name)
+        if (id == Ask.id) broadcaster!!.broadcast(Ack)
     }
 
     override fun equals(other: Any?) = other is GroupMonitor

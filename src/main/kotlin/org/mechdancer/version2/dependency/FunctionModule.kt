@@ -1,5 +1,6 @@
 package org.mechdancer.version2.dependency
 
+import org.mechdancer.version2.Hub
 import kotlin.reflect.KClass
 
 /**
@@ -9,13 +10,17 @@ interface FunctionModule : Dependency {
     /**
      * 浏览资源依赖项集
      */
-    val dependencies: Set<Dependency>
+    val dependencies: Set<KClass<out Dependency>>
 
     /**
-     * 加载全部依赖项
+     * 加载终端
      */
-    @Throws(DependencyNotExistException::class)
-    fun loadDependencies(all: Iterable<Dependency>)
+    infix fun onSetup(host: Hub)
+
+    /**
+     * 重新同步依赖项
+     */
+    fun sync()
 
     /**
      * 依赖项不存在
