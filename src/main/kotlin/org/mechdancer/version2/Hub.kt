@@ -4,7 +4,7 @@ import org.mechdancer.version2.dependency.Dependency
 import org.mechdancer.version2.dependency.FunctionModule
 
 /**
- * 终端
+ * 依赖管理器
  */
 class Hub {
     private val _dependencies = hashSetOf<Dependency>()

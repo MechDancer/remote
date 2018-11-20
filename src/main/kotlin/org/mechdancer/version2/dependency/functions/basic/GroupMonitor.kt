@@ -7,7 +7,6 @@ import org.mechdancer.version2.dependency.functions.basic.GroupMonitor.Cmd.Ack
 import org.mechdancer.version2.dependency.functions.basic.GroupMonitor.Cmd.Ask
 import org.mechdancer.version2.dependency.resources.basic.Group
 import org.mechdancer.version2.hashOf
-import org.mechdancer.version2.maybe
 import org.mechdancer.version2.must
 
 /**
@@ -16,29 +15,18 @@ import org.mechdancer.version2.must
 class GroupMonitor(
     private val detected: (String) -> Unit
 ) : AbstractModule(), MulticastListener {
-    private var broadcaster: MulticastBroadcaster? = null
-    private var group: Group? = null
+    private val broadcaster by lazy { host.must<MulticastBroadcaster>() }
+    private val group by lazy { host.must<Group>() }
 
     override val dependencies
         get() = setOf(MulticastBroadcaster::class, Group::class)
 
-    override fun sync() {
-        broadcaster = host.maybe()
-        group = host.maybe()
-    }
-
-    fun yell() {
-        broadcaster ?: run { broadcaster = host.must(); broadcaster!! }
-        broadcaster!!.broadcast(Ask)
-    }
+    fun yell() = broadcaster.broadcast(Ask)
 
     override fun process(remotePackage: RemotePackage) {
-        broadcaster ?: run { broadcaster = host.must() }
-        group ?: run { group = host.must() }
-
         val (id, name, _) = remotePackage
-        group!!.update(name, now()) ?: detected(name)
-        if (id == Ask.id) broadcaster!!.broadcast(Ack)
+        group.update(name, now()) ?: detected(name)
+        if (id == Ask.id) broadcaster.broadcast(Ack)
     }
 
     override fun equals(other: Any?) = other is GroupMonitor

@@ -9,4 +9,6 @@ abstract class AbstractModule : FunctionModule {
         this.host = host
         sync()
     }
+
+    override fun sync() = Unit
 }
