@@ -1,9 +1,9 @@
-package org.mechdancer.version2.dependency.resources.basic
+package org.mechdancer.version2.remote.resources
 
 import org.mechdancer.version2.dependency.ResourceFactory
-import org.mechdancer.version2.dependency.resources.basic.Name.Type
-import org.mechdancer.version2.dependency.resources.basic.Name.Type.NAME
 import org.mechdancer.version2.hashOf
+import org.mechdancer.version2.remote.resources.Name.Type
+import org.mechdancer.version2.remote.resources.Name.Type.NAME
 
 class Name(private val name: String) : ResourceFactory<Type, String> {
     override fun get(parameter: Type) =

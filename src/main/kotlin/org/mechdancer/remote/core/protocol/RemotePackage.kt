@@ -2,8 +2,6 @@ package org.mechdancer.remote.core.protocol
 
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
-import java.io.DataInputStream
-import java.io.DataOutputStream
 
 /**
  * 通用数据包
@@ -23,10 +21,8 @@ data class RemotePackage(
      */
     val bytes by lazy {
         ByteArrayOutputStream().apply {
-            DataOutputStream(this).apply {
-                writeByte(command.toInt())
-                writeWithLength(sender.toByteArray())
-            }
+            write(command.toInt())
+            writeEnd(sender)
             write(payload)
         }.toByteArray()
     }
@@ -37,10 +33,9 @@ data class RemotePackage(
          */
         operator fun invoke(pack: ByteArray) =
             pack.let(::ByteArrayInputStream)
-                .let(::DataInputStream)
                 .let {
-                    val cmd = it.readByte()
-                    val sender = String(it.readWithLength())
+                    val cmd = it.read().toByte()
+                    val sender = it.readEnd()
                     val payload = it.readBytes()
                     RemotePackage(cmd, sender, payload)
                 }

@@ -1,6 +1,5 @@
 package org.mechdancer.version2.dependency
 
-import org.mechdancer.version2.Hub
 import kotlin.reflect.KClass
 
 /**
@@ -15,7 +14,7 @@ interface FunctionModule : Dependency {
     /**
      * 加载终端
      */
-    infix fun onSetup(host: Hub)
+    infix fun onSetup(host: DynamicScope)
 
     /**
      * 重新同步依赖项

@@ -1,4 +1,4 @@
-package org.mechdancer.version2.dependency.resources.basic
+package org.mechdancer.version2.remote.resources
 
 import org.mechdancer.version2.dependency.ResourceMemory
 import org.mechdancer.version2.hashOf

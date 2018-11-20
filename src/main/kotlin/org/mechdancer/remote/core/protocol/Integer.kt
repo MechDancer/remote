@@ -1,11 +1,25 @@
 package org.mechdancer.remote.core.protocol
 
-import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.InputStream
+import java.io.OutputStream
 import kotlin.experimental.and
 
-fun ByteArrayOutputStream.enZigzag(num: Long) {
-    var temp = (num shl 1) xor (num shr 63)
+/**
+ * 符号折叠
+ */
+fun signEnhash(long: Long) = (long shl 1) xor (long shr 63)
+
+/**
+ * 符号展开
+ */
+fun signDehash(long: Long) = (long ushr 1) xor -(long and 1)
+
+/**
+ * 可变长编码
+ */
+fun OutputStream.enZigzag(num: Long) {
+    var temp = num
     while (true)
         if (temp > 0x7f) {
             write((temp or 0x80).toInt())
@@ -16,7 +30,10 @@ fun ByteArrayOutputStream.enZigzag(num: Long) {
         }
 }
 
-fun ByteArrayInputStream.deZigzag() =
+/**
+ * 可变长解码
+ */
+fun InputStream.deZigzag() =
     ByteArrayOutputStream()
         .apply {
             while (true)
@@ -29,13 +46,3 @@ fun ByteArrayInputStream.deZigzag() =
         .foldRight(0L) { byte, acc ->
             acc shl 7 or ((byte and 0x7f).toLong())
         }
-        .let { (it ushr 1) xor -(it and 1) }
-
-fun main(args: Array<String>) {
-    ByteArrayOutputStream()
-        .apply { enZigzag(-123456) }
-        .toByteArray()
-        .let(::ByteArrayInputStream)
-        .deZigzag()
-        .let(::println)
-}

@@ -1,11 +1,10 @@
-package org.mechdancer.version2.dependency.functions.basic
+package org.mechdancer.version2.remote.functions
 
-import org.mechdancer.remote.core.internal.Command
 import org.mechdancer.remote.core.protocol.RemotePackage
 import org.mechdancer.version2.dependency.AbstractModule
-import org.mechdancer.version2.dependency.functions.basic.CommonMultacaster.Cmd.BROADCAST
 import org.mechdancer.version2.hashOf
 import org.mechdancer.version2.must
+import org.mechdancer.version2.remote.resources.UdpCmd
 
 /**
  * 通用组播协议
@@ -19,17 +18,13 @@ class CommonMultacaster(
 
     override fun process(remotePackage: RemotePackage) {
         val (id, name, payload) = remotePackage
-        if (id == BROADCAST.id) received(name, payload)
+        if (id == UdpCmd.BROADCAST.id) received(name, payload)
     }
 
-    infix fun broadcast(payload: ByteArray) = broadcaster.broadcast(BROADCAST, payload)
+    infix fun broadcast(payload: ByteArray) = broadcaster.broadcast(UdpCmd.BROADCAST, payload)
 
     override fun equals(other: Any?) = other is CommonMultacaster
     override fun hashCode() = TYPE_HASH
-
-    enum class Cmd(override val id: Byte) : Command {
-        BROADCAST(127)
-    }
 
     private companion object {
         val TYPE_HASH = hashOf<CommonMultacaster>()

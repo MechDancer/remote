@@ -1,13 +1,11 @@
-package org.mechdancer.version2.dependency.functions.basic
+package org.mechdancer.version2.remote.functions
 
-import org.mechdancer.remote.core.internal.Command
 import org.mechdancer.remote.core.protocol.RemotePackage
 import org.mechdancer.version2.dependency.AbstractModule
-import org.mechdancer.version2.dependency.functions.basic.GroupMonitor.Cmd.Ack
-import org.mechdancer.version2.dependency.functions.basic.GroupMonitor.Cmd.Ask
-import org.mechdancer.version2.dependency.resources.basic.Group
 import org.mechdancer.version2.hashOf
 import org.mechdancer.version2.must
+import org.mechdancer.version2.remote.resources.Group
+import org.mechdancer.version2.remote.resources.UdpCmd
 
 /**
  * 组成员管理
@@ -21,20 +19,16 @@ class GroupMonitor(
     override val dependencies
         get() = setOf(MulticastBroadcaster::class, Group::class)
 
-    fun yell() = broadcaster.broadcast(Ask)
+    fun yell() = broadcaster.broadcast(UdpCmd.YELL_ASK)
 
     override fun process(remotePackage: RemotePackage) {
         val (id, name, _) = remotePackage
         group.update(name, now()) ?: detected(name)
-        if (id == Ask.id) broadcaster.broadcast(Ack)
+        if (id == UdpCmd.YELL_ASK.id) broadcaster.broadcast(UdpCmd.YELL_ACK)
     }
 
     override fun equals(other: Any?) = other is GroupMonitor
     override fun hashCode() = TYPE_HASH
-
-    enum class Cmd(override val id: Byte) : Command {
-        Ask(0), Ack(1);
-    }
 
     private companion object {
         val TYPE_HASH = hashOf<GroupMonitor>()

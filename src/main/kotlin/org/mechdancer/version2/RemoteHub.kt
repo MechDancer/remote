@@ -3,13 +3,13 @@ package org.mechdancer.version2
 import org.mechdancer.remote.network.MULTICAST_FILTERS
 import org.mechdancer.remote.network.WIRELESS_FIRST
 import org.mechdancer.remote.network.filterNetwork
-import org.mechdancer.version2.dependency.functions.basic.CommonMultacaster
-import org.mechdancer.version2.dependency.functions.basic.GroupMonitor
-import org.mechdancer.version2.dependency.functions.basic.MulticastBroadcaster
-import org.mechdancer.version2.dependency.functions.basic.MulticastReceiver
-import org.mechdancer.version2.dependency.resources.basic.Group
-import org.mechdancer.version2.dependency.resources.basic.MulticastSockets
-import org.mechdancer.version2.dependency.resources.basic.Name
+import org.mechdancer.version2.remote.functions.CommonMultacaster
+import org.mechdancer.version2.remote.functions.GroupMonitor
+import org.mechdancer.version2.remote.functions.MulticastBroadcaster
+import org.mechdancer.version2.remote.functions.MulticastReceiver
+import org.mechdancer.version2.remote.resources.Group
+import org.mechdancer.version2.remote.resources.MulticastSockets
+import org.mechdancer.version2.remote.resources.Name
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.NetworkInterface
@@ -28,7 +28,7 @@ class RemoteHub(
 
     private val hub = buildHub {
         // 名字
-        this += Name(name ?: "Hub[${UUID.randomUUID()}]")
+        this += Name(name ?: "DynamicScope[${UUID.randomUUID()}]")
 
         // 组成员管理
         this += group

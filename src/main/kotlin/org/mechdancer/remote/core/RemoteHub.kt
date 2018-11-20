@@ -305,7 +305,7 @@ class RemoteHub internal constructor(
 
     init {
         address = InetSocketAddress(network.inetAddresses.asSequence().first(InetAddress::isV4Host), server.localPort)
-        this.name = name ?: "Hub[$address]"
+        this.name = name ?: "DynamicScope[$address]"
         default = multicastOn(network)
     }
 

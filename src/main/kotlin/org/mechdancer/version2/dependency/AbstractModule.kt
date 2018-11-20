@@ -1,11 +1,12 @@
 package org.mechdancer.version2.dependency
 
-import org.mechdancer.version2.Hub
-
+/**
+ * 抽象功能模块
+ */
 abstract class AbstractModule : FunctionModule {
-    protected lateinit var host: Hub
+    protected lateinit var host: DynamicScope
 
-    override fun onSetup(host: Hub) {
+    override fun onSetup(host: DynamicScope) {
         this.host = host
         sync()
     }

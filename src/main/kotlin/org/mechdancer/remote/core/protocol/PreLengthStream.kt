@@ -1,7 +1,5 @@
 package org.mechdancer.remote.core.protocol
 
-import java.io.DataInputStream
-import java.io.DataOutputStream
 import java.io.InputStream
 import java.io.OutputStream
 
@@ -11,7 +9,7 @@ import java.io.OutputStream
  * @param    pack 数据包
  */
 internal fun OutputStream.writeWithLength(pack: ByteArray) {
-    DataOutputStream(this).writeInt(pack.size)
+    enZigzag(pack.size.toLong())
     write(pack)
 }
 
@@ -21,7 +19,7 @@ internal fun OutputStream.writeWithLength(pack: ByteArray) {
  * @return   数据包
  */
 internal fun InputStream.readWithLength(): ByteArray =
-    waitNBytes(DataInputStream(this).readInt())
+    waitNBytes(deZigzag().toInt())
 
 /**
  * 从输入流阻塞接收 [n] 个字节数据，直到无法继续接收或流关闭。

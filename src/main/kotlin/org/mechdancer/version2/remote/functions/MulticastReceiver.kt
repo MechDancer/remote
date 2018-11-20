@@ -1,13 +1,13 @@
-package org.mechdancer.version2.dependency.functions.basic
+package org.mechdancer.version2.remote.functions
 
 import org.mechdancer.remote.core.protocol.RemotePackage
 import org.mechdancer.version2.dependency.AbstractModule
-import org.mechdancer.version2.dependency.resources.basic.MulticastSockets
-import org.mechdancer.version2.dependency.resources.basic.Name
-import org.mechdancer.version2.dependency.resources.basic.Name.Type.NAME
 import org.mechdancer.version2.get
 import org.mechdancer.version2.hashOf
 import org.mechdancer.version2.must
+import org.mechdancer.version2.remote.resources.MulticastSockets
+import org.mechdancer.version2.remote.resources.Name
+import org.mechdancer.version2.remote.resources.Name.Type.NAME
 import java.net.DatagramPacket
 
 /**

@@ -1,12 +1,10 @@
-package org.mechdancer.version2
-
-import org.mechdancer.version2.dependency.Dependency
-import org.mechdancer.version2.dependency.FunctionModule
+package org.mechdancer.version2.dependency
 
 /**
- * 依赖管理器
+ * 动态域
+ * 一个动态域里有共享的资源和相互依赖的功能
  */
-class Hub {
+class DynamicScope {
     private val _dependencies = hashSetOf<Dependency>()
 
     /**
