@@ -16,9 +16,9 @@ class MulticastBroadcaster : FunctionModule {
     private lateinit var hostInfo: HostInfo
 
     override val dependencies get() = setOf(sockets, hostInfo)
-    override fun loadDependencies(dependency: Iterable<Dependency>) {
-        sockets = dependency.must()
-        hostInfo = dependency.must()
+    override fun loadDependencies(all: Iterable<Dependency>) {
+        sockets = all.must()
+        hostInfo = all.must()
     }
 
     fun broadcast(cmd: Command, payload: ByteArray = ByteArray(0)) {

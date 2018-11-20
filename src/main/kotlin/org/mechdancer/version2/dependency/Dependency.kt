@@ -5,12 +5,12 @@ package org.mechdancer.version2.dependency
  */
 interface Dependency {
     /**
-     * 资源工厂只要类型相同就视作相同，务必重载
+     * 此函数将控制依赖项互斥性，务必重写
      */
     override fun equals(other: Any?): Boolean
 
     /**
-     * 资源工厂的哈希值是其类型的哈希值，反射较慢，建议缓存
+     * 建议使用依赖项类型的哈希作为依赖项的哈希
      */
     override fun hashCode(): Int
 }

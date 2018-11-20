@@ -23,11 +23,11 @@ class MulticastReceiver(private val bufferSize: Int = 65536) : FunctionModule {
     override val dependencies: Set<Dependency>
         get() = setOf(socket)
 
-    override fun loadDependencies(dependency: Iterable<Dependency>) {
-        hostInfo = dependency.must()
-        socket = dependency.must()
+    override fun loadDependencies(all: Iterable<Dependency>) {
+        hostInfo = all.must()
+        socket = all.must()
         callbacks.addAll(
-            dependency
+            all
                 .get<MulticastListener>()
                 .map { it::invoke }
         )

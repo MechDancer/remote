@@ -21,9 +21,9 @@ class GroupMonitor(
     override val dependencies
         get() = setOf(group, broadcaster)
 
-    override fun loadDependencies(dependency: Iterable<Dependency>) {
-        group = dependency.must()
-        broadcaster = dependency.must()
+    override fun loadDependencies(all: Iterable<Dependency>) {
+        group = all.must()
+        broadcaster = all.must()
     }
 
     fun yell() = broadcaster.broadcast(Ask)

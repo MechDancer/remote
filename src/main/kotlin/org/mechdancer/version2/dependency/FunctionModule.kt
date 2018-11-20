@@ -15,7 +15,7 @@ interface FunctionModule : Dependency {
      * 加载全部依赖项
      */
     @Throws(DependencyNotExistException::class)
-    fun loadDependencies(dependency: Iterable<Dependency>)
+    fun loadDependencies(all: Iterable<Dependency>)
 
     /**
      * 依赖项不存在
