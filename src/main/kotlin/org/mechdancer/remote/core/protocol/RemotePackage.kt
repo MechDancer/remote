@@ -13,7 +13,7 @@ import java.io.DataOutputStream
  * @param sender  发送方名字
  * @param payload 数据负载
  */
-internal class RemotePackage(
+data class RemotePackage(
     val command: Byte,
     val sender: String,
     val payload: ByteArray
@@ -31,10 +31,6 @@ internal class RemotePackage(
         }.toByteArray()
     }
 
-    operator fun component1() = command
-    operator fun component2() = sender
-    operator fun component3() = payload
-
     companion object {
         /**
          * 从字节数组构建
@@ -48,5 +44,25 @@ internal class RemotePackage(
                     val payload = it.readBytes()
                     RemotePackage(cmd, sender, payload)
                 }
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as RemotePackage
+
+        if (command != other.command) return false
+        if (sender != other.sender) return false
+        if (!payload.contentEquals(other.payload)) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = command.toInt()
+        result = 31 * result + sender.hashCode()
+        result = 31 * result + payload.contentHashCode()
+        return result
     }
 }

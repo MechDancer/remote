@@ -15,7 +15,7 @@ buildscript {
 }
 
 plugins {
-	kotlin("jvm") version "1.3.0"
+    kotlin("jvm") version "1.3.10"
 	id("org.jetbrains.dokka") version "0.9.16"
 }
 
@@ -33,6 +33,7 @@ repositories {
 dependencies {
 	compile(kotlin("stdlib-jdk8"))
 	testCompile("junit", "junit", "+")
+    compile(kotlin("reflect"))
 }
 
 configure<JavaPluginConvention> {
