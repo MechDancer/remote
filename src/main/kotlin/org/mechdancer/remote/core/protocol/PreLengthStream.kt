@@ -9,7 +9,7 @@ import java.io.OutputStream
  * @param    pack 数据包
  */
 internal fun OutputStream.writeWithLength(pack: ByteArray) {
-    enZigzag(pack.size.toLong())
+    pack.size.toLong().zigzag(false)
     write(pack)
 }
 
@@ -19,7 +19,7 @@ internal fun OutputStream.writeWithLength(pack: ByteArray) {
  * @return   数据包
  */
 internal fun InputStream.readWithLength(): ByteArray =
-    waitNBytes(deZigzag().toInt())
+    waitNBytes(zigzag(false).toInt())
 
 /**
  * 从输入流阻塞接收 [n] 个字节数据，直到无法继续接收或流关闭。

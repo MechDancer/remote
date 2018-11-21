@@ -106,7 +106,7 @@ class RemoteHub internal constructor(
 
     // 发送组播报文
     private fun broadcast(cmd: Byte, payload: ByteArray = ByteArray(0)) =
-        RemotePackage(cmd, name, payload)
+        RemotePackage(cmd, name, 0, payload)
             .bytes
             .let { DatagramPacket(it, it.size, ADDRESS) }
             .let(default::send)
@@ -146,7 +146,7 @@ class RemoteHub internal constructor(
     private fun processUdp(pack: ByteArray) =
         RemotePackage(pack)
             .takeIf { it.sender != name }
-            ?.also { (id, sender, payload) ->
+            ?.also { (id, sender, _, payload) ->
                 // 更新时间
                 updateGroup(sender)
                 // 响应指令
@@ -183,6 +183,9 @@ class RemoteHub internal constructor(
             }
         }
         timeToLive = max(timeout + 20, 200)
+
+        groupManager.view.toList().joinToString("\n").let(::println)
+
         return groupManager filterByTime timeToLive.toLong()
     }
 
@@ -221,12 +224,12 @@ class RemoteHub internal constructor(
         addressManager
             .connect(other)!!
             .getOutputStream()
-            .use { it.writeWithLength(RemotePackage(Send.id, name, msg).bytes) }
+            .use { it.writeWithLength(RemotePackage(Send.id, name, 0, msg).bytes) }
 
     // 通用远程调用
     private fun Socket.call(id: Byte, msg: ByteArray) =
         use {
-            it.getOutputStream().writeWithLength(RemotePackage(id, name, msg).bytes)
+            it.getOutputStream().writeWithLength(RemotePackage(id, name, 0, msg).bytes)
             it.getInputStream().readWithLength()
         }
 
@@ -257,7 +260,7 @@ class RemoteHub internal constructor(
             .accept()
             .also { listenerCount.decrementAndGet() }
             .use { server ->
-                val (id, sender, payload) = RemotePackage(server.getInputStream().readWithLength())
+                val (id, sender, _, payload) = RemotePackage(server.getInputStream().readWithLength())
                 updateGroup(sender)
                 fun reply(msg: ByteArray) = server.getOutputStream().writeWithLength(msg)
                 when (TcpCmd[id]) {

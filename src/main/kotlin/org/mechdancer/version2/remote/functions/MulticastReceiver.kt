@@ -23,14 +23,13 @@ class MulticastReceiver(private val bufferSize: Int = 65536) : AbstractModule() 
         callbacks.addAll(host.get())
     }
 
-    operator fun invoke(): RemotePackage? {
-        return DatagramPacket(ByteArray(bufferSize), bufferSize)
+    operator fun invoke() =
+        DatagramPacket(ByteArray(bufferSize), bufferSize)
             .apply(socket.default::receive)
             .actualData
             .let { RemotePackage(it) }
             .takeIf { it.sender != name[NAME] }
             ?.also { pack -> callbacks.forEach { it process pack } }
-    }
 
     override fun equals(other: Any?) = other is MulticastReceiver
     override fun hashCode() = TYPE_HASH

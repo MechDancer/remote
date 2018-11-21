@@ -42,4 +42,4 @@ operator fun DynamicScope.plusAssign(dependency: Dependency) =
  * 构造终端并扫描
  */
 fun buildHub(block: DynamicScope.() -> Unit) =
-    DynamicScope().apply(block)
+    DynamicScope().apply(block).apply { sync() }

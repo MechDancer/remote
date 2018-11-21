@@ -39,7 +39,7 @@ object B {
         }.run {
             println(address)
             launch { listen() }
-            launch { "members: ${refresh(200)}".let(::println) }
+            launch { "members: ${refresh(200)}" }
             forever { invoke() }
         }
     }

@@ -16,7 +16,7 @@ class CommonMulticast(
     private val broadcaster by lazy { host.must<MulticastBroadcaster>() }
 
     override fun process(remotePackage: RemotePackage) {
-        val (id, name, payload) = remotePackage
+        val (id, name, _, payload) = remotePackage
         if (id == UdpCmd.BROADCAST.id) received(name, payload)
     }
 

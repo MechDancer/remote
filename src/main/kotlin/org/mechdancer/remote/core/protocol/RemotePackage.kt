@@ -7,22 +7,25 @@ import java.io.ByteArrayOutputStream
  * 通用数据包
  * 用于无连接通信或建立连接.
  *
- * @param command 指令识别号
- * @param sender  发送方名字
- * @param payload 数据负载
+ * @param command   指令识别号
+ * @param sender    发送方名字
+ * @param seqNumber 序列号
+ * @param payload   数据负载
  */
 data class RemotePackage(
     val command: Byte,
     val sender: String,
+    val seqNumber: Long,
     val payload: ByteArray
 ) {
     /**
      * 打包到字节数组
      */
-    val bytes by lazy {
+    val bytes: ByteArray by lazy {
         ByteArrayOutputStream().apply {
             write(command.toInt())
             writeEnd(sender)
+            zigzag(seqNumber, false)
             write(payload)
         }.toByteArray()
     }
@@ -36,28 +39,26 @@ data class RemotePackage(
                 .let {
                     val cmd = it.read().toByte()
                     val sender = it.readEnd()
+                    val seqNumber = it.zigzag(false)
                     val payload = it.readBytes()
-                    RemotePackage(cmd, sender, payload)
+                    RemotePackage(cmd, sender, seqNumber, payload)
                 }
     }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (javaClass != other?.javaClass) return false
+        if (other !is RemotePackage) return false
 
-        other as RemotePackage
-
-        if (command != other.command) return false
-        if (sender != other.sender) return false
-        if (!payload.contentEquals(other.payload)) return false
-
-        return true
+        return command == other.command
+            && sender == other.sender
+            && seqNumber == other.seqNumber
+            && payload.contentEquals(other.payload)
     }
 
     override fun hashCode(): Int {
         var result = command.toInt()
         result = 31 * result + sender.hashCode()
-        result = 31 * result + payload.contentHashCode()
-        return result
+        result = 31 * result + seqNumber.hashCode()
+        return 31 * result + payload.contentHashCode()
     }
 }
