@@ -12,7 +12,7 @@ import java.io.ByteArrayOutputStream
  * @param seqNumber 序列号
  * @param payload   数据负载
  */
-data class RemotePackage(
+data class RemotePacket(
     val command: Byte,
     val sender: String,
     val seqNumber: Long,
@@ -39,15 +39,15 @@ data class RemotePackage(
                 .let {
                     val cmd = it.read().toByte()
                     val sender = it.readEnd()
-                    val seqNumber = it.zigzag(false)
+                    val seqNumber = it zigzag false
                     val payload = it.readBytes()
-                    RemotePackage(cmd, sender, seqNumber, payload)
+                    RemotePacket(cmd, sender, seqNumber, payload)
                 }
     }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other !is RemotePackage) return false
+        if (other !is RemotePacket) return false
 
         return command == other.command
             && sender == other.sender

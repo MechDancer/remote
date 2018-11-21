@@ -1,6 +1,6 @@
 package org.mechdancer.version2.remote.functions
 
-import org.mechdancer.remote.core.protocol.RemotePackage
+import org.mechdancer.remote.core.protocol.RemotePacket
 import org.mechdancer.version2.dependency.AbstractModule
 import org.mechdancer.version2.hashOf
 import org.mechdancer.version2.must
@@ -18,8 +18,8 @@ class GroupMonitor(
 
     fun yell() = broadcaster.broadcast(UdpCmd.YELL_ASK)
 
-    override fun process(remotePackage: RemotePackage) {
-        val (id, name, _) = remotePackage
+    override fun process(remotePacket: RemotePacket) {
+        val (id, name, _) = remotePacket
         group.update(name, now()) ?: detected(name)
         if (id == UdpCmd.YELL_ASK.id) broadcaster.broadcast(UdpCmd.YELL_ACK)
     }

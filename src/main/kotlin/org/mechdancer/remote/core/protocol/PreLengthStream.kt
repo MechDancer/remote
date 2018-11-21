@@ -9,7 +9,7 @@ import java.io.OutputStream
  * @param    pack 数据包
  */
 internal fun OutputStream.writeWithLength(pack: ByteArray) {
-    pack.size.toLong().zigzag(false)
+    pack.size.toLong() zigzag false
     write(pack)
 }
 

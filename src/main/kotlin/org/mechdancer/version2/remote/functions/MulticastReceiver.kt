@@ -1,6 +1,6 @@
 package org.mechdancer.version2.remote.functions
 
-import org.mechdancer.remote.core.protocol.RemotePackage
+import org.mechdancer.remote.core.protocol.RemotePacket
 import org.mechdancer.version2.dependency.AbstractModule
 import org.mechdancer.version2.get
 import org.mechdancer.version2.hashOf
@@ -27,7 +27,7 @@ class MulticastReceiver(private val bufferSize: Int = 65536) : AbstractModule() 
         DatagramPacket(ByteArray(bufferSize), bufferSize)
             .apply(socket.default::receive)
             .actualData
-            .let { RemotePackage(it) }
+            .let { RemotePacket(it) }
             .takeIf { it.sender != name[NAME] }
             ?.also { pack -> callbacks.forEach { it process pack } }
 

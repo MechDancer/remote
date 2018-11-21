@@ -1,7 +1,7 @@
 package org.mechdancer.version2.remote.functions
 
 import org.mechdancer.remote.core.internal.Command
-import org.mechdancer.remote.core.protocol.RemotePackage
+import org.mechdancer.remote.core.protocol.RemotePacket
 import org.mechdancer.version2.dependency.AbstractModule
 import org.mechdancer.version2.hashOf
 import org.mechdancer.version2.must
@@ -18,7 +18,7 @@ class MulticastBroadcaster : AbstractModule() {
 
     fun broadcast(cmd: Command, payload: ByteArray = ByteArray(0)) {
         val packet =
-            RemotePackage(
+            RemotePacket(
                 cmd.id,
                 name[NAME],
                 serial.getAndIncrement(),

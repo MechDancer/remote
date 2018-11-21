@@ -1,6 +1,6 @@
 package org.mechdancer.version2.remote.functions
 
-import org.mechdancer.remote.core.protocol.RemotePackage
+import org.mechdancer.remote.core.protocol.RemotePacket
 import org.mechdancer.version2.dependency.AbstractModule
 import org.mechdancer.version2.hashOf
 import org.mechdancer.version2.must
@@ -15,8 +15,8 @@ class CommonMulticast(
 ) : AbstractModule(), MulticastListener {
     private val broadcaster by lazy { host.must<MulticastBroadcaster>() }
 
-    override fun process(remotePackage: RemotePackage) {
-        val (id, name, _, payload) = remotePackage
+    override fun process(remotePacket: RemotePacket) {
+        val (id, name, _, payload) = remotePacket
         if (id == UdpCmd.BROADCAST.id) received(name, payload)
     }
 

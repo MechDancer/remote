@@ -36,7 +36,7 @@ fun <T : OutputStream> T.zigzag(
  * @param signed 是否带符号解码
  * @return 数字
  */
-fun InputStream.zigzag(signed: Boolean) =
+infix fun InputStream.zigzag(signed: Boolean) =
     ByteArrayOutputStream()
         .apply {
             while (true)
@@ -45,8 +45,7 @@ fun InputStream.zigzag(signed: Boolean) =
                     .takeIf { it > 0x7f }
                     ?: break
         }
-        .toByteArray()
-        .zigzag(signed)
+        .toByteArray() zigzag signed
 
 /**
  * 编码一个数字
@@ -54,7 +53,7 @@ fun InputStream.zigzag(signed: Boolean) =
  * @param signed 是否带符号编码
  * @return 编码
  */
-fun Long.zigzag(signed: Boolean): ByteArray {
+infix fun Long.zigzag(signed: Boolean): ByteArray {
     val buffer = ByteArray(9)
 
     var temp =
@@ -79,7 +78,7 @@ fun Long.zigzag(signed: Boolean): ByteArray {
  * @param signed 是否带符号解码
  * @return 数字
  */
-fun ByteArray.zigzag(signed: Boolean): Long =
+infix fun ByteArray.zigzag(signed: Boolean): Long =
     foldRight(0L) { byte, acc ->
         acc shl 7 or ((byte and 0x7f).toLong())
     }.let {

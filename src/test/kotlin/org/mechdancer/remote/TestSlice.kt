@@ -1,6 +1,6 @@
 package org.mechdancer.remote
 
-import org.mechdancer.remote.core.protocol.RemotePackage
+import org.mechdancer.remote.core.protocol.RemotePacket
 import org.mechdancer.remote.network.MULTICAST_FILTERS
 import org.mechdancer.remote.network.WIRELESS_FIRST
 import org.mechdancer.remote.network.filterNetwork
@@ -8,17 +8,68 @@ import org.mechdancer.version2.buildHub
 import org.mechdancer.version2.dependency.AbstractModule
 import org.mechdancer.version2.must
 import org.mechdancer.version2.plusAssign
-import org.mechdancer.version2.remote.functions.*
-import org.mechdancer.version2.remote.resources.Group
+import org.mechdancer.version2.remote.functions.MulticastBroadcaster
+import org.mechdancer.version2.remote.functions.MulticastListener
+import org.mechdancer.version2.remote.functions.MulticastReceiver
+import org.mechdancer.version2.remote.functions.PacketSlicer
 import org.mechdancer.version2.remote.resources.MulticastSockets
 import org.mechdancer.version2.remote.resources.Name
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.NetworkInterface
+import kotlin.system.measureTimeMillis
 
-val ADDRESS = InetSocketAddress(InetAddress.getByName("238.88.88.88"), 23333)
+fun build(name: String) = buildHub {
+    // 名字
+    this += Name(name)
 
-val LI_SAO =
+    // 组播
+    val sockets = MulticastSockets(ADDRESS)
+    this += sockets                // 组播套接字管理
+    this += MulticastBroadcaster() // 组播发送
+    this += MulticastReceiver()    // 组播接收
+    this += PacketSlicer(32)       // 分片器
+
+    this += object : AbstractModule(), MulticastListener {
+        override fun equals(other: Any?) = false
+        override fun hashCode() = 0
+
+        override fun process(remotePacket: RemotePacket) {
+            if (remotePacket.command != 4.toByte())
+                println(String(remotePacket.payload))
+        }
+    }
+
+    // 选网
+    val best =
+        filterNetwork(MULTICAST_FILTERS, WIRELESS_FIRST)
+            .let(Collection<NetworkInterface>::firstOrNull)
+            ?: throw RuntimeException("no available network")
+
+    sockets[best]
+}
+
+fun main(args: Array<String>) {
+    val a = build("a")
+    val b = build("b")
+
+    val receiver = b.must<MulticastReceiver>()
+
+    launch { receiver() }
+
+    measureTimeMillis {
+        a.must<PacketSlicer>() broadcast RemotePacket(127, "a", 0, LI_SAO.toByteArray())
+    }.let(::println)
+
+    measureTimeMillis {
+        a.must<PacketSlicer>() broadcast RemotePacket(127, "a", 0, "12345".toByteArray())
+    }.let(::println)
+
+    forever { }
+}
+
+private val ADDRESS = InetSocketAddress(InetAddress.getByName("238.88.88.88"), 23333)
+private val LI_SAO =
     """
           帝高阳之苗裔兮，朕皇考曰伯庸。
           摄提贞于孟陬兮，惟庚寅吾以降。
@@ -209,50 +260,3 @@ val LI_SAO =
           国无人莫我知兮，又何怀乎故都！
           既莫足与为美政兮，吾将从彭咸之所居！
         """.trimIndent()
-
-fun build(name: String) = buildHub {
-    // 名字
-    this += Name(name)
-
-    // 组成员管理
-    this += Group()
-    this += GroupMonitor(::println)
-
-    // 组播
-    val sockets = MulticastSockets(ADDRESS)
-    this += sockets     // 组播套接字管理
-    this += MulticastBroadcaster() // 组播发送
-    this += MulticastReceiver()    // 组播接收
-    this += PacketSlicer(32)
-
-    this += object : AbstractModule(), MulticastListener {
-        override fun equals(other: Any?) = false
-        override fun hashCode() = 0
-
-        override fun process(remotePackage: RemotePackage) {
-            if (remotePackage.command != 4.toByte())
-                println(String(remotePackage.payload))
-        }
-    }
-
-    // 选网
-    val best =
-        filterNetwork(MULTICAST_FILTERS, WIRELESS_FIRST)
-            .let(Collection<NetworkInterface>::firstOrNull)
-            ?: throw RuntimeException("no available network")
-
-    sockets[best]
-}
-
-fun main(args: Array<String>) {
-    val a = build("a")
-    val b = build("b")
-
-    val receiver = b.must<MulticastReceiver>()
-
-    launch { receiver() }
-
-    a.must<PacketSlicer>() broadcast RemotePackage(0, "a", 0, LI_SAO.toByteArray())
-
-    forever { }
-}
