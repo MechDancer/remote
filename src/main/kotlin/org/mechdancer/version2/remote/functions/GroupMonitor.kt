@@ -16,9 +16,6 @@ class GroupMonitor(
     private val broadcaster by lazy { host.must<MulticastBroadcaster>() }
     private val group by lazy { host.must<Group>() }
 
-    override val dependencies
-        get() = setOf(MulticastBroadcaster::class, Group::class)
-
     fun yell() = broadcaster.broadcast(UdpCmd.YELL_ASK)
 
     override fun process(remotePackage: RemotePackage) {

@@ -3,7 +3,7 @@ package org.mechdancer.version2
 import org.mechdancer.remote.network.MULTICAST_FILTERS
 import org.mechdancer.remote.network.WIRELESS_FIRST
 import org.mechdancer.remote.network.filterNetwork
-import org.mechdancer.version2.remote.functions.CommonMultacaster
+import org.mechdancer.version2.remote.functions.CommonMulticast
 import org.mechdancer.version2.remote.functions.GroupMonitor
 import org.mechdancer.version2.remote.functions.MulticastBroadcaster
 import org.mechdancer.version2.remote.functions.MulticastReceiver
@@ -24,7 +24,7 @@ class RemoteHub(
     private val group = Group()
     private val broadcaster = MulticastBroadcaster()
     private val receiver = MulticastReceiver()
-    private val common = CommonMultacaster(broadcastReceived)
+    private val common = CommonMulticast(broadcastReceived)
 
     private val hub = buildHub {
         // 名字

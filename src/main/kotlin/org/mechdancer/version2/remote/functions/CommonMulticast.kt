@@ -8,25 +8,28 @@ import org.mechdancer.version2.remote.resources.UdpCmd
 
 /**
  * 通用组播协议
+ * @param received 接收回调
  */
-class CommonMultacaster(
+class CommonMulticast(
     private val received: (String, ByteArray) -> Unit
 ) : AbstractModule(), MulticastListener {
     private val broadcaster by lazy { host.must<MulticastBroadcaster>() }
-
-    override val dependencies = setOf(MulticastBroadcaster::class, MulticastReceiver::class)
 
     override fun process(remotePackage: RemotePackage) {
         val (id, name, payload) = remotePackage
         if (id == UdpCmd.BROADCAST.id) received(name, payload)
     }
 
+    /**
+     * 发布通用广播
+     * @param payload 数据负载
+     */
     infix fun broadcast(payload: ByteArray) = broadcaster.broadcast(UdpCmd.BROADCAST, payload)
 
-    override fun equals(other: Any?) = other is CommonMultacaster
+    override fun equals(other: Any?) = other is CommonMulticast
     override fun hashCode() = TYPE_HASH
 
     private companion object {
-        val TYPE_HASH = hashOf<CommonMultacaster>()
+        val TYPE_HASH = hashOf<CommonMulticast>()
     }
 }

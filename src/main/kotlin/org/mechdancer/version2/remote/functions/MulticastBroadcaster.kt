@@ -14,8 +14,6 @@ class MulticastBroadcaster : AbstractModule() {
     private val sockets by lazy { host.must<MulticastSockets>() }
     private val name by lazy { host.must<Name>() }
 
-    override val dependencies get() = setOf(MulticastSockets::class, Name::class)
-
     fun broadcast(cmd: Command, payload: ByteArray = ByteArray(0)) {
         val packet =
             RemotePackage(cmd.id, name[NAME], payload).bytes

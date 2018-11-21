@@ -7,11 +7,6 @@ import kotlin.reflect.KClass
  */
 interface FunctionModule : Dependency {
     /**
-     * 浏览资源依赖项集
-     */
-    val dependencies: Set<KClass<out Dependency>>
-
-    /**
      * 加载终端
      */
     infix fun onSetup(host: DynamicScope)

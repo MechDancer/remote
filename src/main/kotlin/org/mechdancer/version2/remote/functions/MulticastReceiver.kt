@@ -19,8 +19,6 @@ class MulticastReceiver(private val bufferSize: Int = 65536) : AbstractModule() 
     private val name by lazy { host.must<Name>() }
     private val callbacks = mutableSetOf<MulticastListener>()
 
-    override val dependencies get() = setOf(MulticastSockets::class)
-
     override fun sync() {
         callbacks.addAll(host.get())
     }
