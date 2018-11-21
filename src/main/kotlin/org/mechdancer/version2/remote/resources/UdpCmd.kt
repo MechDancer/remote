@@ -3,6 +3,9 @@ package org.mechdancer.version2.remote.resources
 import org.mechdancer.remote.core.internal.Command
 import org.mechdancer.remote.core.internal.Command.Companion.memoryOf
 
+/**
+ * 组播协议
+ */
 enum class UdpCmd(override val id: Byte) : Command {
     YELL_ASK(0),     // 存在性请求
     YELL_ACK(1),     // 存在性回复

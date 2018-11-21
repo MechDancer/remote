@@ -5,7 +5,12 @@ import org.mechdancer.version2.hashOf
 import org.mechdancer.version2.remote.resources.Name.Type
 import org.mechdancer.version2.remote.resources.Name.Type.NAME
 
-class Name(private val name: String) : ResourceFactory<Type, String> {
+/**
+ * @param name 名字
+ */
+class Name(private val name: String) :
+    ResourceFactory<Type, String> {
+
     override fun get(parameter: Type) =
         when (parameter) {
             NAME -> name

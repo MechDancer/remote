@@ -15,6 +15,9 @@ import java.net.InetSocketAddress
 import java.net.NetworkInterface
 import java.util.*
 
+/**
+ * 远程终端
+ */
 class RemoteHub(
     name: String? = null,
     network: NetworkInterface? = null,
@@ -52,7 +55,19 @@ class RemoteHub(
         sync()
     }
 
+    /**
+     * 查看超时时间内出现的成员
+     */
+    fun membersBy(timeout: Int) = group[timeout]
+
+    /**
+     * 发送通用广播
+     */
     infix fun broadcast(payload: ByteArray) = common broadcast payload
+
+    /**
+     * 启动阻塞接收
+     */
     operator fun invoke() = receiver.invoke()
 
     private companion object {

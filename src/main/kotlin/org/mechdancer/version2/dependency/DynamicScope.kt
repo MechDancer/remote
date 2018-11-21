@@ -10,7 +10,7 @@ class DynamicScope {
     /**
      * 浏览所有依赖项
      */
-    val dependenies = object : Set<Dependency> by _dependencies {}
+    val dependencies = object : Set<Dependency> by _dependencies {}
 
     /**
      * 加载插件

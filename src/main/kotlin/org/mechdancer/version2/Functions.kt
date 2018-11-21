@@ -15,21 +15,21 @@ inline fun <reified D : Dependency> hashOf() =
  * @param R 依赖项类型
  */
 inline fun <reified R : Dependency> DynamicScope.get(): List<R> =
-    dependenies.mapNotNull { it as? R }
+    dependencies.mapNotNull { it as? R }
 
 /**
  * 找到一种依赖项
  * @param R 依赖项类型
  */
 inline fun <reified R : Dependency> DynamicScope.maybe(): R? =
-    dependenies.mapNotNull { it as? R }.singleOrNull()
+    dependencies.mapNotNull { it as? R }.singleOrNull()
 
 /**
  * 找到一种依赖项
  * @param R 依赖项类型
  */
 inline fun <reified R : Dependency> DynamicScope.must(): R =
-    dependenies.mapNotNull { it as? R }.singleOrNull()
+    dependencies.mapNotNull { it as? R }.singleOrNull()
         ?: throw DependencyNotExistException(R::class)
 
 /**
