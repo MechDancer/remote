@@ -37,7 +37,7 @@ fun <T : OutputStream> T.zigzag(
  * @return 数字
  */
 infix fun InputStream.zigzag(signed: Boolean) =
-    ByteArrayOutputStream()
+    ByteArrayOutputStream(9)
         .apply {
             while (true)
                 read()

@@ -7,7 +7,7 @@ import org.mechdancer.version2.get
 import org.mechdancer.version2.hashOf
 import org.mechdancer.version2.must
 import org.mechdancer.version2.remote.resources.UdpCmd.PACKET_SLICE
-import java.io.ByteArrayInputStream
+import java.io.InputStream
 import java.io.OutputStream
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
@@ -45,14 +45,13 @@ class PacketSlicer(
      * @param remotePacket 数据包
      */
     infix fun broadcast(remotePacket: RemotePacket) {
-        val packet = remotePacket.bytes
+        val stream = SimpleInputStream(remotePacket.bytes)
         val s = sequence.getAndIncrement() zigzag false
         var index = 0L   // 包序号
-        var position = 0 // 流位置
         while (true) {
             val i = index++ zigzag false
             // 如果是最后一包，应该多长?
-            val last = packet.size - position + s.size + 1 + i.size
+            val last = stream.available() + s.size + 1 + i.size
             // 确实是最后一包！
             if (last <= size) {
                 SimpleOutputStream(last)
@@ -60,7 +59,7 @@ class PacketSlicer(
                         write(0) // 空一位作为停止位
                         write(s)
                         write(i)
-                        writeRange(packet, position, packet.size)
+                        writeFrom(stream, stream.available())
                     }
                     .core
                     .let { broadcaster.broadcast(PACKET_SLICE, it) }
@@ -71,9 +70,8 @@ class PacketSlicer(
                     .apply {
                         write(s)
                         write(i)
-                        writeLength(packet, position, length)
+                        writeFrom(stream, length)
                     }
-                    .also { position += length }
                     .core
                     .let { broadcaster.broadcast(PACKET_SLICE, it) }
             }
@@ -84,12 +82,12 @@ class PacketSlicer(
         val (id, name, _, payload) = remotePacket
         if (id != PACKET_SLICE.id) return
 
-        val last = payload[0] == 0.toByte()        // 判断停止位
-        val stream = ByteArrayInputStream(payload) // 构造流
-        if (last) stream.skip(1)                   // 跳过停止位
-        val subSeq = stream zigzag false           // 解子包序列号
-        val index = (stream zigzag false).toInt()  // 解子包序号
-        val rest = stream.readBytes()              // 解子包负载
+        val stream = SimpleInputStream(payload)   // 构造流
+        val last = stream.look() == 0.toByte()    // 判断停止位
+        if (last) stream.skip(1)                  // 跳过停止位
+        val subSeq = stream zigzag false          // 解子包序列号
+        val index = (stream zigzag false).toInt() // 解子包序号
+        val rest = stream.lookRest()              // 解子包负载
 
         when {
             index == 0 && last -> rest // 这是第一包也是最后一包 => 只有一包 => 不进缓存
@@ -201,6 +199,44 @@ class PacketSlicer(
         fun writeRange(byteArray: ByteArray, begin: Int, end: Int) {
             byteArray.copyInto(core, ptr, begin, end)
             ptr += end - begin
+        }
+
+        fun writeFrom(stream: SimpleInputStream, length: Int) {
+            stream.readInto(this, length)
+        }
+
+        override fun close() {
+            ptr = core.size
+        }
+    }
+
+    private class SimpleInputStream(val core: ByteArray) : InputStream() {
+        private var ptr = 0
+
+        override fun available() = core.size - ptr
+
+        override fun read() =
+            if (ptr < core.size)
+                core[ptr++].let { if (it >= 0) it.toInt() else it + 256 }
+            else -1
+
+        fun look() = core[ptr]
+
+        fun skip(length: Int) = also { ptr += length }
+
+        fun lookRest(): ByteArray {
+            val result = ByteArray(core.size - ptr)
+            core.copyInto(result, 0, ptr, core.size)
+            return result
+        }
+
+        fun readInto(stream: SimpleOutputStream, length: Int) {
+            stream.writeLength(core, ptr, length)
+            ptr += length
+        }
+
+        override fun close() {
+            ptr = core.size
         }
     }
 
