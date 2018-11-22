@@ -16,7 +16,7 @@ class Name(private val name: String) :
             NAME -> name
         }
 
-    override fun equals(other: Any?) = other is Group
+    override fun equals(other: Any?) = other is Name
     override fun hashCode() = TYPE_HASH
 
     enum class Type { NAME }

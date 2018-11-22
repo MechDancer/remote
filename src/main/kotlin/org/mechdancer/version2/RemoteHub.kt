@@ -3,10 +3,10 @@ package org.mechdancer.version2
 import org.mechdancer.remote.network.MULTICAST_FILTERS
 import org.mechdancer.remote.network.WIRELESS_FIRST
 import org.mechdancer.remote.network.filterNetwork
-import org.mechdancer.version2.remote.functions.CommonMulticast
 import org.mechdancer.version2.remote.functions.GroupMonitor
 import org.mechdancer.version2.remote.functions.MulticastBroadcaster
 import org.mechdancer.version2.remote.functions.MulticastReceiver
+import org.mechdancer.version2.remote.functions.commons.CommonMulticast
 import org.mechdancer.version2.remote.resources.Group
 import org.mechdancer.version2.remote.resources.MulticastSockets
 import org.mechdancer.version2.remote.resources.Name

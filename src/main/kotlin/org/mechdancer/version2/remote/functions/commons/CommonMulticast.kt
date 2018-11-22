@@ -1,9 +1,11 @@
-package org.mechdancer.version2.remote.functions
+package org.mechdancer.version2.remote.functions.commons
 
 import org.mechdancer.remote.core.protocol.RemotePacket
 import org.mechdancer.version2.dependency.AbstractModule
 import org.mechdancer.version2.hashOf
 import org.mechdancer.version2.must
+import org.mechdancer.version2.remote.functions.MulticastBroadcaster
+import org.mechdancer.version2.remote.functions.MulticastListener
 import org.mechdancer.version2.remote.resources.UdpCmd
 
 /**

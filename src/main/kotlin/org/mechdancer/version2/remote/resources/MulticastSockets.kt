@@ -29,7 +29,7 @@ class MulticastSockets(
     val default = multicastOn(address, null)
 
     override operator fun get(parameter: NetworkInterface): MulticastSocket =
-        core[parameter] ?: multicastOn(address, parameter).also { core[parameter] = it }
+        core.computeIfAbsent(parameter) { multicastOn(address, parameter) }
 
     /**
      * 获取指定超时时间的临时套接字
