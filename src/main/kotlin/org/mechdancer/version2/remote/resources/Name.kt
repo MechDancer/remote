@@ -4,14 +4,11 @@ import org.mechdancer.version2.dependency.ResourceFactory
 import org.mechdancer.version2.dependency.hashOf
 import org.mechdancer.version2.remote.resources.Name.Type
 import org.mechdancer.version2.remote.resources.Name.Type.NAME
-import java.util.*
 
 /**
  * @param name 名字
  */
-class Name(
-    private val name: String = randomName()
-) :
+class Name(private val name: String) :
     ResourceFactory<Type, String> {
 
     override fun get(parameter: Type) =
@@ -26,6 +23,5 @@ class Name(
 
     private companion object {
         val TYPE_HASH = hashOf<Name>()
-        fun randomName() = "DynamicScope[${UUID.randomUUID()}]"
     }
 }

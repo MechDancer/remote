@@ -51,5 +51,5 @@ operator fun DynamicScope.plusAssign(dependency: Dependency) =
 /**
  * 构造终端并扫描
  */
-fun buildScope(block: DynamicScope.() -> Unit) =
+fun scope(block: DynamicScope.() -> Unit) =
     DynamicScope().apply(block).apply { sync() }

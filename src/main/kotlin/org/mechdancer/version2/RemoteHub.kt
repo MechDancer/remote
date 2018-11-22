@@ -3,18 +3,22 @@ package org.mechdancer.version2
 import org.mechdancer.remote.network.MULTICAST_FILTERS
 import org.mechdancer.remote.network.WIRELESS_FIRST
 import org.mechdancer.remote.network.filterNetwork
-import org.mechdancer.version2.dependency.buildScope
 import org.mechdancer.version2.dependency.plusAssign
+import org.mechdancer.version2.dependency.scope
 import org.mechdancer.version2.remote.functions.GroupMonitor
+import org.mechdancer.version2.remote.functions.PacketSlicer
 import org.mechdancer.version2.remote.functions.address.AddressBroadcaster
 import org.mechdancer.version2.remote.functions.address.AddressMonitor
 import org.mechdancer.version2.remote.functions.multicast.CommonMulticast
 import org.mechdancer.version2.remote.functions.multicast.MulticastBroadcaster
 import org.mechdancer.version2.remote.functions.multicast.MulticastReceiver
+import org.mechdancer.version2.remote.functions.tcpconnection.ShortConnectionClient
+import org.mechdancer.version2.remote.functions.tcpconnection.ShortConnectionServer
 import org.mechdancer.version2.remote.resources.*
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.NetworkInterface
+import java.util.*
 
 /**
  * 远程终端
@@ -40,6 +44,8 @@ class RemoteHub(
     private val receiver = MulticastReceiver()
     // 通用组播收发
     private val common = CommonMulticast(broadcastReceived)
+    // 组播分片协议
+    private val slicer = PacketSlicer()
 
     // TCP 依赖项
 
@@ -50,10 +56,13 @@ class RemoteHub(
     // 组地址同步器
     private val synchronizer1 = AddressBroadcaster()
     private val synchronizer2 = AddressMonitor()
+    // 短连接建立
+    private val client = ShortConnectionClient()
+    private val server = ShortConnectionServer()
 
-    val hub = buildScope {
+    val hub = scope {
         // 名字
-        this += Name()
+        this += Name(name ?: randomName())
 
         // 组成员管理
         this += group   // 成员存在性资源
@@ -64,12 +73,17 @@ class RemoteHub(
         this += broadcaster // 组播发送
         this += receiver    // 组播接收
         this += common      // 通用组播收发
+        this += slicer      // 组播分片协议
 
-        //TCP
+        // TCP 地址
         this += address       // 组地址资源
         this += serverSockets // 监听套接字资源
-        this += synchronizer1 // 组地址同步器
-        this += synchronizer2 // 组地址同步器
+        this += synchronizer1 // 组地址同步器（答）
+        this += synchronizer2 // 组地址同步器（问）
+
+        // TCP 短连接
+        this += server // 服务端
+        this += client // 客户端
 
         // 选网
         val best = network
@@ -99,5 +113,6 @@ class RemoteHub(
 
     private companion object {
         val ADDRESS = InetSocketAddress(InetAddress.getByName("238.88.88.88"), 23333)
+        fun randomName() = "RemoteHub[${UUID.randomUUID()}]"
     }
 }
