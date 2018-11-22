@@ -1,4 +1,4 @@
-package org.mechdancer.version2.remote.functions
+package org.mechdancer.version2.remote.functions.multicast
 
 import org.mechdancer.remote.core.protocol.RemotePacket
 import org.mechdancer.version2.dependency.AbstractModule
@@ -8,6 +8,7 @@ import org.mechdancer.version2.dependency.must
 import org.mechdancer.version2.remote.resources.MulticastSockets
 import org.mechdancer.version2.remote.resources.Name
 import org.mechdancer.version2.remote.resources.Name.Type.NAME
+import org.mechdancer.version2.remote.resources.UdpCmd
 import java.net.DatagramPacket
 
 /**
@@ -29,7 +30,11 @@ class MulticastReceiver(private val bufferSize: Int = 65536) : AbstractModule() 
             .actualData
             .let { RemotePacket(it) }
             .takeIf { it.sender != name[NAME] }
-            ?.also { pack -> callbacks.forEach { it process pack } }
+            ?.also { pack ->
+                callbacks
+                    .filter { UdpCmd[pack.command] in it.interest }
+                    .forEach { it process pack }
+            }
 
     override fun equals(other: Any?) = other is MulticastReceiver
     override fun hashCode() = TYPE_HASH

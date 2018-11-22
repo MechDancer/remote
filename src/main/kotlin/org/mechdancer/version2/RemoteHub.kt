@@ -5,11 +5,12 @@ import org.mechdancer.remote.network.WIRELESS_FIRST
 import org.mechdancer.remote.network.filterNetwork
 import org.mechdancer.version2.dependency.buildScope
 import org.mechdancer.version2.dependency.plusAssign
-import org.mechdancer.version2.remote.functions.AddressSynchronizer
 import org.mechdancer.version2.remote.functions.GroupMonitor
-import org.mechdancer.version2.remote.functions.MulticastBroadcaster
-import org.mechdancer.version2.remote.functions.MulticastReceiver
-import org.mechdancer.version2.remote.functions.commons.CommonMulticast
+import org.mechdancer.version2.remote.functions.address.AddressBroadcaster
+import org.mechdancer.version2.remote.functions.address.AddressMonitor
+import org.mechdancer.version2.remote.functions.multicast.CommonMulticast
+import org.mechdancer.version2.remote.functions.multicast.MulticastBroadcaster
+import org.mechdancer.version2.remote.functions.multicast.MulticastReceiver
 import org.mechdancer.version2.remote.resources.*
 import java.net.InetAddress
 import java.net.InetSocketAddress
@@ -47,7 +48,8 @@ class RemoteHub(
     // 监听套接字资源
     private val serverSockets = ServerSockets()
     // 组地址同步器
-    private val synchronizer = AddressSynchronizer()
+    private val synchronizer1 = AddressBroadcaster()
+    private val synchronizer2 = AddressMonitor()
 
     val hub = buildScope {
         // 名字
@@ -66,7 +68,8 @@ class RemoteHub(
         //TCP
         this += address       // 组地址资源
         this += serverSockets // 监听套接字资源
-        this += synchronizer  // 组地址同步器
+        this += synchronizer1 // 组地址同步器
+        this += synchronizer2 // 组地址同步器
 
         // 选网
         val best = network

@@ -1,12 +1,11 @@
-package org.mechdancer.version2.remote.functions.commons
+package org.mechdancer.version2.remote.functions.multicast
 
 import org.mechdancer.remote.core.protocol.RemotePacket
 import org.mechdancer.version2.dependency.AbstractModule
 import org.mechdancer.version2.dependency.hashOf
 import org.mechdancer.version2.dependency.must
-import org.mechdancer.version2.remote.functions.MulticastBroadcaster
-import org.mechdancer.version2.remote.functions.MulticastListener
 import org.mechdancer.version2.remote.resources.UdpCmd
+import org.mechdancer.version2.remote.resources.UdpCmd.BROADCAST
 
 /**
  * 通用组播协议
@@ -17,9 +16,11 @@ class CommonMulticast(
 ) : AbstractModule(), MulticastListener {
     private val broadcaster by lazy { host.must<MulticastBroadcaster>() }
 
+    override val interest = INTEREST
+
     override fun process(remotePacket: RemotePacket) {
-        val (id, name, _, payload) = remotePacket
-        if (id == UdpCmd.BROADCAST.id) received(name, payload)
+        val (_, name, _, payload) = remotePacket
+        received(name, payload)
     }
 
     /**
@@ -33,5 +34,6 @@ class CommonMulticast(
 
     private companion object {
         val TYPE_HASH = hashOf<CommonMulticast>()
+        val INTEREST = setOf(BROADCAST)
     }
 }

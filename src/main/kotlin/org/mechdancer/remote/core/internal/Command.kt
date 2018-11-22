@@ -27,15 +27,11 @@ interface Command {
     /**
      * 基于指令构造包
      */
-    fun lead(vararg payloads: ByteArray) =
-        ByteArray(payloads.sumBy(ByteArray::size) + 1)
+    fun lead(payload: ByteArray) =
+        ByteArray(payload.size + 1)
             .apply {
                 set(0, id)
-                var i = 1
-                for (payload in payloads) {
-                    payload.copyInto(this, i)
-                    i += payload.size
-                }
+                payload.copyInto(this, 1)
             }
 
     companion object {

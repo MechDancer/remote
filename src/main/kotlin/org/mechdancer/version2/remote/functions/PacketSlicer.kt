@@ -1,11 +1,15 @@
 package org.mechdancer.version2.remote.functions
 
+import org.mechdancer.remote.core.internal.Command
 import org.mechdancer.remote.core.protocol.RemotePacket
 import org.mechdancer.remote.core.protocol.zigzag
 import org.mechdancer.version2.dependency.AbstractModule
 import org.mechdancer.version2.dependency.get
 import org.mechdancer.version2.dependency.hashOf
 import org.mechdancer.version2.dependency.must
+import org.mechdancer.version2.remote.functions.multicast.MulticastBroadcaster
+import org.mechdancer.version2.remote.functions.multicast.MulticastListener
+import org.mechdancer.version2.remote.resources.UdpCmd
 import org.mechdancer.version2.remote.resources.UdpCmd.PACKET_SLICE
 import org.mechdancer.version2.remote.streams.SimpleInputStream
 import org.mechdancer.version2.remote.streams.SimpleOutputStream
@@ -39,12 +43,13 @@ class PacketSlicer(
         callbacks.remove(this)
     }
 
+    override val interest = INTEREST
+
     /**
      * 使用拆包协议广播一包
-     * @param remotePacket 数据包
      */
-    infix fun broadcast(remotePacket: RemotePacket) {
-        val stream = SimpleInputStream(remotePacket.bytes)
+    fun broadcast(cmd: Command, payload: ByteArray) {
+        val stream = RemotePacket(cmd.id, "", 0, payload).bytes.let(::SimpleInputStream)
         val s = sequence.getAndIncrement() zigzag false
         var index = 0L   // 包序号
         while (true) {
@@ -97,9 +102,14 @@ class PacketSlicer(
                         .put(last, index, rest)
                         ?.also { buffers.remove(key) }
                 }
-        }?.let { whole ->
-            callbacks.forEach { it process RemotePacket(whole) }
         }
+            ?.let(::SimpleInputStream)
+            ?.let { RemotePacket(it.look(), name, subSeq, it.skip(3).lookRest()) }
+            ?.let { pack ->
+                callbacks
+                    .filter { UdpCmd[pack.command] in it.interest }
+                    .forEach { it process pack }
+            }
     }
 
     /**
@@ -124,7 +134,7 @@ class PacketSlicer(
      * 子包缓存
      */
     private class Buffer {
-        private var time = 0L
+        private var time = System.currentTimeMillis()
         private val list = mutableListOf<ByteArray?>()
         private val mark = hashSetOf<Int>()
         private var done = false
@@ -179,6 +189,7 @@ class PacketSlicer(
 
     private companion object {
         val TYPE_HASH = hashOf<PacketSlicer>()
+        val INTEREST = setOf(PACKET_SLICE)
 
 //      @JvmStatic
 //      fun main(args: Array<String>) {

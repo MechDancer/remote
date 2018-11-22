@@ -8,12 +8,13 @@ import org.mechdancer.version2.dependency.AbstractModule
 import org.mechdancer.version2.dependency.buildScope
 import org.mechdancer.version2.dependency.must
 import org.mechdancer.version2.dependency.plusAssign
-import org.mechdancer.version2.remote.functions.MulticastBroadcaster
-import org.mechdancer.version2.remote.functions.MulticastListener
-import org.mechdancer.version2.remote.functions.MulticastReceiver
 import org.mechdancer.version2.remote.functions.PacketSlicer
+import org.mechdancer.version2.remote.functions.multicast.MulticastBroadcaster
+import org.mechdancer.version2.remote.functions.multicast.MulticastListener
+import org.mechdancer.version2.remote.functions.multicast.MulticastReceiver
 import org.mechdancer.version2.remote.resources.MulticastSockets
 import org.mechdancer.version2.remote.resources.Name
+import org.mechdancer.version2.remote.resources.UdpCmd.BROADCAST
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.NetworkInterface
@@ -31,12 +32,13 @@ fun build(name: String) = buildScope {
     this += PacketSlicer(32)       // 分片器
 
     this += object : AbstractModule(), MulticastListener {
+        override val interest = setOf(BROADCAST)
+
         override fun equals(other: Any?) = false
         override fun hashCode() = 0
 
         override fun process(remotePacket: RemotePacket) {
-            if (remotePacket.command != 4.toByte())
-                println(String(remotePacket.payload))
+            println(String(remotePacket.payload))
         }
     }
 
@@ -58,11 +60,11 @@ fun main(args: Array<String>) {
     launch { receiver() }
 
     measureTimeMillis {
-        a.must<PacketSlicer>() broadcast RemotePacket(127, "a", 0, LI_SAO.toByteArray())
+        a.must<PacketSlicer>().broadcast(BROADCAST, LI_SAO.toByteArray())
     }.let(::println)
 
     measureTimeMillis {
-        a.must<PacketSlicer>() broadcast RemotePacket(127, "a", 0, "12345".toByteArray())
+        a.must<PacketSlicer>().broadcast(BROADCAST, "12345".toByteArray())
     }.let(::println)
 
     forever { }
