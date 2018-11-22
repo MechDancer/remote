@@ -17,12 +17,14 @@ object TestVersion2 {
             newMemberDetected = ::println
         ).apply {
             hub += CommonShortConnection {
-                println("accepted")
-                while (!isClosed) {
-                    val temp = String(listen())
-                    println("hear: $temp")
-                    say("you said \"$temp\"".toByteArray())
-                }
+                while (!isClosed)
+                    String(listen())
+                        .takeUnless { it == "over" }
+                        ?.let { "you said \"$it\"" }
+                        ?.toByteArray()
+                        ?.also(this::say)
+                        ?: break
+                println("bye~")
             }
             hub.sync()
         }
@@ -43,18 +45,20 @@ object TestVersion2 {
                 Thread.sleep(1000)
             }
 
-            println(address["version2"])
-
             with(hub.must<ShortConnectionClient>().connect("version2")!!) {
                 println("connected: $remoteSocketAddress")
                 order(COMMON)
                 while (true) {
-                    val temp = readLine()!!
-                    if (temp == "over") break
-                    temp.toByteArray().let(this::say)
-                    println("said: $temp")
-                    println(String(listen()))
+                    readLine()!!
+                        .takeUnless { it == "over" }
+                        ?.toByteArray()
+                        ?.also(this::say)
+                        ?: break
+                    String(listen())
+                        .also(::println)
                 }
+                say("over".toByteArray())
+                close()
             }
         }
     }
