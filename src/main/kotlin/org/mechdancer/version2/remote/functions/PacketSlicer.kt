@@ -145,20 +145,27 @@ class PacketSlicer(
          *
          * @return 已完结则返回完整包
          */
-        @Synchronized fun put(
+        fun put(
             last: Boolean,
             index: Int,
             payload: ByteArray
         ): ByteArray? {
-            // 尚未保存最后一包
-            if (!done) {
-                done = done || last
-                for (i in list.size until index) {
-                    mark.add(i)
-                    list.add(null)
+            fun update() {
+                list[index] = payload
+                mark.remove(index)
+            }
+
+            // 修改状态，加锁保护
+            synchronized(this) {
+                if (done) update() else {
+                    done = last
+                    for (i in list.size until index) {
+                        mark.add(i)
+                        list.add(null)
+                    }
+                    if (list.size != index) update()
+                    else list.add(payload)
                 }
-                if (list.size == index) list.add(payload)
-                else mark.remove(index).also { list[index] = payload }
             }
 
             // 已经保存最后一包并且不缺包
@@ -177,26 +184,24 @@ class PacketSlicer(
         val core = ByteArray(size)
         var ptr = 0
 
-        infix fun write(b: Byte) {
-            core[ptr++] = b
-        }
-
         override infix fun write(b: Int) {
             core[ptr++] = b.toByte()
         }
 
         override infix fun write(byteArray: ByteArray) {
-            System.arraycopy(byteArray, 0, core, ptr, byteArray.size)
+            byteArray.copyInto(core, ptr)
             ptr += byteArray.size
         }
 
         fun writeLength(byteArray: ByteArray, begin: Int, length: Int) {
-            System.arraycopy(byteArray, begin, core, ptr, length)
+            byteArray.copyInto(core, ptr, begin, begin + length)
             ptr += length
         }
 
-        fun writeRange(byteArray: ByteArray, begin: Int, end: Int) =
-            writeLength(byteArray, begin, end - begin)
+        fun writeRange(byteArray: ByteArray, begin: Int, end: Int) {
+            byteArray.copyInto(core, ptr, begin, end)
+            ptr += end - begin
+        }
     }
 
     private companion object {
