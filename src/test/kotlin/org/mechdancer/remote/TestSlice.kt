@@ -4,10 +4,10 @@ import org.mechdancer.remote.core.protocol.RemotePacket
 import org.mechdancer.remote.network.MULTICAST_FILTERS
 import org.mechdancer.remote.network.WIRELESS_FIRST
 import org.mechdancer.remote.network.filterNetwork
-import org.mechdancer.version2.buildHub
 import org.mechdancer.version2.dependency.AbstractModule
-import org.mechdancer.version2.must
-import org.mechdancer.version2.plusAssign
+import org.mechdancer.version2.dependency.buildScope
+import org.mechdancer.version2.dependency.must
+import org.mechdancer.version2.dependency.plusAssign
 import org.mechdancer.version2.remote.functions.MulticastBroadcaster
 import org.mechdancer.version2.remote.functions.MulticastListener
 import org.mechdancer.version2.remote.functions.MulticastReceiver
@@ -19,7 +19,7 @@ import java.net.InetSocketAddress
 import java.net.NetworkInterface
 import kotlin.system.measureTimeMillis
 
-fun build(name: String) = buildHub {
+fun build(name: String) = buildScope {
     // 名字
     this += Name(name)
 

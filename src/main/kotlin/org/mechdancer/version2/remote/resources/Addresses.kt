@@ -1,7 +1,7 @@
 package org.mechdancer.version2.remote.resources
 
 import org.mechdancer.version2.dependency.ResourceMemory
-import org.mechdancer.version2.hashOf
+import org.mechdancer.version2.dependency.hashOf
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.util.concurrent.ConcurrentHashMap

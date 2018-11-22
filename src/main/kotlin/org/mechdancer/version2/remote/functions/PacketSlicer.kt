@@ -3,9 +3,9 @@ package org.mechdancer.version2.remote.functions
 import org.mechdancer.remote.core.protocol.RemotePacket
 import org.mechdancer.remote.core.protocol.zigzag
 import org.mechdancer.version2.dependency.AbstractModule
-import org.mechdancer.version2.get
-import org.mechdancer.version2.hashOf
-import org.mechdancer.version2.must
+import org.mechdancer.version2.dependency.get
+import org.mechdancer.version2.dependency.hashOf
+import org.mechdancer.version2.dependency.must
 import org.mechdancer.version2.remote.resources.UdpCmd.PACKET_SLICE
 import org.mechdancer.version2.remote.streams.SimpleInputStream
 import org.mechdancer.version2.remote.streams.SimpleOutputStream
@@ -18,8 +18,7 @@ import java.util.concurrent.atomic.AtomicLong
 class PacketSlicer(
     private val size: Int = 65536,
     private val timeout: Int = 10000
-) :
-    AbstractModule(), MulticastListener {
+) : AbstractModule(), MulticastListener {
 
     init {
         assert(size in 16..65536)
@@ -27,7 +26,7 @@ class PacketSlicer(
 
     // 发送
 
-    private val broadcaster by lazy { host.must<MulticastBroadcaster>() }
+    private val broadcaster by must<MulticastBroadcaster> { host }
     private val sequence = AtomicLong(1) // 必须从 1 开始！0 用于指示最后一包！
 
     // 接收

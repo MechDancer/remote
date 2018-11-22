@@ -1,16 +1,19 @@
 package org.mechdancer.version2.remote.resources
 
 import org.mechdancer.version2.dependency.ResourceFactory
-import org.mechdancer.version2.hashOf
+import org.mechdancer.version2.dependency.hashOf
 import java.net.ServerSocket
 import java.util.concurrent.ConcurrentHashMap
 
 /**
  * 监听套接字资源
  */
-class ServerSockets : ResourceFactory<Int, ServerSocket> {
-    private val default by lazy { ServerSocket(0) }
+class ServerSockets(private val port: Int = 0) :
+    ResourceFactory<Int, ServerSocket> {
+    private val default by lazy { ServerSocket(port) }
     private val core = ConcurrentHashMap<Int, ServerSocket>()
+
+    val view get() = core.values.toSet()
 
     /**
      * 获取或构造新的套接字资源

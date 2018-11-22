@@ -2,15 +2,18 @@ package org.mechdancer.version2.remote.functions
 
 import org.mechdancer.remote.core.protocol.RemotePacket
 import org.mechdancer.remote.core.protocol.bytes
+import org.mechdancer.remote.core.protocol.readInetSocketAddress
 import org.mechdancer.version2.dependency.AbstractModule
-import org.mechdancer.version2.hashOf
-import org.mechdancer.version2.must
+import org.mechdancer.version2.dependency.hashOf
+import org.mechdancer.version2.dependency.maybe
+import org.mechdancer.version2.dependency.must
+import org.mechdancer.version2.remote.resources.Addresses
 import org.mechdancer.version2.remote.resources.Name
 import org.mechdancer.version2.remote.resources.Name.Type.NAME
 import org.mechdancer.version2.remote.resources.ServerSockets
-import org.mechdancer.version2.remote.resources.UdpCmd
 import org.mechdancer.version2.remote.resources.UdpCmd.ADDRESS_ACK
 import org.mechdancer.version2.remote.resources.UdpCmd.ADDRESS_ASK
+import org.mechdancer.version2.remote.streams.SimpleInputStream
 import java.net.InetSocketAddress
 
 /**
@@ -19,27 +22,39 @@ import java.net.InetSocketAddress
 class AddressSynchronizer :
     AbstractModule(),
     MulticastListener {
-    private val name by lazy { host.must<Name>() }
-    private val servers by lazy { host.must<ServerSockets>() }
-    private val broadcaster by lazy { host.must<MulticastBroadcaster>() }
+    private val name by must<Name> { host }
+    private val addresses by must<Addresses> { host }
+    private val broadcaster by must<MulticastBroadcaster> { host }
 
-    fun ask(name: String) = broadcaster.broadcast(ADDRESS_ASK, name.toByteArray())
+    /**
+     * 本机可以不具备监听套接字
+     */
+    private val servers by maybe<ServerSockets> { host }
+
+    /**
+     * 向一个远端发送地址询问
+     */
+    infix fun ask(name: String) =
+        broadcaster.broadcast(ADDRESS_ASK, name.toByteArray())
 
     override fun process(remotePacket: RemotePacket) {
         val (cmd, sender, _, payload) = remotePacket
         if (sender.isBlank()) return
-        when (UdpCmd[cmd]) {
-            ADDRESS_ASK -> {
+        when (cmd) {
+            ADDRESS_ASK.id ->
                 if (String(payload) == name[NAME])
-                    broadcaster.broadcast(
-                        ADDRESS_ACK,
-                        (servers[0]!!.localSocketAddress as InetSocketAddress).bytes
-                    )
-            }
-            ADDRESS_ACK -> {
-
-            }
-            else        -> Unit
+                    servers
+                        ?.get(0)
+                        ?.localSocketAddress
+                        ?.let { it as InetSocketAddress }
+                        ?.bytes
+                        ?.let { broadcaster.broadcast(ADDRESS_ACK, it) }
+                else Unit
+            ADDRESS_ACK.id ->
+                SimpleInputStream(payload)
+                    .readInetSocketAddress()
+                    .let { addresses.update(sender, it) }
+            else           -> Unit
         }
     }
 

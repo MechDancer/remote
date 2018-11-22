@@ -2,9 +2,9 @@ package org.mechdancer.version2.remote.functions
 
 import org.mechdancer.remote.core.protocol.RemotePacket
 import org.mechdancer.version2.dependency.AbstractModule
-import org.mechdancer.version2.get
-import org.mechdancer.version2.hashOf
-import org.mechdancer.version2.must
+import org.mechdancer.version2.dependency.get
+import org.mechdancer.version2.dependency.hashOf
+import org.mechdancer.version2.dependency.must
 import org.mechdancer.version2.remote.resources.MulticastSockets
 import org.mechdancer.version2.remote.resources.Name
 import org.mechdancer.version2.remote.resources.Name.Type.NAME
@@ -15,8 +15,8 @@ import java.net.DatagramPacket
  * @param bufferSize 缓冲区容量
  */
 class MulticastReceiver(private val bufferSize: Int = 65536) : AbstractModule() {
-    private val socket by lazy { host.must<MulticastSockets>() }
-    private val name by lazy { host.must<Name>() }
+    private val socket by must<MulticastSockets> { host }
+    private val name by must<Name> { host }
     private val callbacks = mutableSetOf<MulticastListener>()
 
     override fun sync() {

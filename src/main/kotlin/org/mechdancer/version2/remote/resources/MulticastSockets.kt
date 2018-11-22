@@ -1,7 +1,7 @@
 package org.mechdancer.version2.remote.resources
 
 import org.mechdancer.version2.dependency.ResourceFactory
-import org.mechdancer.version2.hashOf
+import org.mechdancer.version2.dependency.hashOf
 import java.net.InetSocketAddress
 import java.net.MulticastSocket
 import java.net.NetworkInterface

@@ -1,7 +1,5 @@
-package org.mechdancer.version2
+package org.mechdancer.version2.dependency
 
-import org.mechdancer.version2.dependency.Dependency
-import org.mechdancer.version2.dependency.DynamicScope
 import org.mechdancer.version2.dependency.FunctionModule.DependencyNotExistException
 
 /**
@@ -33,6 +31,18 @@ inline fun <reified R : Dependency> DynamicScope.must(): R =
         ?: throw DependencyNotExistException(R::class)
 
 /**
+ * 构建一个每次检查依赖项的代理
+ */
+inline fun <reified R : Dependency> maybe(crossinline block: () -> DynamicScope) =
+    Maybe { block().maybe<R>() }
+
+/**
+ * 构建一个每次检查依赖项的代理
+ */
+inline fun <reified R : Dependency> must(crossinline block: () -> DynamicScope) =
+    lazy { block().must<R>() }
+
+/**
  * 向终端添加新的依赖项
  */
 operator fun DynamicScope.plusAssign(dependency: Dependency) =
@@ -41,5 +51,5 @@ operator fun DynamicScope.plusAssign(dependency: Dependency) =
 /**
  * 构造终端并扫描
  */
-fun buildHub(block: DynamicScope.() -> Unit) =
+fun buildScope(block: DynamicScope.() -> Unit) =
     DynamicScope().apply(block).apply { sync() }
