@@ -14,6 +14,8 @@ class ServerSockets : ResourceFactory<Int, ServerSocket> {
 
     /**
      * 获取或构造新的套接字资源
+     * @param parameter 端口号
+     * @return 监听套接字
      */
     override fun get(parameter: Int) =
         if (parameter == 0) default

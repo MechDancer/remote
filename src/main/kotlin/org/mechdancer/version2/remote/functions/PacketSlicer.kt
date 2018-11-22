@@ -7,8 +7,8 @@ import org.mechdancer.version2.get
 import org.mechdancer.version2.hashOf
 import org.mechdancer.version2.must
 import org.mechdancer.version2.remote.resources.UdpCmd.PACKET_SLICE
-import java.io.InputStream
-import java.io.OutputStream
+import org.mechdancer.version2.remote.streams.SimpleInputStream
+import org.mechdancer.version2.remote.streams.SimpleOutputStream
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 
@@ -175,68 +175,6 @@ class PacketSlicer(
             // 更新最后活跃时间
             time = System.currentTimeMillis()
             return null
-        }
-    }
-
-    private class SimpleOutputStream(size: Int) : OutputStream() {
-        val core = ByteArray(size)
-        var ptr = 0
-
-        override infix fun write(b: Int) {
-            core[ptr++] = b.toByte()
-        }
-
-        override infix fun write(byteArray: ByteArray) {
-            byteArray.copyInto(core, ptr)
-            ptr += byteArray.size
-        }
-
-        fun writeLength(byteArray: ByteArray, begin: Int, length: Int) {
-            byteArray.copyInto(core, ptr, begin, begin + length)
-            ptr += length
-        }
-
-        fun writeRange(byteArray: ByteArray, begin: Int, end: Int) {
-            byteArray.copyInto(core, ptr, begin, end)
-            ptr += end - begin
-        }
-
-        fun writeFrom(stream: SimpleInputStream, length: Int) {
-            stream.readInto(this, length)
-        }
-
-        override fun close() {
-            ptr = core.size
-        }
-    }
-
-    private class SimpleInputStream(val core: ByteArray) : InputStream() {
-        private var ptr = 0
-
-        override fun available() = core.size - ptr
-
-        override fun read() =
-            if (ptr < core.size)
-                core[ptr++].let { if (it >= 0) it.toInt() else it + 256 }
-            else -1
-
-        fun look() = core[ptr]
-
-        fun skip(length: Int) = also { ptr += length }
-
-        fun lookRest(): ByteArray {
-            val result = ByteArray(core.size - ptr)
-            core.copyInto(result, 0, ptr, core.size)
-            return result
-        }
-
-        fun readInto(stream: SimpleOutputStream, length: Int) {
-            stream.writeLength(core, ptr, length)
-            ptr += length
-        }
-
-        override fun close() {
-            ptr = core.size
         }
     }
 

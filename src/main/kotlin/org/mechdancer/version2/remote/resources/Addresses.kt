@@ -41,6 +41,15 @@ class Addresses : ResourceMemory<String, InetSocketAddress> {
      */
     override fun get(parameter: String) = core[parameter]?.takeIf { it.port != 0 }
 
+    /**
+     * 使用特定地址并根据使用反馈决定是否删除记录
+     * @return 调用是否成功
+     */
+    fun check(name: String, block: (InetSocketAddress) -> Boolean): Boolean =
+        core[name]?.let { current ->
+            current.let(block).also { core.remove(name, current) }
+        } != true
+
     override fun equals(other: Any?) = other is Addresses
     override fun hashCode() = TYPE_HASH
 

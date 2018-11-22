@@ -28,6 +28,9 @@ class MulticastSockets(
      */
     val default = multicastOn(address, null)
 
+    /**
+     * 获取经由特定网络端口的组播套接字
+     */
     override operator fun get(parameter: NetworkInterface): MulticastSocket =
         core.computeIfAbsent(parameter) { multicastOn(address, parameter) }
 

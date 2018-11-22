@@ -1,9 +1,6 @@
 package org.mechdancer.remote.core.protocol
 
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import java.io.DataInputStream
-import java.io.DataOutputStream
+import java.io.*
 import java.net.InetAddress
 import java.net.InetSocketAddress
 
@@ -13,20 +10,33 @@ import java.net.InetSocketAddress
 internal fun inetSocketAddress(byteArray: ByteArray) =
     byteArray
         .let(::ByteArrayInputStream)
-        .let(::DataInputStream)
-        .use {
-            InetSocketAddress(
-                InetAddress.getByAddress(it.waitNBytes(4)),
-                it.readInt()
-            )
-        }
+        .readInetSocketAddress()
 
 /**
  * 地址打包到字节数组
  */
 internal val InetSocketAddress.bytes: ByteArray
-    get() =
-        ByteArrayOutputStream().apply {
-            write(address.address)
-            DataOutputStream(this).writeInt(port)
-        }.toByteArray()
+    get() = ByteArrayOutputStream()
+        .write(this)
+        .toByteArray()
+
+/**
+ * 向流写入一个地址
+ */
+internal fun <T : OutputStream> T.write(address: InetSocketAddress) =
+    apply {
+        write(address.address.address)
+        DataOutputStream(this).writeInt(address.port)
+    }
+
+/**
+ * 从流读取一个地址
+ */
+internal fun InputStream.readInetSocketAddress() =
+    let(::DataInputStream)
+        .let {
+            InetSocketAddress(
+                InetAddress.getByAddress(it.waitNBytes(4)),
+                it.readInt()
+            )
+        }
