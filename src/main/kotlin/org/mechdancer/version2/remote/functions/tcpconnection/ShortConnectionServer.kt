@@ -32,7 +32,8 @@ class ShortConnectionServer : AbstractModule() {
                     .getInputStream()
                     .read()
                     .toByte()
-                    .let { cmd -> listeners.singleOrNull { TcpCmd[cmd] in it.interest } }
+                    .let { TcpCmd[it] }
+                    .let { cmd -> listeners.singleOrNull { cmd in it.interest } }
                     ?.process(socket)
             }
     }

@@ -5,7 +5,7 @@ import org.mechdancer.version2.dependency.AbstractModule
 import org.mechdancer.version2.dependency.hashOf
 import org.mechdancer.version2.dependency.must
 import org.mechdancer.version2.remote.resources.UdpCmd
-import org.mechdancer.version2.remote.resources.UdpCmd.BROADCAST
+import org.mechdancer.version2.remote.resources.UdpCmd.COMMON
 
 /**
  * 通用组播协议
@@ -27,13 +27,13 @@ class CommonMulticast(
      * 发布通用广播
      * @param payload 数据负载
      */
-    infix fun broadcast(payload: ByteArray) = broadcaster.broadcast(UdpCmd.BROADCAST, payload)
+    infix fun broadcast(payload: ByteArray) = broadcaster.broadcast(UdpCmd.COMMON, payload)
 
     override fun equals(other: Any?) = other is CommonMulticast
     override fun hashCode() = TYPE_HASH
 
     private companion object {
         val TYPE_HASH = hashOf<CommonMulticast>()
-        val INTEREST = setOf(BROADCAST)
+        val INTEREST = setOf(COMMON)
     }
 }

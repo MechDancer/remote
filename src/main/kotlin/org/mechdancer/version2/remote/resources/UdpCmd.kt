@@ -12,7 +12,7 @@ enum class UdpCmd(override val id: Byte) : Command {
     ADDRESS_ASK(2),  // 地址请求
     ADDRESS_ACK(3),  // 地址回复
     PACKET_SLICE(4), // 包分片
-    BROADCAST(127);  // 通用广播
+    COMMON(127);     // 通用广播
 
     companion object {
         private val memory = memoryOf<UdpCmd>()

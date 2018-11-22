@@ -37,7 +37,7 @@ inline fun <reified R : Dependency> maybe(crossinline block: () -> DynamicScope)
     Maybe { block().maybe<R>() }
 
 /**
- * 构建一个每次检查依赖项的代理
+ * 构建一个严格要求依赖项的代理
  */
 inline fun <reified R : Dependency> must(crossinline block: () -> DynamicScope) =
     lazy { block().must<R>() }

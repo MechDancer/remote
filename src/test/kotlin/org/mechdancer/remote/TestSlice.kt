@@ -14,7 +14,7 @@ import org.mechdancer.version2.remote.functions.multicast.MulticastListener
 import org.mechdancer.version2.remote.functions.multicast.MulticastReceiver
 import org.mechdancer.version2.remote.resources.MulticastSockets
 import org.mechdancer.version2.remote.resources.Name
-import org.mechdancer.version2.remote.resources.UdpCmd.BROADCAST
+import org.mechdancer.version2.remote.resources.UdpCmd.COMMON
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.NetworkInterface
@@ -32,7 +32,7 @@ fun build(name: String) = scope {
     this += PacketSlicer(32)       // 分片器
 
     this += object : AbstractModule(), MulticastListener {
-        override val interest = setOf(BROADCAST)
+        override val interest = setOf(COMMON)
 
         override fun equals(other: Any?) = false
         override fun hashCode() = 0
@@ -60,11 +60,11 @@ fun main(args: Array<String>) {
     launch { receiver() }
 
     measureTimeMillis {
-        a.must<PacketSlicer>().broadcast(BROADCAST, LI_SAO.toByteArray())
+        a.must<PacketSlicer>().broadcast(COMMON, LI_SAO.toByteArray())
     }.let(::println)
 
     measureTimeMillis {
-        a.must<PacketSlicer>().broadcast(BROADCAST, "12345".toByteArray())
+        a.must<PacketSlicer>().broadcast(COMMON, "12345".toByteArray())
     }.let(::println)
 
     forever { }

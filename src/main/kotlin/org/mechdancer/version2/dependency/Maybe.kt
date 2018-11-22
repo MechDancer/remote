@@ -3,6 +3,9 @@ package org.mechdancer.version2.dependency
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
+/**
+ * 惰性获取，但未取得将在下一次重试
+ */
 class Maybe<out T : Dependency>(
     private val block: () -> T?
 ) : ReadOnlyProperty<Dependency, T?> {

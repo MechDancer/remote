@@ -69,14 +69,14 @@ class RemoteHub(
         this += monitor // 组成员管理
 
         // 组播
-        this += sockets     // 组播套接字管理
+        this += sockets     // 组播套接字资源
         this += broadcaster // 组播发送
         this += receiver    // 组播接收
         this += common      // 通用组播收发
         this += slicer      // 组播分片协议
 
         // TCP 地址
-        this += address       // 组地址资源
+        this += address       // 地址资源
         this += serverSockets // 监听套接字资源
         this += synchronizer1 // 组地址同步器（答）
         this += synchronizer2 // 组地址同步器（问）
@@ -92,8 +92,6 @@ class RemoteHub(
             ?: throw RuntimeException("no available network")
 
         sockets[best]
-
-        sync()
     }
 
     /**
@@ -110,6 +108,8 @@ class RemoteHub(
      * 启动阻塞接收
      */
     operator fun invoke() = receiver.invoke()
+
+    fun listen() = server.listen()
 
     private companion object {
         val ADDRESS = InetSocketAddress(InetAddress.getByName("238.88.88.88"), 23333)
