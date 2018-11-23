@@ -10,14 +10,16 @@ import org.mechdancer.framework.remote.resources.Name
 import org.mechdancer.framework.remote.resources.Name.Type.NAME
 import org.mechdancer.framework.remote.resources.UdpCmd
 import java.net.DatagramPacket
+import kotlin.concurrent.getOrSet
 
 /**
  * 组播小包接收
  * @param bufferSize 缓冲区容量
  */
 class MulticastReceiver(private val bufferSize: Int = 65536) : AbstractModule() {
-    private val socket by must<MulticastSockets>(host)
+    private val buffer = ThreadLocal<ByteArray>()
     private val name by must<Name>(host)
+    private val socket by must<MulticastSockets>(host)
     private val callbacks = mutableSetOf<MulticastListener>()
 
     override fun sync() {
@@ -25,7 +27,9 @@ class MulticastReceiver(private val bufferSize: Int = 65536) : AbstractModule() 
     }
 
     operator fun invoke() =
-        DatagramPacket(ByteArray(bufferSize), bufferSize)
+        buffer
+            .getOrSet { ByteArray(bufferSize) }
+            .let { DatagramPacket(it, it.size) }
             .apply(socket.default::receive)
             .actualData
             .let { RemotePacket(it) }
