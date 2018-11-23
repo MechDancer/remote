@@ -1,14 +1,14 @@
 package org.mechdancer.version2.remote.functions
 
-import org.mechdancer.remote.core.internal.Command
-import org.mechdancer.remote.core.protocol.RemotePacket
-import org.mechdancer.remote.core.protocol.zigzag
 import org.mechdancer.version2.dependency.AbstractModule
 import org.mechdancer.version2.dependency.get
 import org.mechdancer.version2.dependency.hashOf
 import org.mechdancer.version2.dependency.must
 import org.mechdancer.version2.remote.functions.multicast.MulticastBroadcaster
 import org.mechdancer.version2.remote.functions.multicast.MulticastListener
+import org.mechdancer.version2.remote.protocol.RemotePacket
+import org.mechdancer.version2.remote.protocol.zigzag
+import org.mechdancer.version2.remote.resources.Command
 import org.mechdancer.version2.remote.resources.UdpCmd
 import org.mechdancer.version2.remote.resources.UdpCmd.PACKET_SLICE
 import org.mechdancer.version2.remote.streams.SimpleInputStream

@@ -1,9 +1,5 @@
 package org.mechdancer.remote
 
-import org.mechdancer.remote.core.protocol.RemotePacket
-import org.mechdancer.remote.network.MULTICAST_FILTERS
-import org.mechdancer.remote.network.WIRELESS_FIRST
-import org.mechdancer.remote.network.filterNetwork
 import org.mechdancer.version2.dependency.AbstractModule
 import org.mechdancer.version2.dependency.must
 import org.mechdancer.version2.dependency.plusAssign
@@ -12,6 +8,10 @@ import org.mechdancer.version2.remote.functions.PacketSlicer
 import org.mechdancer.version2.remote.functions.multicast.MulticastBroadcaster
 import org.mechdancer.version2.remote.functions.multicast.MulticastListener
 import org.mechdancer.version2.remote.functions.multicast.MulticastReceiver
+import org.mechdancer.version2.remote.network.MULTICAST_FILTERS
+import org.mechdancer.version2.remote.network.WIRELESS_FIRST
+import org.mechdancer.version2.remote.network.filterNetwork
+import org.mechdancer.version2.remote.protocol.RemotePacket
 import org.mechdancer.version2.remote.resources.MulticastSockets
 import org.mechdancer.version2.remote.resources.Name
 import org.mechdancer.version2.remote.resources.UdpCmd.COMMON

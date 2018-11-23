@@ -1,8 +1,5 @@
 package org.mechdancer.version2
 
-import org.mechdancer.remote.network.MULTICAST_FILTERS
-import org.mechdancer.remote.network.WIRELESS_FIRST
-import org.mechdancer.remote.network.filterNetwork
 import org.mechdancer.version2.dependency.plusAssign
 import org.mechdancer.version2.dependency.scope
 import org.mechdancer.version2.remote.functions.GroupMonitor
@@ -14,6 +11,9 @@ import org.mechdancer.version2.remote.functions.multicast.MulticastBroadcaster
 import org.mechdancer.version2.remote.functions.multicast.MulticastReceiver
 import org.mechdancer.version2.remote.functions.tcpconnection.ShortConnectionClient
 import org.mechdancer.version2.remote.functions.tcpconnection.ShortConnectionServer
+import org.mechdancer.version2.remote.network.MULTICAST_FILTERS
+import org.mechdancer.version2.remote.network.WIRELESS_FIRST
+import org.mechdancer.version2.remote.network.filterNetwork
 import org.mechdancer.version2.remote.resources.*
 import java.net.InetAddress
 import java.net.InetSocketAddress

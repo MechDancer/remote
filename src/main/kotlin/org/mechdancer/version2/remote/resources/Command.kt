@@ -1,4 +1,4 @@
-package org.mechdancer.remote.core.internal
+package org.mechdancer.version2.remote.resources
 
 /**
  * 命令接口
@@ -40,6 +40,6 @@ interface Command {
          * @param C 指令类型
          */
         inline fun <reified C> memoryOf() where C : Command, C : Enum<C> =
-            Command.CommandMemory(enumValues<C>())
+            CommandMemory(enumValues<C>())
     }
 }

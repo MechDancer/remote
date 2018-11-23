@@ -1,12 +1,12 @@
 package org.mechdancer.version2.remote.functions.address
 
-import org.mechdancer.remote.core.protocol.RemotePacket
-import org.mechdancer.remote.core.protocol.inetSocketAddress
 import org.mechdancer.version2.dependency.AbstractModule
 import org.mechdancer.version2.dependency.hashOf
 import org.mechdancer.version2.dependency.must
 import org.mechdancer.version2.remote.functions.multicast.MulticastBroadcaster
 import org.mechdancer.version2.remote.functions.multicast.MulticastListener
+import org.mechdancer.version2.remote.protocol.RemotePacket
+import org.mechdancer.version2.remote.protocol.inetSocketAddress
 import org.mechdancer.version2.remote.resources.Addresses
 import org.mechdancer.version2.remote.resources.UdpCmd.ADDRESS_ACK
 import org.mechdancer.version2.remote.resources.UdpCmd.ADDRESS_ASK

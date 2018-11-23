@@ -1,4 +1,4 @@
-package org.mechdancer.remote.core.protocol
+package org.mechdancer.version2.remote.protocol
 
 import java.io.InputStream
 import java.io.OutputStream

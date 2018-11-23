@@ -1,9 +1,9 @@
 package org.mechdancer.version2.remote.functions.multicast
 
-import org.mechdancer.remote.core.protocol.RemotePacket
 import org.mechdancer.version2.dependency.AbstractModule
 import org.mechdancer.version2.dependency.hashOf
 import org.mechdancer.version2.dependency.must
+import org.mechdancer.version2.remote.protocol.RemotePacket
 import org.mechdancer.version2.remote.resources.UdpCmd
 import org.mechdancer.version2.remote.resources.UdpCmd.COMMON
 

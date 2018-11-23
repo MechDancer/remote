@@ -1,7 +1,6 @@
 package org.mechdancer.version2.remote.resources
 
-import org.mechdancer.remote.core.internal.Command
-import org.mechdancer.remote.core.internal.Command.Companion.memoryOf
+import org.mechdancer.version2.remote.resources.Command.Companion.memoryOf
 
 /**
  * 组播协议
