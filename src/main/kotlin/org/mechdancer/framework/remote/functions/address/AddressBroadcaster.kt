@@ -22,9 +22,9 @@ import java.net.InetSocketAddress
 class AddressBroadcaster :
     AbstractModule(),
     MulticastListener {
-    private val name by must<Name> { host }
-    private val broadcaster by must<MulticastBroadcaster> { host }
-    private val servers by must<ServerSockets> { host }
+    private val name by must<Name>(host)
+    private val broadcaster by must<MulticastBroadcaster>(host)
+    private val servers by must<ServerSockets>(host)
 
     override val interest = INTEREST
 

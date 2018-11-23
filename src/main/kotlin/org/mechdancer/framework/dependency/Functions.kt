@@ -10,43 +10,43 @@ inline fun <reified D : Dependency> hashOf() =
 
 /**
  * 找到一种依赖项
- * @param R 依赖项类型
+ * @param D 依赖项类型
  */
-inline fun <reified R : Dependency> DynamicScope.get(): List<R> =
-    dependencies.mapNotNull { it as? R }
+inline fun <reified D : Dependency> DynamicScope.get(): List<D> =
+    dependencies.mapNotNull { it as? D }
 
 /**
  * 找到一种依赖项
- * @param R 依赖项类型
+ * @param D 依赖项类型
  */
-inline fun <reified R : Dependency> DynamicScope.maybe(): R? =
-    dependencies.mapNotNull { it as? R }.singleOrNull()
+inline fun <reified D : Dependency> DynamicScope.maybe(): D? =
+    get<D>().singleOrNull()
 
 /**
  * 找到一种依赖项
- * @param R 依赖项类型
+ * @param D 依赖项类型
  */
-inline fun <reified R : Dependency> DynamicScope.must(): R =
-    dependencies.mapNotNull { it as? R }.singleOrNull()
-        ?: throw DependencyNotExistException(R::class)
+inline fun <reified D : Dependency> DynamicScope.must(): D =
+    maybe() ?: throw DependencyNotExistException(D::class)
 
 /**
  * 构建一个每次检查依赖项的代理
  */
-inline fun <reified R : Dependency> maybe(crossinline block: () -> DynamicScope) =
-    Maybe { block().maybe<R>() }
+inline fun <reified D : Dependency> maybe(crossinline block: () -> DynamicScope) =
+    Maybe { block().maybe<D>() }
 
 /**
  * 构建一个严格要求依赖项的代理
  */
-inline fun <reified R : Dependency> must(crossinline block: () -> DynamicScope) =
-    lazy { block().must<R>() }
+inline fun <reified D : Dependency> must(crossinline block: () -> DynamicScope) =
+    lazy { block().must<D>() }
 
 /**
  * 向终端添加新的依赖项
  */
-operator fun DynamicScope.plusAssign(dependency: Dependency) =
+operator fun DynamicScope.plusAssign(dependency: Dependency) {
     setup(dependency)
+}
 
 /**
  * 构造终端并扫描

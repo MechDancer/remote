@@ -18,8 +18,8 @@ import org.mechdancer.framework.remote.resources.UdpCmd.YELL_ASK
 class GroupMonitor(
     private val detected: (String) -> Unit = {}
 ) : AbstractModule(), MulticastListener {
-    private val group by must<Group> { host }
-    private val broadcaster by must<MulticastBroadcaster> { host }
+    private val group by must<Group>(host)
+    private val broadcaster by must<MulticastBroadcaster>(host)
 
     fun yell() = broadcaster.broadcast(UdpCmd.YELL_ASK)
 

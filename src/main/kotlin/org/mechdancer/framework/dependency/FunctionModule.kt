@@ -7,7 +7,8 @@ import kotlin.reflect.KClass
  */
 interface FunctionModule : Dependency {
     /**
-     * 加载终端
+     * 加入动态域
+     * @param host 目标动态域
      */
     infix fun onSetup(host: DynamicScope)
 

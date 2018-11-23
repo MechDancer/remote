@@ -13,12 +13,14 @@ class DynamicScope {
     val dependencies = object : Set<Dependency> by _dependencies {}
 
     /**
-     * 加载插件
+     * 加载一个新的依赖项
+     * @param dependency 依赖项
+     * @return 是否加载成功
      */
-    infix fun setup(dependency: Dependency) {
-        _dependencies.add(dependency)
-        (dependency as? FunctionModule)?.onSetup(this)
-    }
+    infix fun setup(dependency: Dependency) =
+        _dependencies
+            .add(dependency)
+            .also { (dependency as? FunctionModule)?.onSetup(this) }
 
     /**
      * 重新同步依赖项

@@ -11,12 +11,12 @@ import org.mechdancer.framework.remote.resources.TcpCmd
  * 短连接服务器
  */
 class ShortConnectionServer : AbstractModule() {
-    private val servers by must<ServerSockets> { host }
+    private val servers by must<ServerSockets>(host)
     private val listeners = mutableSetOf<ShortConnectionListener>()
 
     override fun sync() {
         listeners
-            .apply { addAll(host.get()) }
+            .apply { addAll(host().get()) }
             .map { it.interest }
             .run { flatten().distinct().size == sumBy { it.size } }
             .let { if (!it) throw RuntimeException(REDUPLICATE_ERROR_MSG) }

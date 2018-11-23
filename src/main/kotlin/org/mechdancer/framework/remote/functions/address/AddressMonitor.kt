@@ -21,8 +21,8 @@ class AddressMonitor :
     AbstractModule(),
     MulticastListener {
 
-    private val addresses by must<Addresses> { host }
-    private val broadcaster by must<MulticastBroadcaster> { host }
+    private val addresses by must<Addresses>(host)
+    private val broadcaster by must<MulticastBroadcaster>(host)
 
     override val interest = INTEREST
 

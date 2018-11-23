@@ -14,7 +14,7 @@ import org.mechdancer.framework.remote.resources.UdpCmd.COMMON
 class CommonMulticast(
     private val received: (String, ByteArray) -> Unit
 ) : AbstractModule(), MulticastListener {
-    private val broadcaster by lazy { host.must<MulticastBroadcaster>() }
+    private val broadcaster by must<MulticastBroadcaster>(host)
 
     override val interest = INTEREST
 

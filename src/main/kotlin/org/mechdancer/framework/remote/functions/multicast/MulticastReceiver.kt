@@ -16,12 +16,12 @@ import java.net.DatagramPacket
  * @param bufferSize 缓冲区容量
  */
 class MulticastReceiver(private val bufferSize: Int = 65536) : AbstractModule() {
-    private val socket by must<MulticastSockets> { host }
-    private val name by must<Name> { host }
+    private val socket by must<MulticastSockets>(host)
+    private val name by must<Name>(host)
     private val callbacks = mutableSetOf<MulticastListener>()
 
     override fun sync() {
-        callbacks.addAll(host.get())
+        callbacks.addAll(host().get())
     }
 
     operator fun invoke() =

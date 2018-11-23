@@ -16,8 +16,8 @@ import java.util.concurrent.atomic.AtomicLong
  * 组播发布者
  */
 class MulticastBroadcaster : AbstractModule() {
-    private val name by maybe<Name> { host } // 可以匿名发送组播
-    private val sockets by must<MulticastSockets> { host }
+    private val name by maybe<Name>(host) // 可以匿名发送组播
+    private val sockets by must<MulticastSockets>(host)
 
     private val serial = AtomicLong(0)
 
