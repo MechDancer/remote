@@ -34,13 +34,13 @@ data class RemotePacket(
         /**
          * 从字节数组构建
          */
-        operator fun invoke(pack: ByteArray) =
+        operator fun invoke(pack: ByteArray, length: Int = pack.size) =
             pack.let(::SimpleInputStream)
                 .let {
                     val cmd = it.read().toByte()
                     val sender = it.readEnd()
                     val seqNumber = it zigzag false
-                    val payload = it.readBytes()
+                    val payload = it.lookRest(length)
                     RemotePacket(cmd, sender, seqNumber, payload)
                 }
     }

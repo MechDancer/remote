@@ -17,7 +17,7 @@ import kotlin.concurrent.getOrSet
  * @param bufferSize 缓冲区容量
  */
 class MulticastReceiver(private val bufferSize: Int = 65536) : AbstractModule() {
-    private val buffer = ThreadLocal<ByteArray>()
+    private val buffer = ThreadLocal<DatagramPacket>()
     private val name by must<Name>(host)
     private val socket by must<MulticastSockets>(host)
     private val callbacks = mutableSetOf<MulticastListener>()
@@ -28,11 +28,9 @@ class MulticastReceiver(private val bufferSize: Int = 65536) : AbstractModule() 
 
     operator fun invoke() =
         buffer
-            .getOrSet { ByteArray(bufferSize) }
-            .let { DatagramPacket(it, it.size) }
+            .getOrSet { DatagramPacket(ByteArray(bufferSize), bufferSize) }
             .apply(socket.default::receive)
-            .actualData
-            .let { RemotePacket(it) }
+            .let { RemotePacket(it.data, it.length) }
             .takeIf { it.sender != name[NAME] }
             ?.also { pack ->
                 callbacks
@@ -45,9 +43,5 @@ class MulticastReceiver(private val bufferSize: Int = 65536) : AbstractModule() 
 
     private companion object {
         val TYPE_HASH = hashOf<MulticastReceiver>()
-
-        // 拆解 UDP 数据包
-        val DatagramPacket.actualData
-            get() = data.copyOfRange(0, length)
     }
 }

@@ -16,9 +16,9 @@ class SimpleInputStream(private val core: ByteArray) : InputStream() {
 
     fun skip(length: Int) = also { ptr += length }
 
-    fun lookRest(): ByteArray {
-        val result = ByteArray(core.size - ptr)
-        core.copyInto(result, 0, ptr, core.size)
+    fun lookRest(length: Int = core.size): ByteArray {
+        val result = ByteArray(length - ptr)
+        core.copyInto(result, 0, ptr, length)
         return result
     }
 
