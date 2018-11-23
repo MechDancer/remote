@@ -4,11 +4,15 @@ import org.mechdancer.framework.RemoteHub
 import org.mechdancer.framework.dependency.must
 import org.mechdancer.framework.dependency.plusAssign
 import org.mechdancer.framework.remote.functions.address.AddressMonitor
-import org.mechdancer.framework.remote.functions.tcpconnection.*
+import org.mechdancer.framework.remote.functions.tcpconnection.CommonShortConnection
+import org.mechdancer.framework.remote.functions.tcpconnection.ShortConnectionClient
+import org.mechdancer.framework.remote.functions.tcpconnection.listen
+import org.mechdancer.framework.remote.functions.tcpconnection.say
 import org.mechdancer.framework.remote.resources.Addresses
 import org.mechdancer.framework.remote.resources.TcpCmd.COMMON
+import org.mechdancer.remote.Dispatcher.launch
 
-object TestTcp {
+private object TestTcp {
     @JvmStatic
     fun main(args: Array<String>) {
         // 初始化
@@ -18,7 +22,7 @@ object TestTcp {
         ).apply {
             hub += CommonShortConnection {
                 while (!isClosed)
-                    String(invoke())
+                    String(listen())
                         .takeUnless { it == "over" }
                         ?.let { "you said \"$it\"" }
                         ?.toByteArray()
@@ -39,26 +43,29 @@ object TestTcp {
             // 询问
             val address = hub.must<Addresses>()
             val synchronizer = hub.must<AddressMonitor>()
+            val connector = hub.must<ShortConnectionClient>()
 
             while (address["framework"] == null) {
                 synchronizer ask "framework"
                 Thread.sleep(1000)
             }
 
-            with(hub.must<ShortConnectionClient>().connect("framework")!!) {
-                println("connected: $remoteSocketAddress")
-                order(COMMON)
+            (connector connect "framework")!!.use { I ->
+                println("connected: ${I.remoteSocketAddress}")
+
+                I say COMMON
+
                 while (true) {
                     readLine()!!
                         .takeUnless { it == "over" }
                         ?.toByteArray()
-                        ?.also(this::say)
+                        ?.also(I::say)
                         ?: break
-                    String(invoke())
+                    String(I.listen())
                         .also(::println)
                 }
-                say("over".toByteArray())
-                close()
+
+                I say "over".toByteArray()
             }
         }
     }

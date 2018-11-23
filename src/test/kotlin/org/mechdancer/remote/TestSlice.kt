@@ -15,64 +15,69 @@ import org.mechdancer.framework.remote.protocol.RemotePacket
 import org.mechdancer.framework.remote.resources.MulticastSockets
 import org.mechdancer.framework.remote.resources.Name
 import org.mechdancer.framework.remote.resources.UdpCmd.COMMON
+import org.mechdancer.remote.Dispatcher.forever
+import org.mechdancer.remote.Dispatcher.launch
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.NetworkInterface
 import kotlin.system.measureTimeMillis
 
-fun build(name: String) = scope {
-    // 名字
-    this += Name(name)
+private object TestSlice {
+    @JvmStatic
+    fun main(args: Array<String>) {
+        val a = build("a")
+        val b = build("b")
 
-    // 组播
-    val sockets = MulticastSockets(ADDRESS)
-    this += sockets                // 组播套接字管理
-    this += MulticastBroadcaster() // 组播发送
-    this += MulticastReceiver()    // 组播接收
-    this += PacketSlicer(32)       // 分片器
+        val receiver = b.must<MulticastReceiver>()
 
-    this += object : AbstractModule(), MulticastListener {
-        override val interest = setOf(COMMON)
+        launch { receiver() }
 
-        override fun equals(other: Any?) = false
-        override fun hashCode() = 0
+        measureTimeMillis {
+            a.must<PacketSlicer>().broadcast(COMMON, LI_SAO.trimIndent().toByteArray())
+        }.let(::println)
 
-        override fun process(remotePacket: RemotePacket) {
-            println(String(remotePacket.payload))
-        }
+        measureTimeMillis {
+            a.must<PacketSlicer>().broadcast(COMMON, "12345".toByteArray())
+        }.let(::println)
+
+        forever { }
     }
 
-    // 选网
-    val best =
-        filterNetwork(MULTICAST_FILTERS, WIRELESS_FIRST)
-            .let(Collection<NetworkInterface>::firstOrNull)
-            ?: throw RuntimeException("no available network")
+    private fun build(name: String) = scope {
+        // 名字
+        this += Name(name)
 
-    sockets[best]
-}
+        // 组播
+        val sockets = MulticastSockets(ADDRESS)
+        this += sockets                // 组播套接字管理
+        this += MulticastBroadcaster() // 组播发送
+        this += MulticastReceiver()    // 组播接收
+        this += PacketSlicer(32)       // 分片器
 
-fun main(args: Array<String>) {
-    val a = build("a")
-    val b = build("b")
+        // 通用协议接收
+        this += object : AbstractModule(), MulticastListener {
+            override val interest = setOf(COMMON)
 
-    val receiver = b.must<MulticastReceiver>()
+            override fun equals(other: Any?) = false
+            override fun hashCode() = 0
 
-    launch { receiver() }
+            override fun process(remotePacket: RemotePacket) =
+                println(String(remotePacket.payload))
+        }
 
-    measureTimeMillis {
-        a.must<PacketSlicer>().broadcast(COMMON, LI_SAO.toByteArray())
-    }.let(::println)
+        // 选网
+        val best =
+            filterNetwork(MULTICAST_FILTERS, WIRELESS_FIRST)
+                .let(Collection<NetworkInterface>::firstOrNull)
+                ?: throw RuntimeException("no available network")
 
-    measureTimeMillis {
-        a.must<PacketSlicer>().broadcast(COMMON, "12345".toByteArray())
-    }.let(::println)
+        sockets[best]
+    }
 
-    forever { }
-}
+    private val ADDRESS = InetSocketAddress(InetAddress.getByName("238.88.88.88"), 23333)
 
-private val ADDRESS = InetSocketAddress(InetAddress.getByName("238.88.88.88"), 23333)
-private val LI_SAO =
-    """
+    private const val LI_SAO =
+        """
           帝高阳之苗裔兮，朕皇考曰伯庸。
           摄提贞于孟陬兮，惟庚寅吾以降。
           皇览揆余初度兮，肇锡余以嘉名。
@@ -261,4 +266,5 @@ private val LI_SAO =
           乱曰：已矣哉！
           国无人莫我知兮，又何怀乎故都！
           既莫足与为美政兮，吾将从彭咸之所居！
-        """.trimIndent()
+        """
+}
