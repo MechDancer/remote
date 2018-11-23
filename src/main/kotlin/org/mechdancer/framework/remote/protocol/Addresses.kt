@@ -1,36 +1,28 @@
 package org.mechdancer.framework.remote.protocol
 
-import java.io.*
+import java.io.DataInputStream
+import java.io.DataOutputStream
+import java.io.InputStream
+import java.io.OutputStream
 import java.net.InetAddress
 import java.net.InetSocketAddress
 
 /**
- * 从字节数组恢复完整地址
+ * 从字节数组恢复套接字地址
  */
 internal fun inetSocketAddress(byteArray: ByteArray) =
     byteArray
-        .let(::ByteArrayInputStream)
+        .let(::SimpleInputStream)
         .readInetSocketAddress()
 
 /**
- * 地址打包到字节数组
+ * 套接字地址打包到字节数组
  */
 internal val InetSocketAddress.bytes: ByteArray
-    get() = ByteArrayOutputStream()
-        .write(this)
-        .toByteArray()
+    get() = SimpleOutputStream(8).write(this).core
 
 /**
- * 向流写入一个地址
- */
-internal fun <T : OutputStream> T.write(address: InetSocketAddress) =
-    apply {
-        write(address.address.address)
-        DataOutputStream(this).writeInt(address.port)
-    }
-
-/**
- * 从流读取一个地址
+ * 从流读取一个套接字地址
  */
 internal fun InputStream.readInetSocketAddress() =
     let(::DataInputStream)
@@ -40,3 +32,12 @@ internal fun InputStream.readInetSocketAddress() =
                 it.readInt()
             )
         }
+
+/**
+ * 向流写入一个套接字地址
+ */
+internal fun <T : OutputStream> T.write(address: InetSocketAddress) =
+    apply {
+        write(address.address.address)
+        DataOutputStream(this).writeInt(address.port)
+    }

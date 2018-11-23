@@ -128,7 +128,7 @@ class RemoteHub(
     /**
      * 阻塞等待 UDP 报文
      */
-    operator fun invoke() = receiver.invoke()
+    operator fun invoke() = receiver()
 
     /**
      * 阻塞等待 TCP 连接

@@ -1,6 +1,5 @@
 package org.mechdancer.framework.remote.protocol
 
-import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 
 /**
@@ -21,21 +20,22 @@ data class RemotePacket(
     /**
      * 打包到字节数组
      */
-    val bytes: ByteArray by lazy {
-        ByteArrayOutputStream().apply {
-            write(command.toInt())
-            writeEnd(sender)
-            zigzag(seqNumber, false)
-            write(payload)
-        }.toByteArray()
-    }
+    val bytes
+        get() = ByteArrayOutputStream()
+            .apply {
+                write(command.toInt())
+                writeEnd(sender)
+                zigzag(seqNumber, false)
+                write(payload)
+            }
+            .toByteArray()
 
     companion object {
         /**
          * 从字节数组构建
          */
         operator fun invoke(pack: ByteArray) =
-            pack.let(::ByteArrayInputStream)
+            pack.let(::SimpleInputStream)
                 .let {
                     val cmd = it.read().toByte()
                     val sender = it.readEnd()

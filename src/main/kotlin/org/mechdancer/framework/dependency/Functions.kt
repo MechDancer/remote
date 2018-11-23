@@ -42,14 +42,14 @@ inline fun <reified D : Dependency> must(crossinline block: () -> DynamicScope) 
     lazy { block().must<D>() }
 
 /**
- * 向终端添加新的依赖项
+ * 向动态域添加新的依赖项
  */
 operator fun DynamicScope.plusAssign(dependency: Dependency) {
     setup(dependency)
 }
 
 /**
- * 构造终端并扫描
+ * 构造动态域并扫描
  */
 fun scope(block: DynamicScope.() -> Unit) =
     DynamicScope().apply(block).apply { sync() }

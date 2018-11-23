@@ -7,10 +7,11 @@ import java.io.OutputStream
 /**
  * 向流写入字符串再写入结尾
  */
-fun OutputStream.writeEnd(string: String) {
-    write(string.toByteArray())
-    write(0)
-}
+fun OutputStream.writeEnd(string: String) =
+    apply {
+        write(string.toByteArray())
+        write(0)
+    }
 
 /**
  * 从流读取一个带结尾的字符串

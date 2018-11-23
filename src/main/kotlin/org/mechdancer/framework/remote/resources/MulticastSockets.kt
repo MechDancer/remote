@@ -26,7 +26,7 @@ class MulticastSockets(
      * 接收所有到达本机的组播包
      * 不要修改组、超时等状态
      */
-    val default = multicastOn(address, null)
+    val default by lazy { multicastOn(address, null) }
 
     /**
      * 获取经由特定网络端口的组播套接字

@@ -21,22 +21,21 @@ class MulticastBroadcaster : AbstractModule() {
 
     private val serial = AtomicLong(0)
 
-    fun broadcast(cmd: Command, payload: ByteArray = ByteArray(0)) {
-        val packet =
-            RemotePacket(
-                command = cmd.id,
-                sender = name?.get(NAME) ?: "",
-                seqNumber = serial.getAndIncrement(),
-                payload = payload
-            )
-                .bytes
-                .let { DatagramPacket(it, it.size, sockets.address) }
-        sockets.view.values.forEach { it.send(packet) }
-    }
+    fun broadcast(cmd: Command, payload: ByteArray = ByteArray(0)) =
+        RemotePacket(
+            command = cmd.id,
+            sender = name?.get(NAME) ?: "",
+            seqNumber = serial.getAndIncrement(),
+            payload = payload
+        )
+            .bytes
+            .let { DatagramPacket(it, it.size, sockets.address) }
+            .let { packet ->
+                sockets.view.values.forEach { it.send(packet) }
+            }
 
     override fun equals(other: Any?) = other is MulticastBroadcaster
-    override fun hashCode() =
-        TYPE_HASH
+    override fun hashCode() = TYPE_HASH
 
     private companion object {
         val TYPE_HASH = hashOf<MulticastBroadcaster>()
