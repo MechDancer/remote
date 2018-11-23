@@ -1,10 +1,10 @@
-package org.mechdancer.framework.remote.streams
+package org.mechdancer.framework.remote.protocol
 
 import java.io.OutputStream
 
 class SimpleOutputStream(size: Int) : OutputStream() {
     val core = ByteArray(size)
-    var ptr = 0
+    private var ptr = 0
 
     override infix fun write(b: Int) {
         core[ptr++] = b.toByte()

@@ -1,8 +1,8 @@
-package org.mechdancer.framework.remote.streams
+package org.mechdancer.framework.remote.protocol
 
 import java.io.InputStream
 
-class SimpleInputStream(val core: ByteArray) : InputStream() {
+class SimpleInputStream(private val core: ByteArray) : InputStream() {
     private var ptr = 0
 
     override fun available() = core.size - ptr

@@ -7,12 +7,12 @@ import org.mechdancer.framework.dependency.must
 import org.mechdancer.framework.remote.functions.multicast.MulticastBroadcaster
 import org.mechdancer.framework.remote.functions.multicast.MulticastListener
 import org.mechdancer.framework.remote.protocol.RemotePacket
+import org.mechdancer.framework.remote.protocol.SimpleInputStream
+import org.mechdancer.framework.remote.protocol.SimpleOutputStream
 import org.mechdancer.framework.remote.protocol.zigzag
 import org.mechdancer.framework.remote.resources.Command
 import org.mechdancer.framework.remote.resources.UdpCmd
 import org.mechdancer.framework.remote.resources.UdpCmd.PACKET_SLICE
-import org.mechdancer.framework.remote.streams.SimpleInputStream
-import org.mechdancer.framework.remote.streams.SimpleOutputStream
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 

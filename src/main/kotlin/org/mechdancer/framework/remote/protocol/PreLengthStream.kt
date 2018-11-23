@@ -8,7 +8,7 @@ import java.io.OutputStream
  * @receiver 目标输出流
  * @param    pack 数据包
  */
-internal fun OutputStream.writeWithLength(pack: ByteArray) {
+fun OutputStream.writeWithLength(pack: ByteArray) {
     zigzag(pack.size.toLong(), false)
     write(pack)
 }
@@ -18,7 +18,7 @@ internal fun OutputStream.writeWithLength(pack: ByteArray) {
  * @receiver 输入流
  * @return   数据包
  */
-internal fun InputStream.readWithLength(): ByteArray =
+fun InputStream.readWithLength(): ByteArray =
     waitNBytes(zigzag(false).toInt())
 
 /**
@@ -29,13 +29,12 @@ internal fun InputStream.readWithLength(): ByteArray =
  * @param n 长度
  * @return 读取的字节数组
  */
-internal fun InputStream.waitNBytes(n: Int): ByteArray {
+fun InputStream.waitNBytes(n: Int): ByteArray {
     val buffer = ByteArray(n)
-    for (i in 0 until n) {
+    for (i in 0 until n)
         buffer[i] = read()
             .takeIf { it in 0..255 }
             ?.toByte()
             ?: return buffer.copyOfRange(0, i)
-    }
     return buffer
 }

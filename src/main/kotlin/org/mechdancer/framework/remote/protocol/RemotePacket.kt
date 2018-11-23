@@ -45,15 +45,13 @@ data class RemotePacket(
                 }
     }
 
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is RemotePacket) return false
-
-        return command == other.command
+    override fun equals(other: Any?) =
+        this === other
+            || (other is RemotePacket
+            && command == other.command
             && sender == other.sender
             && seqNumber == other.seqNumber
-            && payload.contentEquals(other.payload)
-    }
+            && payload.contentEquals(other.payload))
 
     override fun hashCode(): Int {
         var result = command.toInt()
