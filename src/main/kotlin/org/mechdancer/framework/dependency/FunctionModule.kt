@@ -21,5 +21,5 @@ interface FunctionModule : Dependency {
      * 依赖项不存在
      */
     class DependencyNotExistException(which: KClass<out Dependency>) :
-        RuntimeException("cannot this dependency: ${which.qualifiedName}")
+        RuntimeException("cannot find this dependency: ${which.qualifiedName}")
 }

@@ -65,6 +65,7 @@ class RemoteHub(
         this += monitor // 组成员管理
 
         // 组播
+        this += networks    // 本机网络端口资源
         this += _sockets    // 组播套接字资源
         this += broadcaster // 组播发送
         this += receiver    // 组播接收

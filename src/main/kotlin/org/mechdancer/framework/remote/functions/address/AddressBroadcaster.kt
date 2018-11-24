@@ -13,7 +13,6 @@ import org.mechdancer.framework.remote.resources.ServerSockets
 import org.mechdancer.framework.remote.resources.UdpCmd.ADDRESS_ACK
 import org.mechdancer.framework.remote.resources.UdpCmd.ADDRESS_ASK
 import java.io.ByteArrayOutputStream
-import java.io.DataOutputStream
 
 /**
  * 地址同步机制 2
@@ -32,15 +31,18 @@ class AddressBroadcaster :
     override val interest = INTEREST
 
     override fun process(remotePacket: RemotePacket) {
-        if (String(remotePacket.payload) == name.value)
-            ByteArrayOutputStream(8)
-                .apply {
-                    for (network in sockets.view.keys)
-                        networks[network]?.let { write(it.address) }
-                    DataOutputStream(this).writeInt(servers[0]!!.localPort)
-                }
-                .toByteArray()
-                .let { broadcaster.broadcast(ADDRESS_ACK, it) }
+        if (String(remotePacket.payload) != name.value) return
+        val addresses = sockets.view.keys
+        val port = servers.default.localPort
+        ByteArrayOutputStream(4 * (addresses.size + 1))
+            .apply {
+                for (network in addresses)
+                    networks[network]?.let { write(it.address) }
+                write(port shr 8)
+                write(port)
+            }
+            .toByteArray()
+            .let { broadcaster.broadcast(ADDRESS_ACK, it) }
     }
 
     override fun equals(other: Any?) = other is AddressBroadcaster

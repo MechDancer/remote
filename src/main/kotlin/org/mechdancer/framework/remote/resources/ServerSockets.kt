@@ -10,9 +10,9 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class ServerSockets(private val port: Int = 0) :
     ResourceFactory<Int, ServerSocket> {
-    private val default by lazy { ServerSocket(port) }
     private val core = ConcurrentHashMap<Int, ServerSocket>()
 
+    val default by lazy { ServerSocket(port) }
     val view get() = core.values.toSet()
 
     /**
