@@ -19,7 +19,7 @@ class CommonMulticast(
     override val interest = INTEREST
 
     override fun process(remotePacket: RemotePacket) {
-        val (_, name, _, payload) = remotePacket
+        val (name, _, _, payload) = remotePacket
         received(name, payload)
     }
 

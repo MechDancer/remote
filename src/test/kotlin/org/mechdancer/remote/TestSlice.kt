@@ -52,7 +52,7 @@ private object TestSlice {
         this += sockets                // 组播套接字管理
         this += MulticastBroadcaster() // 组播发送
         this += MulticastReceiver()    // 组播接收
-        this += PacketSlicer(32)       // 分片器
+        this += PacketSlicer(1024)     // 分片器
 
         // 通用协议接收
         this += object : AbstractModule(), MulticastListener {

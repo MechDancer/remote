@@ -33,8 +33,8 @@ class AddressMonitor :
         broadcaster.broadcast(ADDRESS_ASK, name.toByteArray())
 
     override fun process(remotePacket: RemotePacket) {
-        val (_, sender, _, _, payload) = remotePacket
-        if (!sender.isBlank())
+        val (sender, _, _, payload) = remotePacket
+        if (sender.isNotBlank())
             addresses.update(sender, inetSocketAddress(payload))
     }
 

@@ -4,7 +4,10 @@ import org.mechdancer.framework.dependency.AbstractModule
 import org.mechdancer.framework.dependency.get
 import org.mechdancer.framework.dependency.hashOf
 import org.mechdancer.framework.dependency.must
-import org.mechdancer.framework.remote.protocol.*
+import org.mechdancer.framework.remote.protocol.RemotePacket
+import org.mechdancer.framework.remote.protocol.SimpleInputStream
+import org.mechdancer.framework.remote.protocol.readEnd
+import org.mechdancer.framework.remote.protocol.zigzag
 import org.mechdancer.framework.remote.resources.MulticastSockets
 import org.mechdancer.framework.remote.resources.Name
 import org.mechdancer.framework.remote.resources.Name.Type.NAME
@@ -32,16 +35,13 @@ class MulticastReceiver(private val bufferSize: Int = 65536) : AbstractModule() 
             .apply(socket.default::receive)
             .let { SimpleInputStream(it.data, it.length) }
             .run {
-                skip(1)
-                    .readEnd()
-                    .takeIf { it != name[NAME] }
-                    ?.let { sender ->
+                readEnd().takeIf { it != name[NAME] }
+                    ?.let {
                         RemotePacket(
-                            core[0],
-                            sender,
-                            zigzag(false),
-                            readWithLength(),
-                            lookRest()
+                            sender = it,
+                            command = read().toByte(),
+                            seqNumber = zigzag(false),
+                            payload = lookRest()
                         )
                     }
             }

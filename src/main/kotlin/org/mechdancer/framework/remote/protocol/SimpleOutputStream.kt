@@ -8,6 +8,10 @@ class SimpleOutputStream(size: Int) : OutputStream() {
 
     fun available() = ptr
 
+    infix fun write(b: Byte) {
+        core[ptr++] = b
+    }
+
     override infix fun write(b: Int) {
         core[ptr++] = b.toByte()
     }

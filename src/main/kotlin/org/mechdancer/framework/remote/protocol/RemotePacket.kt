@@ -10,26 +10,23 @@ package org.mechdancer.framework.remote.protocol
  * @param payload   数据负载
  */
 class RemotePacket(
-    val command: Byte,
     val sender: String,
+    val command: Byte,
     val seqNumber: Long,
-    val neck: ByteArray,
     val payload: ByteArray
 ) {
-    operator fun component1() = command
-    operator fun component2() = sender
+    operator fun component1() = sender
+    operator fun component2() = command
     operator fun component3() = seqNumber
-    operator fun component4() = neck
-    operator fun component5() = payload
+    operator fun component4() = payload
 
     val bytes: ByteArray
         get() =
-            SimpleOutputStream(1 + sender.length * 2 + 1 + 9 + 9 + neck.size)
+            SimpleOutputStream(sender.length * 2 + 1 + 1 + 9 + 9)
                 .apply {
-                    write(command.toInt())
                     writeEnd(sender)
+                    write(command.toInt())
                     zigzag(seqNumber, false)
-                    writeWithLength(neck)
                 }
                 .let { head ->
                     SimpleOutputStream(head.available() + payload.size)

@@ -26,7 +26,7 @@ class GroupMonitor(
     override val interest = INTEREST
 
     override fun process(remotePacket: RemotePacket) {
-        val (id, name, _) = remotePacket
+        val (name, id) = remotePacket
 
         if (name.isNotBlank()) // 非匿名则保存名字
             group.update(name, now()) ?: detected(name)

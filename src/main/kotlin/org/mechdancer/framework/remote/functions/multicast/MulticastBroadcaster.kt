@@ -5,10 +5,12 @@ import org.mechdancer.framework.dependency.hashOf
 import org.mechdancer.framework.dependency.maybe
 import org.mechdancer.framework.dependency.must
 import org.mechdancer.framework.remote.protocol.RemotePacket
-import org.mechdancer.framework.remote.resources.Command
 import org.mechdancer.framework.remote.resources.MulticastSockets
 import org.mechdancer.framework.remote.resources.Name
 import org.mechdancer.framework.remote.resources.Name.Type.NAME
+import org.mechdancer.framework.remote.resources.UdpCmd
+import org.mechdancer.framework.remote.resources.UdpCmd.ADDRESS_ACK
+import org.mechdancer.framework.remote.resources.UdpCmd.YELL_ACK
 import java.net.DatagramPacket
 import java.util.concurrent.atomic.AtomicLong
 
@@ -21,12 +23,13 @@ class MulticastBroadcaster : AbstractModule() {
 
     private val serial = AtomicLong(0)
 
-    fun broadcast(cmd: Command, payload: ByteArray = ByteArray(0)) =
+    fun broadcast(cmd: UdpCmd, payload: ByteArray = ByteArray(0)) {
+        val me = name?.get(NAME) ?: ""
+        if (me.isBlank() && (cmd == YELL_ACK || cmd == ADDRESS_ACK)) return
         RemotePacket(
+            sender = me,
             command = cmd.id,
-            sender = name?.get(NAME) ?: "",
             seqNumber = serial.getAndIncrement(),
-            neck = ByteArray(0),
             payload = payload
         )
             .bytes
@@ -34,6 +37,7 @@ class MulticastBroadcaster : AbstractModule() {
             .let { packet ->
                 sockets.view.values.forEach { it.send(packet) }
             }
+    }
 
     override fun equals(other: Any?) = other is MulticastBroadcaster
     override fun hashCode() = TYPE_HASH
