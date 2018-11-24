@@ -149,7 +149,7 @@ class PacketSlicer(
 
         /**
          * 置入一个小包
-         * @param cmd     末包指令
+         * @param cmd     包指令
          * @param index   序号
          * @param payload 负载
          *
@@ -194,22 +194,5 @@ class PacketSlicer(
         val TYPE_HASH = hashOf<PacketSlicer>()
         val INTEREST = setOf(PACKET_SLICE)
         const val LAST = 0.toByte()
-
-//      @JvmStatic
-//      fun main(args: Array<String>) {
-//          val length = 2_0000_0000
-//          val buffer0 = Random.nextBytes(length)
-//          val buffer1 = ByteArray(length)
-//          val buffer2 = ByteArray(length)
-//          val buffer3 = ByteArrayOutputStream(length)
-//          val buffer4 = SimpleOutputStream(length)
-//          measureTimeMillis { buffer0.copyInto(buffer1) }.let(::println)
-//          measureTimeMillis { System.arraycopy(buffer0, 0, buffer2, 0, length) }.let(::println)
-//          measureTimeMillis { buffer3.write(buffer0) }.let(::println)
-//          measureTimeMillis { buffer3.writeBytes(buffer0) }.let(::println) // Java 11 <- 智障！
-//          measureTimeMillis { buffer3.toByteArray() }.let(::println)
-//          measureTimeMillis { buffer4.write(buffer0) }.let(::println) // <- 引起舒适
-//          measureTimeMillis { buffer4.core }.let(::println)           // <- 引起舒适
-//      }
     }
 }

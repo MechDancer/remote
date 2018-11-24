@@ -11,13 +11,9 @@ import org.mechdancer.framework.remote.functions.multicast.MulticastReceiver
 import org.mechdancer.framework.remote.functions.multicast.PacketSlicer
 import org.mechdancer.framework.remote.functions.tcpconnection.ShortConnectionClient
 import org.mechdancer.framework.remote.functions.tcpconnection.ShortConnectionServer
-import org.mechdancer.framework.remote.network.MULTICAST_FILTERS
-import org.mechdancer.framework.remote.network.WIRELESS_FIRST
-import org.mechdancer.framework.remote.network.filterNetwork
 import org.mechdancer.framework.remote.resources.*
 import java.net.InetAddress
 import java.net.InetSocketAddress
-import java.net.NetworkInterface
 import java.util.*
 
 /**
@@ -25,7 +21,6 @@ import java.util.*
  */
 class RemoteHub(
     name: String? = null,
-    network: NetworkInterface? = null,
     newMemberDetected: (String) -> Unit = {},
     broadcastReceived: (String, ByteArray) -> Unit = { _, _ -> }
 ) {
@@ -36,6 +31,7 @@ class RemoteHub(
     // 组成员管理
     private val monitor = GroupMonitor(newMemberDetected)
 
+    private val networks = Networks()
     // 组播套接字
     private val _sockets = MulticastSockets(ADDRESS)
     // 组播广播器
@@ -85,13 +81,9 @@ class RemoteHub(
         this += server // 服务端
         this += client // 客户端
 
-        // 选网
-        val best = network
-            ?: filterNetwork(MULTICAST_FILTERS, WIRELESS_FIRST)
-                .let(Collection<NetworkInterface>::firstOrNull)
-            ?: throw RuntimeException("no available network")
-
-        _sockets[best]
+        // 打开组播发送端
+        networks.scan()
+        networks.view.forEach { network, _ -> _sockets[network] }
     }
 
     // access
@@ -105,11 +97,6 @@ class RemoteHub(
      * 查看所有打开的组播套接字
      */
     val sockets get() = _sockets.view
-
-    // /**
-    //  * 查看本地 IP 地址
-    //  */
-    // val address get() = InetSocketAddress(_sockets.default.)
 
     // function
 

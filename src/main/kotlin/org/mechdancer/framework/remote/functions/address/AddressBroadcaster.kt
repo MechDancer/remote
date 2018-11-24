@@ -6,13 +6,14 @@ import org.mechdancer.framework.dependency.must
 import org.mechdancer.framework.remote.functions.multicast.MulticastBroadcaster
 import org.mechdancer.framework.remote.functions.multicast.MulticastListener
 import org.mechdancer.framework.remote.protocol.RemotePacket
-import org.mechdancer.framework.remote.protocol.bytes
+import org.mechdancer.framework.remote.resources.MulticastSockets
 import org.mechdancer.framework.remote.resources.Name
-import org.mechdancer.framework.remote.resources.Name.Type.NAME
+import org.mechdancer.framework.remote.resources.Networks
 import org.mechdancer.framework.remote.resources.ServerSockets
 import org.mechdancer.framework.remote.resources.UdpCmd.ADDRESS_ACK
 import org.mechdancer.framework.remote.resources.UdpCmd.ADDRESS_ASK
-import java.net.InetSocketAddress
+import java.io.ByteArrayOutputStream
+import java.io.DataOutputStream
 
 /**
  * 地址同步机制 2
@@ -23,18 +24,23 @@ class AddressBroadcaster :
     AbstractModule(),
     MulticastListener {
     private val name by must<Name>(host)
+    private val networks by must<Networks>(host)
+    private val sockets by must<MulticastSockets>(host)
     private val broadcaster by must<MulticastBroadcaster>(host)
     private val servers by must<ServerSockets>(host)
 
     override val interest = INTEREST
 
     override fun process(remotePacket: RemotePacket) {
-        if (String(remotePacket.payload) == name[NAME])
-            servers[0]
-                ?.localSocketAddress
-                ?.let { it as InetSocketAddress }
-                ?.bytes
-                ?.let { broadcaster.broadcast(ADDRESS_ACK, it) }
+        if (String(remotePacket.payload) == name.value)
+            ByteArrayOutputStream(8)
+                .apply {
+                    for (network in sockets.view.keys)
+                        networks[network]?.let { write(it.address) }
+                    DataOutputStream(this).writeInt(servers[0]!!.localPort)
+                }
+                .toByteArray()
+                .let { broadcaster.broadcast(ADDRESS_ACK, it) }
     }
 
     override fun equals(other: Any?) = other is AddressBroadcaster

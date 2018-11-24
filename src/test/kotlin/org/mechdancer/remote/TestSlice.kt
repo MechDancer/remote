@@ -8,18 +8,15 @@ import org.mechdancer.framework.remote.functions.multicast.MulticastBroadcaster
 import org.mechdancer.framework.remote.functions.multicast.MulticastListener
 import org.mechdancer.framework.remote.functions.multicast.MulticastReceiver
 import org.mechdancer.framework.remote.functions.multicast.PacketSlicer
-import org.mechdancer.framework.remote.network.MULTICAST_FILTERS
-import org.mechdancer.framework.remote.network.WIRELESS_FIRST
-import org.mechdancer.framework.remote.network.filterNetwork
 import org.mechdancer.framework.remote.protocol.RemotePacket
 import org.mechdancer.framework.remote.resources.MulticastSockets
 import org.mechdancer.framework.remote.resources.Name
+import org.mechdancer.framework.remote.resources.Networks
 import org.mechdancer.framework.remote.resources.UdpCmd.COMMON
 import org.mechdancer.remote.Dispatcher.forever
 import org.mechdancer.remote.Dispatcher.launch
 import java.net.InetAddress
 import java.net.InetSocketAddress
-import java.net.NetworkInterface
 import kotlin.system.measureTimeMillis
 
 private object TestSlice {
@@ -48,8 +45,10 @@ private object TestSlice {
         this += Name(name)
 
         // 组播
+        val networks = Networks()
         val sockets = MulticastSockets(ADDRESS)
-        this += sockets                // 组播套接字管理
+        this += networks               // 本机网络资源
+        this += sockets                // 组播套接字资源
         this += MulticastBroadcaster() // 组播发送
         this += MulticastReceiver()    // 组播接收
         this += PacketSlicer(1024)     // 分片器
@@ -57,21 +56,12 @@ private object TestSlice {
         // 通用协议接收
         this += object : AbstractModule(), MulticastListener {
             override val interest = setOf(COMMON)
-
-            override fun equals(other: Any?) = false
-            override fun hashCode() = 0
-
             override fun process(remotePacket: RemotePacket) =
                 println(String(remotePacket.payload))
         }
 
-        // 选网
-        val best =
-            filterNetwork(MULTICAST_FILTERS, WIRELESS_FIRST)
-                .let(Collection<NetworkInterface>::firstOrNull)
-                ?: throw RuntimeException("no available network")
-
-        sockets[best]
+        networks.scan()
+        networks.view.forEach { network, _ -> sockets[network] }
     }
 
     private val ADDRESS = InetSocketAddress(InetAddress.getByName("238.88.88.88"), 23333)

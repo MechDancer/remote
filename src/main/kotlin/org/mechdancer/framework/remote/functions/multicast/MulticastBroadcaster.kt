@@ -7,7 +7,6 @@ import org.mechdancer.framework.dependency.must
 import org.mechdancer.framework.remote.protocol.RemotePacket
 import org.mechdancer.framework.remote.resources.MulticastSockets
 import org.mechdancer.framework.remote.resources.Name
-import org.mechdancer.framework.remote.resources.Name.Type.NAME
 import org.mechdancer.framework.remote.resources.UdpCmd
 import org.mechdancer.framework.remote.resources.UdpCmd.ADDRESS_ACK
 import org.mechdancer.framework.remote.resources.UdpCmd.YELL_ACK
@@ -24,8 +23,10 @@ class MulticastBroadcaster : AbstractModule() {
     private val serial = AtomicLong(0)
 
     fun broadcast(cmd: UdpCmd, payload: ByteArray = ByteArray(0)) {
-        val me = name?.get(NAME) ?: ""
+        val me = name?.value ?: ""
+
         if (me.isBlank() && (cmd == YELL_ACK || cmd == ADDRESS_ACK)) return
+
         RemotePacket(
             sender = me,
             command = cmd.id,

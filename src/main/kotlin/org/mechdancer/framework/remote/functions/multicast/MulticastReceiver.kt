@@ -10,7 +10,6 @@ import org.mechdancer.framework.remote.protocol.readEnd
 import org.mechdancer.framework.remote.protocol.zigzag
 import org.mechdancer.framework.remote.resources.MulticastSockets
 import org.mechdancer.framework.remote.resources.Name
-import org.mechdancer.framework.remote.resources.Name.Type.NAME
 import org.mechdancer.framework.remote.resources.UdpCmd
 import java.net.DatagramPacket
 import kotlin.concurrent.getOrSet
@@ -35,7 +34,7 @@ class MulticastReceiver(private val bufferSize: Int = 65536) : AbstractModule() 
             .apply(socket.default::receive)
             .let { SimpleInputStream(it.data, it.length) }
             .run {
-                readEnd().takeIf { it != name[NAME] }
+                readEnd().takeIf { it != name.value }
                     ?.let {
                         RemotePacket(
                             sender = it,
