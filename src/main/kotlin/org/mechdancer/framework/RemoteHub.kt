@@ -3,12 +3,12 @@ package org.mechdancer.framework
 import org.mechdancer.framework.dependency.plusAssign
 import org.mechdancer.framework.dependency.scope
 import org.mechdancer.framework.remote.functions.GroupMonitor
-import org.mechdancer.framework.remote.functions.PacketSlicer
 import org.mechdancer.framework.remote.functions.address.AddressBroadcaster
 import org.mechdancer.framework.remote.functions.address.AddressMonitor
 import org.mechdancer.framework.remote.functions.multicast.CommonMulticast
 import org.mechdancer.framework.remote.functions.multicast.MulticastBroadcaster
 import org.mechdancer.framework.remote.functions.multicast.MulticastReceiver
+import org.mechdancer.framework.remote.functions.multicast.PacketSlicer
 import org.mechdancer.framework.remote.functions.tcpconnection.ShortConnectionClient
 import org.mechdancer.framework.remote.functions.tcpconnection.ShortConnectionServer
 import org.mechdancer.framework.remote.network.MULTICAST_FILTERS

@@ -11,8 +11,7 @@ import java.net.InetSocketAddress
  * 从字节数组恢复套接字地址
  */
 internal fun inetSocketAddress(byteArray: ByteArray) =
-    byteArray
-        .let(::SimpleInputStream)
+    SimpleInputStream(byteArray)
         .readInetSocketAddress()
 
 /**

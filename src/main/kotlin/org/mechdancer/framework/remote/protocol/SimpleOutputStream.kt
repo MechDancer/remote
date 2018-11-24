@@ -6,6 +6,8 @@ class SimpleOutputStream(size: Int) : OutputStream() {
     val core = ByteArray(size)
     private var ptr = 0
 
+    fun available() = ptr
+
     override infix fun write(b: Int) {
         core[ptr++] = b.toByte()
     }

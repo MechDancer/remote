@@ -1,7 +1,5 @@
 package org.mechdancer.framework.remote.protocol
 
-import java.io.ByteArrayOutputStream
-
 /**
  * 通用数据包
  * 用于无连接通信或建立连接.
@@ -11,52 +9,34 @@ import java.io.ByteArrayOutputStream
  * @param seqNumber 序列号
  * @param payload   数据负载
  */
-data class RemotePacket(
+class RemotePacket(
     val command: Byte,
     val sender: String,
     val seqNumber: Long,
+    val neck: ByteArray,
     val payload: ByteArray
 ) {
-    /**
-     * 打包到字节数组
-     */
-    val bytes
-        get() = ByteArrayOutputStream()
-            .apply {
-                write(command.toInt())
-                writeEnd(sender)
-                zigzag(seqNumber, false)
-                write(payload)
-            }
-            .toByteArray()
+    operator fun component1() = command
+    operator fun component2() = sender
+    operator fun component3() = seqNumber
+    operator fun component4() = neck
+    operator fun component5() = payload
 
-    companion object {
-        /**
-         * 从字节数组构建
-         */
-        operator fun invoke(pack: ByteArray, length: Int = pack.size) =
-            pack.let(::SimpleInputStream)
-                .let {
-                    val cmd = it.read().toByte()
-                    val sender = it.readEnd()
-                    val seqNumber = it zigzag false
-                    val payload = it.lookRest(length)
-                    RemotePacket(cmd, sender, seqNumber, payload)
+    val bytes: ByteArray
+        get() =
+            SimpleOutputStream(1 + sender.length * 2 + 1 + 9 + 9 + neck.size)
+                .apply {
+                    write(command.toInt())
+                    writeEnd(sender)
+                    zigzag(seqNumber, false)
+                    writeWithLength(neck)
                 }
-    }
-
-    override fun equals(other: Any?) =
-        this === other
-            || (other is RemotePacket
-            && command == other.command
-            && sender == other.sender
-            && seqNumber == other.seqNumber
-            && payload.contentEquals(other.payload))
-
-    override fun hashCode(): Int {
-        var result = command.toInt()
-        result = 31 * result + sender.hashCode()
-        result = 31 * result + seqNumber.hashCode()
-        return 31 * result + payload.contentHashCode()
-    }
+                .let { head ->
+                    SimpleOutputStream(head.available() + payload.size)
+                        .apply {
+                            writeLength(head.core, 0, head.available())
+                            write(payload)
+                        }
+                }
+                .core
 }

@@ -26,6 +26,7 @@ class MulticastBroadcaster : AbstractModule() {
             command = cmd.id,
             sender = name?.get(NAME) ?: "",
             seqNumber = serial.getAndIncrement(),
+            neck = ByteArray(0),
             payload = payload
         )
             .bytes

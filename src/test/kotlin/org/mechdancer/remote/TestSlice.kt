@@ -4,10 +4,10 @@ import org.mechdancer.framework.dependency.AbstractModule
 import org.mechdancer.framework.dependency.must
 import org.mechdancer.framework.dependency.plusAssign
 import org.mechdancer.framework.dependency.scope
-import org.mechdancer.framework.remote.functions.PacketSlicer
 import org.mechdancer.framework.remote.functions.multicast.MulticastBroadcaster
 import org.mechdancer.framework.remote.functions.multicast.MulticastListener
 import org.mechdancer.framework.remote.functions.multicast.MulticastReceiver
+import org.mechdancer.framework.remote.functions.multicast.PacketSlicer
 import org.mechdancer.framework.remote.network.MULTICAST_FILTERS
 import org.mechdancer.framework.remote.network.WIRELESS_FIRST
 import org.mechdancer.framework.remote.network.filterNetwork

@@ -1,11 +1,9 @@
-package org.mechdancer.framework.remote.functions
+package org.mechdancer.framework.remote.functions.multicast
 
 import org.mechdancer.framework.dependency.AbstractModule
 import org.mechdancer.framework.dependency.get
 import org.mechdancer.framework.dependency.hashOf
 import org.mechdancer.framework.dependency.must
-import org.mechdancer.framework.remote.functions.multicast.MulticastBroadcaster
-import org.mechdancer.framework.remote.functions.multicast.MulticastListener
 import org.mechdancer.framework.remote.protocol.RemotePacket
 import org.mechdancer.framework.remote.protocol.SimpleInputStream
 import org.mechdancer.framework.remote.protocol.SimpleOutputStream
@@ -49,7 +47,7 @@ class PacketSlicer(
      * 使用拆包协议广播一包
      */
     fun broadcast(cmd: Command, payload: ByteArray) {
-        val stream = RemotePacket(cmd.id, "", 0, payload).bytes.let(::SimpleInputStream)
+        val stream = SimpleInputStream(RemotePacket(cmd.id, "", 0, ByteArray(0), payload).bytes)
         val s = sequence.getAndIncrement() zigzag false
         var index = 0L   // 包序号
         while (true) {
@@ -83,7 +81,7 @@ class PacketSlicer(
     }
 
     override fun process(remotePacket: RemotePacket) {
-        val (id, name, _, payload) = remotePacket
+        val (id, name, _, _, payload) = remotePacket
         if (id != PACKET_SLICE.id) return
 
         val stream = SimpleInputStream(payload)   // 构造流
@@ -103,8 +101,8 @@ class PacketSlicer(
                         ?.also { buffers.remove(key) }
                 }
         }
-            ?.let(::SimpleInputStream)
-            ?.let { RemotePacket(it.look(), name, subSeq, it.skip(3).lookRest()) }
+            ?.let { SimpleInputStream(it) }
+            ?.let { RemotePacket(it.look(), name, subSeq, ByteArray(0), it.skip(3).lookRest()) }
             ?.let { pack ->
                 callbacks
                     .filter { UdpCmd[pack.command] in it.interest }
