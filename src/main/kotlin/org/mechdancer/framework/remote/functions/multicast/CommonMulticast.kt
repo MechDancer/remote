@@ -16,18 +16,18 @@ class CommonMulticast(
 ) : AbstractModule(), MulticastListener {
     private val broadcaster by must<MulticastBroadcaster>(host)
 
+    /**
+     * 发布通用广播
+     * @param payload 数据负载
+     */
+    infix fun broadcast(payload: ByteArray) = broadcaster.broadcast(UdpCmd.COMMON, payload)
+
     override val interest = INTEREST
 
     override fun process(remotePacket: RemotePacket) {
         val (name, _, _, payload) = remotePacket
         received(name, payload)
     }
-
-    /**
-     * 发布通用广播
-     * @param payload 数据负载
-     */
-    infix fun broadcast(payload: ByteArray) = broadcaster.broadcast(UdpCmd.COMMON, payload)
 
     override fun equals(other: Any?) = other is CommonMulticast
     override fun hashCode() = TYPE_HASH
