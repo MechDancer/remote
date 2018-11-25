@@ -4,14 +4,15 @@ import org.mechdancer.framework.dependency.must
 import org.mechdancer.framework.dependency.plusAssign
 import org.mechdancer.framework.dependency.scope
 import org.mechdancer.framework.remote.functions.GroupMonitor
+import org.mechdancer.framework.remote.functions.GroupRefresher
 import org.mechdancer.framework.remote.functions.multicast.MulticastBroadcaster
 import org.mechdancer.framework.remote.functions.multicast.MulticastReceiver
 import org.mechdancer.framework.remote.resources.Group
 import org.mechdancer.framework.remote.resources.MulticastSockets
 import org.mechdancer.framework.remote.resources.Name
+import org.mechdancer.framework.remote.resources.Networks
 import java.net.InetAddress
 import java.net.InetSocketAddress
-import java.net.NetworkInterface
 import kotlin.concurrent.thread
 
 private object TestOut {
@@ -22,29 +23,27 @@ private object TestOut {
 
             this += Group()
             this += GroupMonitor(::println)
+            this += GroupRefresher()
 
-            this += MulticastSockets(ADDRESS).also { it.get(localHost) }
+            val networks = Networks().apply { scan() }
+            this += MulticastSockets(ADDRESS).apply { networks.view.keys.forEach { this[it] } }
             this += MulticastBroadcaster()
             this += MulticastReceiver()
         }
 
-        val monitor = scope.must<GroupMonitor>()
+        val group = scope.must<Group>()
+        val refresher = scope.must<GroupRefresher>()
         val receiver = scope.must<MulticastReceiver>()
 
         thread {
-            while (true) {
-                Thread.sleep(500)
-                monitor.yell()
-            }
+            while (true) println("members: ${refresher(500)}")
         }
 
-        while (true) receiver.invoke()
+        while (true) receiver()
     }
 
     val ADDRESS = InetSocketAddress(
         InetAddress.getByName("238.88.88.88"),
         23333
     )
-
-    val localHost get() = NetworkInterface.getByInetAddress(InetAddress.getLocalHost())
 }

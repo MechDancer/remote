@@ -3,6 +3,7 @@ package org.mechdancer.framework
 import org.mechdancer.framework.dependency.plusAssign
 import org.mechdancer.framework.dependency.scope
 import org.mechdancer.framework.remote.functions.GroupMonitor
+import org.mechdancer.framework.remote.functions.GroupRefresher
 import org.mechdancer.framework.remote.functions.address.AddressBroadcaster
 import org.mechdancer.framework.remote.functions.address.AddressMonitor
 import org.mechdancer.framework.remote.functions.multicast.CommonMulticast
@@ -30,6 +31,8 @@ class RemoteHub(
     private val group = Group()
     // 组成员管理
     private val monitor = GroupMonitor(newMemberDetected)
+    // 组成员定时监视
+    private val refresher = GroupRefresher()
 
     private val networks = Networks()
     // 组播套接字
@@ -61,8 +64,9 @@ class RemoteHub(
         this += Name(name ?: randomName())
 
         // 组成员管理
-        this += group   // 成员存在性资源
-        this += monitor // 组成员管理
+        this += group     // 成员存在性资源
+        this += monitor   // 组成员管理
+        this += refresher // 组成员定时监视
 
         // 组播
         this += networks    // 本机网络端口资源
@@ -88,6 +92,8 @@ class RemoteHub(
     }
 
     // access
+
+    infix fun refresh(timeout: Int) = refresher(timeout)
 
     /**
      * 查看超时时间内出现的成员

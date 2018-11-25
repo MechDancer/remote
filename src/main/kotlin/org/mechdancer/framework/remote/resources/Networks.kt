@@ -26,14 +26,12 @@ class Networks : ResourceFactory<NetworkInterface, Inet4Address> {
             .asSequence()
             .filter(NetworkInterface::isUp)
             .filter(NetworkInterface::supportsMulticast)
-            .containsIpv4()
             .notLoopback()
             .notVirtual()
             .mapNotNull { network ->
                 network.interfaceAddresses
                     .mapNotNull { it.address as? Inet4Address }
-                    .singleOrNull()
-                    ?.takeIf(::isMono)
+                    .singleOrNull(::isMono)
                     ?.let { network to it }
             }
 
@@ -50,9 +48,6 @@ class Networks : ResourceFactory<NetworkInterface, Inet4Address> {
 
     private companion object {
         val TYPE_HASH = hashOf<Networks>()
-
-        fun Sequence<NetworkInterface>.containsIpv4() =
-            filter { network -> network.inetAddresses.toList().any { it is Inet4Address } }
 
         fun Sequence<NetworkInterface>.notLoopback() =
             filterNot { network -> network.isLoopback }
