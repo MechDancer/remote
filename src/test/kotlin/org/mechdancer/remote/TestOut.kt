@@ -31,7 +31,6 @@ private object TestOut {
             this += MulticastReceiver()
         }
 
-        val group = scope.must<Group>()
         val refresher = scope.must<GroupRefresher>()
         val receiver = scope.must<MulticastReceiver>()
 
@@ -43,7 +42,7 @@ private object TestOut {
     }
 
     val ADDRESS = InetSocketAddress(
-        InetAddress.getByName("238.88.88.88"),
+        InetAddress.getByName("233.33.33.33"),
         23333
     )
 }

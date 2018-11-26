@@ -130,7 +130,7 @@ class RemoteHub(
     fun accept() = server()
 
     private companion object {
-        val ADDRESS = InetSocketAddress(InetAddress.getByName("238.88.88.88"), 23333)
+        val ADDRESS = InetSocketAddress(InetAddress.getByName("233.33.33.33"), 23333)
         fun randomName() = "RemoteHub[${UUID.randomUUID()}]"
     }
 }
