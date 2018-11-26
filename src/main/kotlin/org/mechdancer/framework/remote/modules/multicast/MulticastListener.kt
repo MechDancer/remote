@@ -1,4 +1,4 @@
-package org.mechdancer.framework.remote.functions.multicast
+package org.mechdancer.framework.remote.modules.multicast
 
 import org.mechdancer.framework.dependency.FunctionModule
 import org.mechdancer.framework.remote.protocol.RemotePacket

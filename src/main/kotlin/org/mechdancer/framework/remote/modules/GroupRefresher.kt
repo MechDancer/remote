@@ -1,4 +1,4 @@
-package org.mechdancer.framework.remote.functions
+package org.mechdancer.framework.remote.modules
 
 import org.mechdancer.framework.dependency.AbstractModule
 import org.mechdancer.framework.dependency.must

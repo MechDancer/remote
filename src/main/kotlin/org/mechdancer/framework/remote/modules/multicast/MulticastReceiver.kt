@@ -1,4 +1,4 @@
-package org.mechdancer.framework.remote.functions.multicast
+package org.mechdancer.framework.remote.modules.multicast
 
 import org.mechdancer.framework.dependency.AbstractModule
 import org.mechdancer.framework.dependency.get
@@ -22,30 +22,33 @@ class MulticastReceiver(private val bufferSize: Int = 65536) : AbstractModule() 
     private val buffer = ThreadLocal<DatagramPacket>()        // 线程独立缓冲
     private val name by must<Name>(host)                      // 过滤环路数据
     private val socket by must<MulticastSockets>(host)        // 接收套接字
-    private val callbacks = mutableSetOf<MulticastListener>() // 处理回调
+    private val listeners = mutableSetOf<MulticastListener>() // 处理回调
 
     override fun sync() {
-        callbacks.addAll(host().get())
+        synchronized(listeners) {
+            listeners.clear()
+            listeners.addAll(host().get())
+        }
     }
 
     operator fun invoke() =
         buffer
             .getOrSet { DatagramPacket(ByteArray(bufferSize), bufferSize) }
             .apply(socket.default::receive)
-            .let { SimpleInputStream(it.data, it.length) }
+            .let { SimpleInputStream(core = it.data, end = it.length) }
             .run {
                 readEnd().takeIf { it != name.value }
                     ?.let {
                         RemotePacket(
                             sender = it,
                             command = read().toByte(),
-                            seqNumber = zigzag(false),
+                            serial = zigzag(false),
                             payload = lookRest()
                         )
                     }
             }
             ?.also { pack ->
-                callbacks
+                listeners
                     .filter { UdpCmd[pack.command] in it.interest }
                     .forEach { it process pack }
             }

@@ -3,11 +3,11 @@ package org.mechdancer.remote
 import org.mechdancer.framework.RemoteHub
 import org.mechdancer.framework.dependency.must
 import org.mechdancer.framework.dependency.plusAssign
-import org.mechdancer.framework.remote.functions.address.AddressMonitor
-import org.mechdancer.framework.remote.functions.tcpconnection.CommonShortConnection
-import org.mechdancer.framework.remote.functions.tcpconnection.ShortConnectionClient
-import org.mechdancer.framework.remote.functions.tcpconnection.listen
-import org.mechdancer.framework.remote.functions.tcpconnection.say
+import org.mechdancer.framework.remote.modules.address.AddressMonitor
+import org.mechdancer.framework.remote.modules.tcpconnection.CommonShortConnection
+import org.mechdancer.framework.remote.modules.tcpconnection.ShortConnectionClient
+import org.mechdancer.framework.remote.modules.tcpconnection.listen
+import org.mechdancer.framework.remote.modules.tcpconnection.say
 import org.mechdancer.framework.remote.resources.Addresses
 import org.mechdancer.framework.remote.resources.TcpCmd.COMMON
 import org.mechdancer.remote.Dispatcher.launch

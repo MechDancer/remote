@@ -1,4 +1,4 @@
-package org.mechdancer.framework.remote.functions.multicast
+package org.mechdancer.framework.remote.modules.multicast
 
 import org.mechdancer.framework.dependency.AbstractModule
 import org.mechdancer.framework.dependency.get
@@ -37,8 +37,11 @@ class PacketSlicer(
     private val callbacks = mutableSetOf<MulticastListener>()
 
     override fun sync() {
-        callbacks.addAll(host().get())
-        callbacks.remove(this)
+        synchronized(callbacks) {
+            callbacks.clear()
+            callbacks.addAll(host().get())
+            callbacks.remove(this)
+        }
     }
 
     override val interest = INTEREST

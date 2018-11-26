@@ -1,4 +1,4 @@
-package org.mechdancer.framework.remote.functions.tcpconnection
+package org.mechdancer.framework.remote.modules.tcpconnection
 
 import org.mechdancer.framework.dependency.AbstractModule
 import org.mechdancer.framework.dependency.get
@@ -15,11 +15,16 @@ class ShortConnectionServer : AbstractModule() {
     private val listeners = mutableSetOf<ShortConnectionListener>()
 
     override fun sync() {
-        listeners
-            .apply { addAll(host().get()) }
-            .map { it.interest }
-            .run { flatten().distinct().size == sumBy { it.size } }
-            .let { if (!it) throw RuntimeException(REDUPLICATE_ERROR_MSG) }
+        synchronized(listeners) {
+            listeners
+                .apply {
+                    clear()
+                    addAll(host().get())
+                }
+                .flatMap { it.interest }
+                .takeIf { it.toSet().size == it.size }
+                ?: throw RuntimeException(REDUPLICATE_ERROR_MSG)
+        }
     }
 
     operator fun invoke(port: Int = 0) {

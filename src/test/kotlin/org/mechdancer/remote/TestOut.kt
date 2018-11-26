@@ -3,10 +3,10 @@ package org.mechdancer.remote
 import org.mechdancer.framework.dependency.must
 import org.mechdancer.framework.dependency.plusAssign
 import org.mechdancer.framework.dependency.scope
-import org.mechdancer.framework.remote.functions.GroupMonitor
-import org.mechdancer.framework.remote.functions.GroupRefresher
-import org.mechdancer.framework.remote.functions.multicast.MulticastBroadcaster
-import org.mechdancer.framework.remote.functions.multicast.MulticastReceiver
+import org.mechdancer.framework.remote.modules.GroupMonitor
+import org.mechdancer.framework.remote.modules.GroupRefresher
+import org.mechdancer.framework.remote.modules.multicast.MulticastBroadcaster
+import org.mechdancer.framework.remote.modules.multicast.MulticastReceiver
 import org.mechdancer.framework.remote.resources.Group
 import org.mechdancer.framework.remote.resources.MulticastSockets
 import org.mechdancer.framework.remote.resources.Name

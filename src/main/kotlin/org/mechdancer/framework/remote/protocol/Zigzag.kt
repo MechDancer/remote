@@ -34,16 +34,18 @@ fun <T : OutputStream> T.zigzag(
  * @param signed 是否带符号解码
  * @return 数字
  */
-infix fun InputStream.zigzag(signed: Boolean) =
-    ByteArrayOutputStream(9)
-        .apply {
-            var b: Int
-            do {
-                b = read()
-                write(b)
-            } while (b > 0x7f)
-        }
-        .toByteArray() zigzag signed
+infix fun InputStream.zigzag(signed: Boolean): Long {
+    var offset = 0
+    var result = 0L
+
+    do {
+        val b = read()
+        result = result or ((b and 0x7f).toLong() shl 7 * offset++)
+    } while (b > 0x7f)
+
+    return if (signed) (result ushr 1) xor -(result and 1)
+    else result
+}
 
 /**
  * 编码变长整数

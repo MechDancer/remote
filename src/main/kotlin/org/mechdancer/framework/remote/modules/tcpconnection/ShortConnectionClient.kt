@@ -1,10 +1,10 @@
-package org.mechdancer.framework.remote.functions.tcpconnection
+package org.mechdancer.framework.remote.modules.tcpconnection
 
 import org.mechdancer.framework.dependency.AbstractModule
 import org.mechdancer.framework.dependency.hashOf
 import org.mechdancer.framework.dependency.maybe
 import org.mechdancer.framework.dependency.must
-import org.mechdancer.framework.remote.functions.address.AddressMonitor
+import org.mechdancer.framework.remote.modules.address.AddressMonitor
 import org.mechdancer.framework.remote.resources.Addresses
 import java.net.InetSocketAddress
 import java.net.Socket

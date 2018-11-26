@@ -1,4 +1,4 @@
-package org.mechdancer.framework.remote.functions.multicast
+package org.mechdancer.framework.remote.modules.multicast
 
 import org.mechdancer.framework.dependency.AbstractModule
 import org.mechdancer.framework.dependency.hashOf
@@ -10,7 +10,6 @@ import org.mechdancer.framework.remote.resources.Name
 import org.mechdancer.framework.remote.resources.UdpCmd
 import org.mechdancer.framework.remote.resources.UdpCmd.ADDRESS_ACK
 import org.mechdancer.framework.remote.resources.UdpCmd.YELL_ACK
-import java.net.DatagramPacket
 import java.util.concurrent.atomic.AtomicLong
 
 /**
@@ -23,21 +22,19 @@ class MulticastBroadcaster : AbstractModule() {
     private val serial = AtomicLong(0)
 
     fun broadcast(cmd: UdpCmd, payload: ByteArray = ByteArray(0)) {
-        val me = name?.value ?: ""
+        val me = name?.value?.trim() ?: ""
 
-        if (me.isBlank() && (cmd == YELL_ACK || cmd == ADDRESS_ACK)) return
+        if (me.isEmpty() && (cmd == YELL_ACK || cmd == ADDRESS_ACK)) return
 
-        RemotePacket(
+        val packet = RemotePacket(
             sender = me,
             command = cmd.id,
-            seqNumber = serial.getAndIncrement(),
+            serial = serial.getAndIncrement(),
             payload = payload
-        )
-            .bytes
-            .let { DatagramPacket(it, it.size, sockets.address) }
-            .let { packet ->
-                sockets.view.values.forEach { it.send(packet) }
-            }
+        ).toDatagramPacket(sockets.address)
+
+        for (socket in sockets.view.values)
+            socket.send(packet)
     }
 
     override fun equals(other: Any?) = other is MulticastBroadcaster

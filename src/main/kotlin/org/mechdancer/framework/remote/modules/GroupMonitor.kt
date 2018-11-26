@@ -1,10 +1,10 @@
-package org.mechdancer.framework.remote.functions
+package org.mechdancer.framework.remote.modules
 
 import org.mechdancer.framework.dependency.AbstractModule
 import org.mechdancer.framework.dependency.hashOf
 import org.mechdancer.framework.dependency.must
-import org.mechdancer.framework.remote.functions.multicast.MulticastBroadcaster
-import org.mechdancer.framework.remote.functions.multicast.MulticastListener
+import org.mechdancer.framework.remote.modules.multicast.MulticastBroadcaster
+import org.mechdancer.framework.remote.modules.multicast.MulticastListener
 import org.mechdancer.framework.remote.protocol.RemotePacket
 import org.mechdancer.framework.remote.resources.Group
 import org.mechdancer.framework.remote.resources.UdpCmd

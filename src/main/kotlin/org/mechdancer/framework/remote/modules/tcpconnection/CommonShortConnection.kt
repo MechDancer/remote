@@ -1,4 +1,4 @@
-package org.mechdancer.framework.remote.functions.tcpconnection
+package org.mechdancer.framework.remote.modules.tcpconnection
 
 import org.mechdancer.framework.dependency.AbstractModule
 import org.mechdancer.framework.dependency.hashOf

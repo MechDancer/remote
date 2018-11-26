@@ -2,16 +2,16 @@ package org.mechdancer.framework
 
 import org.mechdancer.framework.dependency.plusAssign
 import org.mechdancer.framework.dependency.scope
-import org.mechdancer.framework.remote.functions.GroupMonitor
-import org.mechdancer.framework.remote.functions.GroupRefresher
-import org.mechdancer.framework.remote.functions.address.AddressBroadcaster
-import org.mechdancer.framework.remote.functions.address.AddressMonitor
-import org.mechdancer.framework.remote.functions.multicast.CommonMulticast
-import org.mechdancer.framework.remote.functions.multicast.MulticastBroadcaster
-import org.mechdancer.framework.remote.functions.multicast.MulticastReceiver
-import org.mechdancer.framework.remote.functions.multicast.PacketSlicer
-import org.mechdancer.framework.remote.functions.tcpconnection.ShortConnectionClient
-import org.mechdancer.framework.remote.functions.tcpconnection.ShortConnectionServer
+import org.mechdancer.framework.remote.modules.GroupMonitor
+import org.mechdancer.framework.remote.modules.GroupRefresher
+import org.mechdancer.framework.remote.modules.address.AddressBroadcaster
+import org.mechdancer.framework.remote.modules.address.AddressMonitor
+import org.mechdancer.framework.remote.modules.multicast.CommonMulticast
+import org.mechdancer.framework.remote.modules.multicast.MulticastBroadcaster
+import org.mechdancer.framework.remote.modules.multicast.MulticastReceiver
+import org.mechdancer.framework.remote.modules.multicast.PacketSlicer
+import org.mechdancer.framework.remote.modules.tcpconnection.ShortConnectionClient
+import org.mechdancer.framework.remote.modules.tcpconnection.ShortConnectionServer
 import org.mechdancer.framework.remote.resources.*
 import java.net.InetAddress
 import java.net.InetSocketAddress
