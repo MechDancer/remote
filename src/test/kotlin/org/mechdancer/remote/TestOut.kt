@@ -25,7 +25,7 @@ private object TestOut {
             this += GroupMonitor(::println)
             this += GroupRefresher()
 
-            val networks = Networks().apply { scan() }
+            val networks = Networks()
             this += MulticastSockets(ADDRESS).apply { networks.view.keys.forEach { this[it] } }
             this += MulticastBroadcaster()
             this += MulticastReceiver()

@@ -16,6 +16,10 @@ class Networks : ResourceFactory<NetworkInterface, Inet4Address> {
      */
     val view = object : Map<NetworkInterface, Inet4Address> by core {}
 
+    init {
+        scan()
+    }
+
     /**
      * 扫描全部 IP 地址
      * 耗时为亚秒级，谨慎使用
@@ -60,8 +64,9 @@ class Networks : ResourceFactory<NetworkInterface, Inet4Address> {
 
         fun isMono(it: Inet4Address) =
             it.address
-                ?.first()
-                ?.let { it + if (it >= 0) 0 else 256 }
-                ?.takeIf { it in 1..223 && it != 127 } != null
+                .first()
+                .toInt()
+                .and(0xff)
+                .let { it in 1..223 && it != 127 }
     }
 }
