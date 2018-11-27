@@ -14,7 +14,7 @@ import org.mechdancer.framework.remote.resources.UdpCmd.ADDRESS_ASK
  * 地址同步机制 1
  * 这个模块用于 TCP 连接的发起者
  * 依赖地址资源和组播收发功能
- * 将发起地址询问，更新地址资源
+ * 将发起地址询问并更新地址资源
  */
 class PortMonitor : AbstractModule(), MulticastListener {
 
@@ -30,10 +30,10 @@ class PortMonitor : AbstractModule(), MulticastListener {
         broadcaster.broadcast(ADDRESS_ASK.id, name.toByteArray())
 
     override fun process(remotePacket: RemotePacket) {
-        if (remotePacket.sender.isBlank()) return  // 忽略匿名终端的地址
+        val (sender, _, _, payload) = remotePacket
 
-        val (sender, _, _, payload) = remotePacket // 解包
-        addresses[sender] = payload(0) shl 8 or payload(1)
+        if (sender.isNotBlank()) // 忽略匿名终端的地址
+            addresses[sender] = payload(0) shl 8 or payload(1)
     }
 
     override fun equals(other: Any?) = other is PortMonitor

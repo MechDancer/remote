@@ -49,11 +49,8 @@ private object TestTcp {
                 Thread.sleep(1000)
             }
 
-            (connector connect "framework")!!.use { I ->
+            (connector.connect("framework", COMMON))!!.use { I ->
                 println("connected: ${I.remoteSocketAddress}")
-
-                I say COMMON
-
                 while (true) {
                     readLine()!!
                         .takeUnless { it == "over" }

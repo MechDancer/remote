@@ -1,6 +1,7 @@
 package org.mechdancer.framework.remote.resources
 
 import org.mechdancer.framework.dependency.ResourceFactory
+import org.mechdancer.framework.dependency.buildView
 import org.mechdancer.framework.dependency.hashOf
 import java.net.Inet4Address
 import java.net.NetworkInterface
@@ -10,11 +11,7 @@ import java.net.NetworkInterface
  */
 class Networks : ResourceFactory<NetworkInterface, Inet4Address> {
     private val core = mutableMapOf<NetworkInterface, Inet4Address>()
-
-    /**
-     * 浏览网络端口和 IP 地址映射表
-     */
-    val view = object : Map<NetworkInterface, Inet4Address> by core {}
+    val view = buildView(core)
 
     init {
         scan()

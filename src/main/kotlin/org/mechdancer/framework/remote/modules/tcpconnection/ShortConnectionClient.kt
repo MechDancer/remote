@@ -5,6 +5,7 @@ import org.mechdancer.framework.dependency.hashOf
 import org.mechdancer.framework.dependency.maybe
 import org.mechdancer.framework.dependency.must
 import org.mechdancer.framework.remote.resources.Addresses
+import org.mechdancer.framework.remote.resources.Command
 import java.net.Socket
 import java.net.SocketException
 
@@ -13,20 +14,21 @@ import java.net.SocketException
  */
 class ShortConnectionClient : AbstractModule() {
     private val addresses by must<Addresses>(host)
-    private val addressMonitor by maybe<PortMonitor>(host)
+    private val monitor by maybe<PortMonitor>(host)
 
     /**
      * 连接一个远端
      * @param name 远端名字
      */
-    infix fun connect(name: String): Socket? {
+    fun connect(name: String, cmd: Command): Socket? {
         val address = addresses[name] ?: return null
         val socket = Socket()
         try {
             socket.connect(address)
+            socket.say(cmd)
         } catch (e: SocketException) {
             addresses remove name
-            addressMonitor?.ask(name)
+            monitor?.ask(name)
             return null
         }
         return socket

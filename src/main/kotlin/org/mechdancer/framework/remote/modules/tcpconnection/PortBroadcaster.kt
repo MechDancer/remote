@@ -35,8 +35,7 @@ class PortBroadcaster : AbstractModule(), MulticastListener {
     }
 
     override fun equals(other: Any?) = other is PortBroadcaster
-    override fun hashCode() =
-        TYPE_HASH
+    override fun hashCode() = TYPE_HASH
 
     private companion object {
         val INTEREST = setOf(ADDRESS_ASK)

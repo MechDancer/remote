@@ -53,3 +53,9 @@ operator fun DynamicScope.plusAssign(dependency: Dependency) {
  */
 fun scope(block: DynamicScope.() -> Unit) =
     DynamicScope().apply(block).apply { sync() }
+
+/**
+ * 构造映射浏览器
+ */
+internal fun <T, U> buildView(map: Map<T, U>) =
+    object : Map<T, U> by map {}

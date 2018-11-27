@@ -1,6 +1,7 @@
 package org.mechdancer.framework.remote.resources
 
 import org.mechdancer.framework.dependency.ResourceFactory
+import org.mechdancer.framework.dependency.buildView
 import org.mechdancer.framework.dependency.hashOf
 import java.net.InetSocketAddress
 import java.net.MulticastSocket
@@ -15,11 +16,7 @@ class MulticastSockets(
     val address: InetSocketAddress
 ) : ResourceFactory<NetworkInterface, MulticastSocket> {
     private val core = ConcurrentHashMap<NetworkInterface, MulticastSocket>()
-
-    /**
-     * 浏览所有组播套接字
-     */
-    val view = object : Map<NetworkInterface, MulticastSocket> by core {}
+    val view = buildView(core)
 
     /**
      * 默认套接字

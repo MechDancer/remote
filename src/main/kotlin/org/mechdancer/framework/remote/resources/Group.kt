@@ -1,6 +1,7 @@
 package org.mechdancer.framework.remote.resources
 
 import org.mechdancer.framework.dependency.ResourceMemory
+import org.mechdancer.framework.dependency.buildView
 import org.mechdancer.framework.dependency.hashOf
 import java.util.concurrent.ConcurrentHashMap
 
@@ -9,11 +10,7 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class Group : ResourceMemory<String, Long> {
     private val core = ConcurrentHashMap<String, Long>()
-
-    /**
-     * 浏览所有成员及其生存时间
-     */
-    val view = object : Map<String, Long> by core {}
+    val view = buildView(core)
 
     override fun update(parameter: String, resource: Long?): Long? =
         if (resource != null) core.put(parameter, resource)

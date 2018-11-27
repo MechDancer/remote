@@ -1,6 +1,7 @@
 package org.mechdancer.framework.remote.resources
 
 import org.mechdancer.framework.dependency.ResourceFactory
+import org.mechdancer.framework.dependency.buildView
 import org.mechdancer.framework.dependency.hashOf
 import java.net.ServerSocket
 import java.util.concurrent.ConcurrentHashMap
@@ -11,9 +12,9 @@ import java.util.concurrent.ConcurrentHashMap
 class ServerSockets(private val port: Int = 0) :
     ResourceFactory<Int, ServerSocket> {
     private val core = ConcurrentHashMap<Int, ServerSocket>()
+    val view = buildView(core)
 
     val default by lazy { ServerSocket(port) }
-    val view get() = core.values.toSet()
 
     /**
      * 获取或构造新的套接字资源
