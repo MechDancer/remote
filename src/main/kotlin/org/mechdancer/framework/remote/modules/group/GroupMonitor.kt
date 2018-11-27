@@ -1,4 +1,4 @@
-package org.mechdancer.framework.remote.modules
+package org.mechdancer.framework.remote.modules.group
 
 import org.mechdancer.framework.dependency.AbstractModule
 import org.mechdancer.framework.dependency.hashOf
@@ -21,7 +21,7 @@ class GroupMonitor(
     private val group by must<Group>(host)
     private val broadcaster by must<MulticastBroadcaster>(host)
 
-    fun yell() = broadcaster.broadcast(UdpCmd.YELL_ASK)
+    fun yell() = broadcaster.broadcast(UdpCmd.YELL_ASK.id)
 
     override val interest = INTEREST
 
@@ -32,7 +32,7 @@ class GroupMonitor(
             group.update(name, now()) ?: detected(name)
 
         if (cmd == UdpCmd.YELL_ASK.id) // 回应询问
-            broadcaster.broadcast(UdpCmd.YELL_ACK)
+            broadcaster.broadcast(UdpCmd.YELL_ACK.id)
     }
 
     override fun equals(other: Any?) = other is GroupMonitor

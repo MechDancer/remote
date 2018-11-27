@@ -68,7 +68,7 @@ class PacketSlicer(
                         writeFrom(stream, stream.available())
                     }
                     .core
-                    .let { broadcaster.broadcast(PACKET_SLICE, it) }
+                    .let { broadcaster.broadcast(PACKET_SLICE.id, it) }
                 return
             } else {
                 val length = size - s.size - i.size
@@ -79,7 +79,7 @@ class PacketSlicer(
                         writeFrom(stream, length)
                     }
                     .core
-                    .let { broadcaster.broadcast(PACKET_SLICE, it) }
+                    .let { broadcaster.broadcast(PACKET_SLICE.id, it) }
             }
         }
     }

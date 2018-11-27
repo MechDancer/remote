@@ -1,6 +1,6 @@
 package org.mechdancer.framework.remote.resources
 
-import org.mechdancer.framework.dependency.ResourceMemory
+import org.mechdancer.framework.dependency.Dependency
 import org.mechdancer.framework.dependency.hashOf
 import java.net.InetAddress
 import java.net.InetSocketAddress
@@ -8,47 +8,34 @@ import java.util.concurrent.ConcurrentHashMap
 
 /**
  * 地址资源
+ * 记录成员的地址和端口
  */
-class Addresses : ResourceMemory<String, InetSocketAddress> {
+class Addresses : Dependency {
+
     private val core = ConcurrentHashMap<String, InetSocketAddress>()
 
-    /**
-     * 仅更新 IP 地址
-     * 以前不知道 IP 地址或新获知的 IP 地址与之前的不同，更新 IP 地址
-     */
-    fun update(parameter: String, ip: InetAddress?) =
-        if (ip != null)
-            core.compute(parameter) { _, last ->
-                if (last?.address == ip) last
-                else InetSocketAddress(ip, 0)
-            }
-        else core.remove(parameter)
+    operator fun set(name: String, address: InetAddress) =
+        core.compute(name) { _, last ->
+            InetSocketAddress(address, last?.port ?: 0)
+        }
 
-    /**
-     * 更新 IP
-     */
-    override fun update(parameter: String, resource: InetSocketAddress?) =
-        if (resource != null) core.put(parameter, resource)
-        else core.remove(parameter)
+    operator fun set(name: String, port: Int) =
+        core.compute(name) { _, last ->
+            InetSocketAddress(
+                last?.address ?: InetAddress.getByAddress(ByteArray(0)),
+                port
+            )
+        }
 
-    /**
-     * 仅获取 IP 地址
-     */
-    fun getIp(parameter: String) = core[parameter]?.address
+    operator fun set(name: String, socket: InetSocketAddress) =
+        core.put(name, socket)
 
-    /**
-     * 获取 IP 和端口，若端口为 0 视作地址未知
-     */
-    override fun get(parameter: String) = core[parameter]?.takeIf { it.port != 0 }
+    operator fun get(name: String) =
+        core[name]?.takeUnless { it.port == 0 }
 
-    /**
-     * 使用特定地址并根据使用反馈决定是否删除记录
-     * @return 调用是否成功
-     */
-    fun check(name: String, block: (InetSocketAddress) -> Boolean): Boolean =
-        core[name]?.let { current ->
-            current.let(block).also { core.remove(name, current) }
-        } != true
+    infix fun remove(name: String) {
+        core.remove(name)
+    }
 
     override fun equals(other: Any?) = other is Addresses
     override fun hashCode() = TYPE_HASH

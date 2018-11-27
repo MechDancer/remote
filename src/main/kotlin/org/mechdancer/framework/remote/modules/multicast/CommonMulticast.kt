@@ -20,7 +20,7 @@ class CommonMulticast(
      * 发布通用广播
      * @param payload 数据负载
      */
-    infix fun broadcast(payload: ByteArray) = broadcaster.broadcast(UdpCmd.COMMON, payload)
+    infix fun broadcast(payload: ByteArray) = broadcaster.broadcast(UdpCmd.COMMON.id, payload)
 
     override val interest = INTEREST
 

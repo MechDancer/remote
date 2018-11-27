@@ -2,14 +2,14 @@ package org.mechdancer.framework
 
 import org.mechdancer.framework.dependency.plusAssign
 import org.mechdancer.framework.dependency.scope
-import org.mechdancer.framework.remote.modules.GroupMonitor
-import org.mechdancer.framework.remote.modules.GroupRefresher
-import org.mechdancer.framework.remote.modules.address.AddressBroadcaster
-import org.mechdancer.framework.remote.modules.address.AddressMonitor
+import org.mechdancer.framework.remote.modules.group.GroupMonitor
+import org.mechdancer.framework.remote.modules.group.GroupRefresher
 import org.mechdancer.framework.remote.modules.multicast.CommonMulticast
 import org.mechdancer.framework.remote.modules.multicast.MulticastBroadcaster
 import org.mechdancer.framework.remote.modules.multicast.MulticastReceiver
 import org.mechdancer.framework.remote.modules.multicast.PacketSlicer
+import org.mechdancer.framework.remote.modules.tcpconnection.PortBroadcaster
+import org.mechdancer.framework.remote.modules.tcpconnection.PortMonitor
 import org.mechdancer.framework.remote.modules.tcpconnection.ShortConnectionClient
 import org.mechdancer.framework.remote.modules.tcpconnection.ShortConnectionServer
 import org.mechdancer.framework.remote.resources.*
@@ -53,8 +53,8 @@ class RemoteHub(
     // 监听套接字资源
     private val serverSockets = ServerSockets()
     // 组地址同步器
-    private val synchronizer1 = AddressBroadcaster()
-    private val synchronizer2 = AddressMonitor()
+    private val synchronizer1 = PortBroadcaster()
+    private val synchronizer2 = PortMonitor()
     // 短连接建立
     private val client = ShortConnectionClient()
     private val server = ShortConnectionServer()
@@ -85,14 +85,20 @@ class RemoteHub(
         // TCP 短连接
         this += server // 服务端
         this += client // 客户端
-
-        // 打开组播发送端
-        networks.scan()
-        networks.view.forEach { network, _ -> _sockets[network] }
     }
 
     // access
 
+    /**
+     * 打开所有网络端口
+     */
+    fun openAllNetwork() {
+        networks.view.forEach { network, _ -> _sockets[network] }
+    }
+
+    /**
+     * 调用刷新器刷新组成员
+     */
     infix fun refresh(timeout: Int) = refresher(timeout)
 
     /**

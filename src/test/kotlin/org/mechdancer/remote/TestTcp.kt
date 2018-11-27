@@ -3,11 +3,7 @@ package org.mechdancer.remote
 import org.mechdancer.framework.RemoteHub
 import org.mechdancer.framework.dependency.must
 import org.mechdancer.framework.dependency.plusAssign
-import org.mechdancer.framework.remote.modules.address.AddressMonitor
-import org.mechdancer.framework.remote.modules.tcpconnection.CommonShortConnection
-import org.mechdancer.framework.remote.modules.tcpconnection.ShortConnectionClient
-import org.mechdancer.framework.remote.modules.tcpconnection.listen
-import org.mechdancer.framework.remote.modules.tcpconnection.say
+import org.mechdancer.framework.remote.modules.tcpconnection.*
 import org.mechdancer.framework.remote.resources.Addresses
 import org.mechdancer.framework.remote.resources.TcpCmd.COMMON
 import org.mechdancer.remote.Dispatcher.launch
@@ -37,12 +33,15 @@ private object TestTcp {
         launch { remote() }
         launch { remote.accept() }
 
+        println("server started")
+
         with(RemoteHub("client")) {
+            openAllNetwork()
             launch { invoke() }
 
             // 询问
             val address = hub.must<Addresses>()
-            val synchronizer = hub.must<AddressMonitor>()
+            val synchronizer = hub.must<PortMonitor>()
             val connector = hub.must<ShortConnectionClient>()
 
             while (address["framework"] == null) {
