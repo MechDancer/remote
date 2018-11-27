@@ -34,7 +34,7 @@ fun <T : OutputStream> T.zigzag(
  * @param signed 是否带符号解码
  * @return 数字
  */
-infix fun InputStream.zigzag(signed: Boolean): Long {
+fun InputStream.zigzag(signed: Boolean): Long {
     var offset = 0
     var result = 0L
 
@@ -52,7 +52,7 @@ infix fun InputStream.zigzag(signed: Boolean): Long {
  * @param signed 是否带符号编码
  * @return 编码
  */
-infix fun Long.zigzag(signed: Boolean): ByteArray =
+fun Long.zigzag(signed: Boolean): ByteArray =
     ByteArrayOutputStream(9)
         .zigzag(this, signed)
         .toByteArray()
@@ -62,7 +62,7 @@ infix fun Long.zigzag(signed: Boolean): ByteArray =
  * @param signed 是否带符号解码
  * @return 数字
  */
-infix fun ByteArray.zigzag(signed: Boolean): Long =
+fun ByteArray.zigzag(signed: Boolean): Long =
     foldRight(0L) { byte, acc ->
         acc shl 7 or ((byte and 0x7f).toLong())
     }.let {

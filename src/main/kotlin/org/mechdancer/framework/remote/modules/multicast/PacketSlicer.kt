@@ -18,8 +18,7 @@ import java.util.concurrent.atomic.AtomicLong
  * 数据包分片协议
  */
 class PacketSlicer(
-    private val size: Int = 65536,
-    private val timeout: Int = 10000
+    private val size: Int = 0x4000 // 16kB
 ) : AbstractModule(), MulticastListener {
 
     init {
@@ -51,36 +50,36 @@ class PacketSlicer(
      */
     fun broadcast(cmd: Command, payload: ByteArray) {
         val stream = SimpleInputStream(payload)
-        val s = sequence.getAndIncrement() zigzag false
+        val s = sequence.getAndIncrement().zigzag(false)
         var index = 0L // 包序号
-        while (true) {
-            val i = index++ zigzag false
+
+        while (stream.available() > 0) {
+            // 编码子包序号
+            val i = index++.zigzag(false)
             // 如果是最后一包，应该多长?
             val last = stream.available() + 2 + s.size + i.size
-            // 确实是最后一包！
-            if (last <= size) {
-                SimpleOutputStream(last)
-                    .apply {
-                        write(0)      // 空一位作为停止位
-                        write(cmd.id) // 保存实际指令
-                        write(s)
-                        write(i)
-                        writeFrom(stream, stream.available())
-                    }
-                    .core
-                    .let { broadcaster.broadcast(PACKET_SLICE.id, it) }
-                return
-            } else {
-                val length = size - s.size - i.size
-                SimpleOutputStream(size)
-                    .apply {
-                        write(s)
-                        write(i)
-                        writeFrom(stream, length)
-                    }
-                    .core
-                    .let { broadcaster.broadcast(PACKET_SLICE.id, it) }
-            }
+            // 打包
+            val pack =
+                if (last <= size) {
+                    SimpleOutputStream(last)
+                        .apply {
+                            write(0)      // 空一位作为停止位
+                            write(cmd.id) // 保存实际指令
+                            write(s)
+                            write(i)
+                            writeFrom(stream, stream.available())
+                        }
+                } else {
+                    val length = size - s.size - i.size
+                    SimpleOutputStream(size)
+                        .apply {
+                            write(s)
+                            write(i)
+                            writeFrom(stream, length)
+                        }
+                }
+
+            broadcaster.broadcast(PACKET_SLICE.id, pack.core)
         }
     }
 
@@ -93,9 +92,9 @@ class PacketSlicer(
                 ?.skip(1)                       // 跳过停止位和指令位
                 ?.read()
                 ?.toByte()
-        val subSeq = stream zigzag false // 解子包序列号
-        val index = stream zigzag false  // 解子包序号
-        val rest = stream.lookRest()     // 解子包负载
+        val subSeq = stream.zigzag(false) // 解子包序列号
+        val index = stream.zigzag(false)  // 解子包序号
+        val rest = stream.lookRest()      // 解子包负载
 
         when { // 这是第一包也是最后一包 => 只有一包 => 不进缓存
             index == 0L && cmd != null -> cmd to rest
@@ -116,9 +115,9 @@ class PacketSlicer(
     }
 
     /**
-     * 清理缓冲区
+     * 清理缓冲中最后活跃时间超过 [timeout]ms 的数据包
      */
-    fun refresh() {
+    fun refresh(timeout: Int) {
         val now = System.currentTimeMillis()
         buffers // 删除超时包
             .filterValues { it by now > timeout }
@@ -139,8 +138,8 @@ class PacketSlicer(
     private class Buffer {
         private var time = System.currentTimeMillis()
 
-        private val list = mutableListOf<ByteArray?>()
-        private val mark = hashSetOf<Int>()
+        private val list = mutableListOf<Hook>()
+        private val mark = hashMapOf<Int, Hook>()
 
         private var command: Byte? = null
         private val done get() = command != null
@@ -163,34 +162,37 @@ class PacketSlicer(
             index: Int,
             payload: ByteArray
         ): Pair<Byte, ByteArray>? {
-            fun update() {
-                list[index] = payload
-                mark.remove(index)
-            }
-
             // 修改状态，加锁保护
             synchronized(this) {
-                if (done) update() else {
+                if (done) mark.remove(index)!!.ptr = payload
+                else {
                     command = cmd
+
                     for (i in list.size until index) {
-                        mark.add(i)
-                        list.add(null)
+                        val hook = Hook(null)
+                        mark[i] = hook
+                        list.add(hook)
                     }
-                    if (list.size != index) update()
-                    else list.add(payload)
+
+                    if (list.size != index)
+                        mark.remove(index)!!.ptr = payload
+                    else
+                        list.add(Hook(payload))
                 }
             }
 
             // 已经保存最后一包并且不缺包
             if (done && mark.isEmpty())
-                return command!! to SimpleOutputStream(list.sumBy { it!!.size })
-                    .apply { for (sub in list) write(sub!!) }
+                return command!! to SimpleOutputStream(list.sumBy { it.ptr!!.size })
+                    .apply { for (sub in list) write(sub.ptr!!) }
                     .core
 
             // 更新最后活跃时间
             time = System.currentTimeMillis()
             return null
         }
+
+        private class Hook(var ptr: ByteArray?)
     }
 
     private companion object {
