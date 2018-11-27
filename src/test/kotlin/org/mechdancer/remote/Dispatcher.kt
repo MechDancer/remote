@@ -6,12 +6,12 @@ internal object Dispatcher {
     /**
      * 在后台线程中循环执行
      */
-    fun launch(block: () -> Unit) =
+    fun launch(block: () -> Any?) =
         thread(isDaemon = true) { while (true) block() }
 
     /**
      * 在当前线程循环执行
      */
-    fun forever(block: () -> Unit) =
+    fun forever(block: () -> Any?) =
         run { while (true) block() }
 }

@@ -19,6 +19,7 @@ private object TestTcp {
             hub += CommonShortConnection {
                 while (!isClosed)
                     String(listen())
+                        .also { println("heard: $it") }
                         .takeUnless { it == "over" }
                         ?.let { "you said \"$it\"" }
                         ?.toByteArray()
@@ -30,8 +31,9 @@ private object TestTcp {
         }
 
         // 接收
-        launch { remote() }
-        launch { remote.accept() }
+        launch(remote::invoke)
+        launch(remote::accept)
+        launch(remote::accept)
 
         println("server started")
 
