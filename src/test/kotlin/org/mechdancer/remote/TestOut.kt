@@ -4,7 +4,6 @@ import org.mechdancer.framework.dependency.must
 import org.mechdancer.framework.dependency.plusAssign
 import org.mechdancer.framework.dependency.scope
 import org.mechdancer.framework.remote.modules.group.GroupMonitor
-import org.mechdancer.framework.remote.modules.group.GroupRefresher
 import org.mechdancer.framework.remote.modules.multicast.MulticastBroadcaster
 import org.mechdancer.framework.remote.modules.multicast.MulticastReceiver
 import org.mechdancer.framework.remote.resources.Group
@@ -18,12 +17,14 @@ import kotlin.concurrent.thread
 private object TestOut {
     @JvmStatic
     fun main(args: Array<String>) {
+        val group = Group()
+        val monitor = GroupMonitor(::println)
+
         val scope = scope {
             this += Name("Kotlin")
 
-            this += Group()
-            this += GroupMonitor(::println)
-            this += GroupRefresher()
+            this += group
+            this += monitor
 
             val networks = Networks()
             this += MulticastSockets(ADDRESS).apply { networks.view.keys.forEach { this[it] } }
@@ -31,11 +32,14 @@ private object TestOut {
             this += MulticastReceiver()
         }
 
-        val refresher = scope.must<GroupRefresher>()
         val receiver = scope.must<MulticastReceiver>()
 
         thread {
-            while (true) println("members: ${refresher(500)}")
+            while (true) {
+                monitor.yell()
+                Thread.sleep(500)
+                println("members: ${group[550]}")
+            }
         }
 
         while (true) receiver()

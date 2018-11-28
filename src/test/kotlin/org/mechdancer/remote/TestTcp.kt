@@ -1,10 +1,10 @@
 package org.mechdancer.remote
 
-import org.mechdancer.framework.RemoteHub
-import org.mechdancer.framework.dependency.must
 import org.mechdancer.framework.dependency.plusAssign
-import org.mechdancer.framework.remote.modules.tcpconnection.*
-import org.mechdancer.framework.remote.resources.Addresses
+import org.mechdancer.framework.remote.RemoteHub
+import org.mechdancer.framework.remote.modules.tcpconnection.CommonShortConnection
+import org.mechdancer.framework.remote.modules.tcpconnection.listen
+import org.mechdancer.framework.remote.modules.tcpconnection.say
 import org.mechdancer.framework.remote.resources.TcpCmd.COMMON
 import org.mechdancer.remote.Dispatcher.launch
 
@@ -42,16 +42,12 @@ private object TestTcp {
             launch { invoke() }
 
             // 询问
-            val address = hub.must<Addresses>()
-            val synchronizer = hub.must<PortMonitor>()
-            val connector = hub.must<ShortConnectionClient>()
-
-            while (address["framework"] == null) {
-                synchronizer ask "framework"
+            while (this["framework"] == null) {
+                ask("framework")
                 Thread.sleep(1000)
             }
 
-            (connector.connect("framework", COMMON))!!.use { I ->
+            (connect("framework", COMMON))!!.use { I ->
                 println("connected: ${I.remoteSocketAddress}")
                 while (true) {
                     readLine()!!

@@ -1,9 +1,8 @@
-package org.mechdancer.framework
+package org.mechdancer.framework.remote
 
 import org.mechdancer.framework.dependency.plusAssign
 import org.mechdancer.framework.dependency.scope
 import org.mechdancer.framework.remote.modules.group.GroupMonitor
-import org.mechdancer.framework.remote.modules.group.GroupRefresher
 import org.mechdancer.framework.remote.modules.multicast.CommonMulticast
 import org.mechdancer.framework.remote.modules.multicast.MulticastBroadcaster
 import org.mechdancer.framework.remote.modules.multicast.MulticastReceiver
@@ -31,8 +30,6 @@ class RemoteHub(
     private val group = Group()
     // 组成员管理
     private val monitor = GroupMonitor(newMemberDetected)
-    // 组成员定时监视
-    private val refresher = GroupRefresher()
 
     private val networks = Networks()
     // 组播套接字
@@ -66,7 +63,6 @@ class RemoteHub(
         // 组成员管理
         this += group     // 成员存在性资源
         this += monitor   // 组成员管理
-        this += refresher // 组成员定时监视
 
         // 组播
         this += networks    // 本机网络端口资源
@@ -89,50 +85,35 @@ class RemoteHub(
 
     // access
 
-    /**
-     * 打开所有网络端口
-     */
-    fun openAllNetwork() {
-        networks.view.forEach { network, _ -> _sockets[network] }
-    }
+    /** 打开所有网络端口 */
+    fun openAllNetwork() = networks.view.forEach { network, _ -> _sockets[network] }
 
-    /**
-     * 调用刷新器刷新组成员
-     */
-    infix fun refresh(timeout: Int) = refresher(timeout)
+    /** 查看超时时间 [timeout] 内出现的组成员 */
+    operator fun get(timeout: Int) = group[timeout]
 
-    /**
-     * 查看超时时间内出现的成员
-     */
-    infix fun membersBy(timeout: Int) = group[timeout]
-
-    /**
-     * 查看所有打开的组播套接字
-     */
-    val sockets get() = _sockets.view
+    /** 查看远端 [name] 的地址和端口 */
+    operator fun get(name: String) = addresses[name]
 
     // function
 
-    /**
-     * 请求自证存在性
-     */
+    /** 请求自证存在性 */
     fun yell() = monitor.yell()
 
-    /**
-     * 发送通用广播
-     */
+    /** 发送通用广播 */
     infix fun broadcast(payload: ByteArray) = common broadcast payload
+
+    /** 主动询问一个远端的端口 */
+    infix fun ask(name: String) = synchronizer2 ask name
+
+    /** 使用指令 [cmd] 连接到一个远端 [name] */
+    fun connect(name: String, cmd: Command) = client.connect(name, cmd)
 
     // service
 
-    /**
-     * 阻塞等待 UDP 报文
-     */
+    /** 阻塞等待 UDP 报文 */
     operator fun invoke() = receiver()
 
-    /**
-     * 阻塞等待 TCP 连接
-     */
+    /** 阻塞等待 TCP 连接 */
     fun accept() = server()
 
     private companion object {
