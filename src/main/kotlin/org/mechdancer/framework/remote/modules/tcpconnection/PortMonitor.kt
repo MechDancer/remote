@@ -30,7 +30,7 @@ class PortMonitor : AbstractModule(), MulticastListener {
         broadcaster.broadcast(ADDRESS_ASK.id, name.toByteArray())
 
     override fun process(remotePacket: RemotePacket) {
-        val (sender, _, _, payload) = remotePacket
+        val (sender, _, payload) = remotePacket
 
         if (sender.isNotBlank()) // 忽略匿名终端的地址
             addresses[sender] = payload(0) shl 8 or payload(1)

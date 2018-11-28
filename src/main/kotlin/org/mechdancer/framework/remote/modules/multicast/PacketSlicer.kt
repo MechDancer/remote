@@ -84,7 +84,7 @@ class PacketSlicer(
     }
 
     override fun process(remotePacket: RemotePacket) {
-        val (name, _, _, payload) = remotePacket
+        val (name, _, payload) = remotePacket
 
         val stream = SimpleInputStream(payload) // 构造流
         val cmd =
@@ -106,7 +106,7 @@ class PacketSlicer(
                         ?.also { buffers.remove(key) }
                 }
         }
-            ?.let { (cmd, payload) -> RemotePacket(name, cmd, subSeq, payload) }
+            ?.let { (cmd, payload) -> RemotePacket(name, cmd, payload) }
             ?.let { pack ->
                 callbacks
                     .filter { UdpCmd[pack.command] in it.interest }

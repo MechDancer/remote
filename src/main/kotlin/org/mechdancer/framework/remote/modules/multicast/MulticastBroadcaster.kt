@@ -9,7 +9,7 @@ import org.mechdancer.framework.remote.resources.MulticastSockets
 import org.mechdancer.framework.remote.resources.Name
 import org.mechdancer.framework.remote.resources.UdpCmd.ADDRESS_ACK
 import org.mechdancer.framework.remote.resources.UdpCmd.YELL_ACK
-import java.util.concurrent.atomic.AtomicLong
+import java.net.DatagramPacket
 
 /**
  * 组播发布者
@@ -17,8 +17,6 @@ import java.util.concurrent.atomic.AtomicLong
 class MulticastBroadcaster : AbstractModule() {
     private val name by maybe<Name>(host) // 可以匿名发送组播
     private val sockets by must<MulticastSockets>(host)
-
-    private val serial = AtomicLong(0)
 
     fun broadcast(cmd: Byte, payload: ByteArray = ByteArray(0)) {
         val me = name?.value?.trim() ?: ""
@@ -28,9 +26,8 @@ class MulticastBroadcaster : AbstractModule() {
         val packet = RemotePacket(
             sender = me,
             command = cmd,
-            serial = serial.getAndIncrement(),
             payload = payload
-        ).toDatagramPacket(sockets.address)
+        ).bytes.let { DatagramPacket(it, it.size, sockets.address) }
 
         for (socket in sockets.view.values)
             socket.send(packet)

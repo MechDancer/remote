@@ -4,7 +4,6 @@ import org.mechdancer.framework.dependency.*
 import org.mechdancer.framework.remote.protocol.RemotePacket
 import org.mechdancer.framework.remote.protocol.SimpleInputStream
 import org.mechdancer.framework.remote.protocol.readEnd
-import org.mechdancer.framework.remote.protocol.zigzag
 import org.mechdancer.framework.remote.resources.*
 import java.net.DatagramPacket
 import java.net.Inet4Address
@@ -53,7 +52,6 @@ class MulticastReceiver(private val bufferSize: Int = 65536) : AbstractModule() 
         return RemotePacket(
             sender = sender,
             command = stream.read().toByte(),
-            serial = stream.zigzag(false),
             payload = stream.lookRest()
         ).also { pack ->
             listeners
