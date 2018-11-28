@@ -21,7 +21,7 @@ class GroupMonitor(
     private val group by must<Group>(host)
     private val broadcaster by must<MulticastBroadcaster>(host)
 
-    fun yell() = broadcaster.broadcast(UdpCmd.YELL_ASK.id)
+    fun yell() = broadcaster.broadcast(UdpCmd.YELL_ASK)
 
     override val interest = INTEREST
 
@@ -32,7 +32,7 @@ class GroupMonitor(
             group.update(name, now()) ?: detected(name)
 
         if (cmd == UdpCmd.YELL_ASK.id) // 回应询问
-            broadcaster.broadcast(UdpCmd.YELL_ACK.id)
+            broadcaster.broadcast(UdpCmd.YELL_ACK)
     }
 
     override fun equals(other: Any?) = other is GroupMonitor

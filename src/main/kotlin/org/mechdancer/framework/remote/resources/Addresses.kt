@@ -2,7 +2,7 @@ package org.mechdancer.framework.remote.resources
 
 import org.mechdancer.framework.dependency.Dependency
 import org.mechdancer.framework.dependency.hashOf
-import java.net.InetAddress
+import java.net.Inet4Address
 import java.net.InetSocketAddress
 import java.util.concurrent.ConcurrentHashMap
 
@@ -14,7 +14,7 @@ class Addresses : Dependency {
 
     private val core = ConcurrentHashMap<String, InetSocketAddress>()
 
-    operator fun set(name: String, address: InetAddress) =
+    operator fun set(name: String, address: Inet4Address) =
         core.compute(name) { _, last ->
             InetSocketAddress(address, last?.port ?: 0)
         }
@@ -22,7 +22,7 @@ class Addresses : Dependency {
     operator fun set(name: String, port: Int) =
         core.compute(name) { _, last ->
             InetSocketAddress(
-                last?.address ?: InetAddress.getByAddress(ByteArray(0)),
+                last?.address ?: Inet4Address.getByAddress(ByteArray(0)),
                 port
             )
         }

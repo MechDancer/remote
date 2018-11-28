@@ -27,7 +27,7 @@ class PortMonitor : AbstractModule(), MulticastListener {
      * 向一个远端发送地址询问
      */
     infix fun ask(name: String) =
-        broadcaster.broadcast(ADDRESS_ASK.id, name.toByteArray())
+        broadcaster.broadcast(ADDRESS_ASK, name.toByteArray())
 
     override fun process(remotePacket: RemotePacket) {
         val (sender, _, payload) = remotePacket

@@ -79,7 +79,7 @@ class PacketSlicer(
                         }
                 }
 
-            broadcaster.broadcast(PACKET_SLICE.id, pack.core)
+            broadcaster.broadcast(PACKET_SLICE, pack.core)
         }
     }
 

@@ -5,6 +5,7 @@ import org.mechdancer.framework.dependency.hashOf
 import org.mechdancer.framework.dependency.maybe
 import org.mechdancer.framework.dependency.must
 import org.mechdancer.framework.remote.protocol.RemotePacket
+import org.mechdancer.framework.remote.resources.Command
 import org.mechdancer.framework.remote.resources.MulticastSockets
 import org.mechdancer.framework.remote.resources.Name
 import org.mechdancer.framework.remote.resources.UdpCmd.ADDRESS_ACK
@@ -18,14 +19,14 @@ class MulticastBroadcaster : AbstractModule() {
     private val name by maybe<Name>(host) // 可以匿名发送组播
     private val sockets by must<MulticastSockets>(host)
 
-    fun broadcast(cmd: Byte, payload: ByteArray = ByteArray(0)) {
+    fun broadcast(cmd: Command, payload: ByteArray = ByteArray(0)) {
         val me = name?.value?.trim() ?: ""
 
-        if (me.isEmpty() && (cmd == YELL_ACK.id || cmd == ADDRESS_ACK.id)) return
+        if (me.isEmpty() && (cmd == YELL_ACK || cmd == ADDRESS_ACK)) return
 
         val packet = RemotePacket(
             sender = me,
-            command = cmd,
+            command = cmd.id,
             payload = payload
         ).bytes.let { DatagramPacket(it, it.size, sockets.address) }
 

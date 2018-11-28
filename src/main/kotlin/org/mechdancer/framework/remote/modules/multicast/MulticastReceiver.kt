@@ -35,12 +35,12 @@ class MulticastReceiver(private val bufferSize: Int = 65536) : AbstractModule() 
             .getOrSet { DatagramPacket(ByteArray(bufferSize), bufferSize) }
             .apply(sockets.default::receive)
 
-        val address = packet.address as Inet4Address
-
         val stream = SimpleInputStream(core = packet.data, end = packet.length)
         val sender = stream.readEnd()
 
         if (sender == name?.value ?: "") return null
+
+        val address = packet.address as Inet4Address
 
         networks
             ?.view
@@ -72,9 +72,8 @@ class MulticastReceiver(private val bufferSize: Int = 65536) : AbstractModule() 
 
         infix fun InterfaceAddress.match(other: Inet4Address): Boolean {
             if (address == other) return true
-            val subWeb = address as? Inet4Address ?: return false
             val mask = Int.MAX_VALUE shl 32 - networkPrefixLength.toInt()
-            return other.toInt() and mask == subWeb.toInt() and mask
+            return other.toInt() and mask == (address as Inet4Address).toInt() and mask
         }
     }
 }

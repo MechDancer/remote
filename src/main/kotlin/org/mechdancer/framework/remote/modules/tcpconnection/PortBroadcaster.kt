@@ -29,7 +29,7 @@ class PortBroadcaster : AbstractModule(), MulticastListener {
 
         val port = servers.default.localPort
         broadcaster.broadcast(
-            ADDRESS_ACK.id,
+            ADDRESS_ACK,
             byteArrayOf((port shr 8).toByte(), port.toByte())
         )
     }
