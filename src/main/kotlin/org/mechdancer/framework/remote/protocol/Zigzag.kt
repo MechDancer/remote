@@ -53,7 +53,7 @@ fun InputStream.zigzag(signed: Boolean): Long {
  * @return 编码
  */
 fun Long.zigzag(signed: Boolean): ByteArray =
-    ByteArrayOutputStream(9)
+    ByteArrayOutputStream(10)
         .zigzag(this, signed)
         .toByteArray()
 

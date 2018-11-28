@@ -7,6 +7,7 @@ import org.mechdancer.framework.remote.protocol.readEnd
 import org.mechdancer.framework.remote.resources.*
 import java.net.DatagramPacket
 import java.net.Inet4Address
+import java.net.InterfaceAddress
 import kotlin.concurrent.getOrSet
 
 /**
@@ -36,16 +37,16 @@ class MulticastReceiver(private val bufferSize: Int = 65536) : AbstractModule() 
 
         val address = packet.address as Inet4Address
 
-        networks
-            ?.view
-            ?.toList()
-            ?.find { (_, address) -> address == address }
-            ?.let { (network, _) -> sockets[network] }
-
         val stream = SimpleInputStream(core = packet.data, end = packet.length)
         val sender = stream.readEnd()
 
         if (sender == name?.value ?: "") return null
+
+        networks
+            ?.view
+            ?.toList()
+            ?.find { (_, it) -> it match address }
+            ?.let { (network, _) -> sockets[network] }
 
         addresses?.set(sender, address)
 
@@ -65,5 +66,15 @@ class MulticastReceiver(private val bufferSize: Int = 65536) : AbstractModule() 
 
     private companion object {
         val TYPE_HASH = hashOf<MulticastReceiver>()
+
+        fun Inet4Address.toInt() = address
+            .fold(0) { acc, byte -> (acc shl 8) or (byte.toInt() and 0xff) }
+
+        infix fun InterfaceAddress.match(other: Inet4Address): Boolean {
+            if (address == other) return true
+            val subWeb = address as? Inet4Address ?: return false
+            val mask = Int.MAX_VALUE shl 32 - networkPrefixLength.toInt()
+            return other.toInt() and mask == subWeb.toInt() and mask
+        }
     }
 }

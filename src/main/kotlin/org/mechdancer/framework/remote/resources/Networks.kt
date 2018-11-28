@@ -4,13 +4,14 @@ import org.mechdancer.framework.dependency.ResourceFactory
 import org.mechdancer.framework.dependency.buildView
 import org.mechdancer.framework.dependency.hashOf
 import java.net.Inet4Address
+import java.net.InterfaceAddress
 import java.net.NetworkInterface
 
 /**
  * 网络端口扫描器
  */
-class Networks : ResourceFactory<NetworkInterface, Inet4Address> {
-    private val core = mutableMapOf<NetworkInterface, Inet4Address>()
+class Networks : ResourceFactory<NetworkInterface, InterfaceAddress> {
+    private val core = mutableMapOf<NetworkInterface, InterfaceAddress>()
     val view = buildView(core)
 
     init {
@@ -30,8 +31,9 @@ class Networks : ResourceFactory<NetworkInterface, Inet4Address> {
             .notLoopback()
             .notVirtual()
             .mapNotNull { network ->
-                network.interfaceAddresses
-                    .mapNotNull { it.address as? Inet4Address }
+                network
+                    .interfaceAddresses
+                    .filter { it.address is Inet4Address }
                     .singleOrNull(::isMono)
                     ?.let { network to it }
             }
@@ -59,8 +61,8 @@ class Networks : ResourceFactory<NetworkInterface, Inet4Address> {
                 it.isVirtual || check(it.name) || check(it.displayName)
             }
 
-        fun isMono(it: Inet4Address) =
-            it.address
+        fun isMono(it: InterfaceAddress) =
+            it.address.address
                 .first()
                 .toInt()
                 .and(0xff)

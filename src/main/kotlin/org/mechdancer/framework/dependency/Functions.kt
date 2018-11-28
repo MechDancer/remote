@@ -33,7 +33,7 @@ inline fun <reified D : Dependency> DynamicScope.must(): D =
  * 构建一个每次检查依赖项的代理
  */
 inline fun <reified D : Dependency> maybe(crossinline block: () -> DynamicScope) =
-    Maybe { block().maybe<D>() }
+    lazy { block().maybe<D>() }
 
 /**
  * 构建一个严格要求依赖项的代理
