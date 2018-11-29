@@ -16,23 +16,21 @@ private object TestTcp {
             remoteHub("kotlin echo server") {
 
                 newMemberDetected {
-                    println("server detect $it")
+                    println("- server detect $it")
                 }
 
                 inAddition {
-                    CommonTcpServer {
-                        println("server accepted: $this")
+                    CommonTcpServer { client, I ->
+                        println("- server accepted: $client")
 
-                        while (!isClosed)
-                            String(listen())
-                                .also { println("server heard: \"$it\"") }
-                                .takeUnless { it == "over" }
-                                ?.let { "you said \"$it\"" }
-                                ?.toByteArray()
-                                ?.also(this::say)
+                        while (!I.isClosed)
+                            "\"${String(I.listen())}\""
+                                .takeUnless { it == "\"over\"" }
+                                ?.also { println("- server heard: $it") }
+                                ?.also { I say "you said $it".toByteArray() }
                                 ?: break
 
-                        println("server separate from $this")
+                        println("- server separate from $client")
                     }
                 }
             }
@@ -42,10 +40,10 @@ private object TestTcp {
         launch(remote::accept)
         launch(remote::accept)
 
-        println("server started")
+        println("- server started")
 
         remoteHub("kotlin").apply {
-            openAllNetwork()
+            openOneNetwork()
             launch { invoke() }
 
             var server: Socket?
@@ -61,7 +59,7 @@ private object TestTcp {
                         .also { I say it.toByteArray() }
                         .takeUnless { it == "over" }
                         ?: break
-                    println(String(I.listen()))
+                    println("server heard ${String(I.listen())}")
                 } while (true)
             }
         }

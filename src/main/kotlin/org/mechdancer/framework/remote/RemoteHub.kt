@@ -1,5 +1,6 @@
 package org.mechdancer.framework.remote
 
+import org.mechdancer.framework.dependency.Dependency
 import org.mechdancer.framework.dependency.plusAssign
 import org.mechdancer.framework.dependency.scope
 import org.mechdancer.framework.remote.modules.group.GroupMonitor
@@ -20,7 +21,8 @@ import java.util.*
  */
 class RemoteHub(
     name: String?,
-    newMemberDetected: (String) -> Unit
+    newMemberDetected: (String) -> Unit,
+    additional: Iterable<Dependency>
 ) {
     // UDP 依赖项
 
@@ -53,7 +55,7 @@ class RemoteHub(
     private val client = ShortConnectionClient()
     private val server = ShortConnectionServer()
 
-    val scope = scope {
+    private val scope = scope {
         // 名字
         this += Name(name ?: randomName())
 
@@ -77,12 +79,28 @@ class RemoteHub(
         // TCP 短连接
         this += server // 服务端
         this += client // 客户端
+
+        for (dependency in additional)
+            this += dependency
+
+        sync()
     }
 
     // access
 
-    /** 打开所有网络端口 */
-    fun openAllNetwork() = networks.view.forEach { network, _ -> sockets[network] }
+    /** 浏览全部依赖项 */
+    val modules get() = scope.dependencies
+
+    /**
+     * 尝试打开一个随机的网络端口，返回是否成功
+     * 若当前已有打开的网络端口则不进行任何操作
+     */
+    fun openOneNetwork() =
+        sockets.view.isNotEmpty()
+            || networks.view.keys.firstOrNull()?.also { sockets[it] } != null
+
+    /** 打开所有网络端口，返回实际打开的网络端口数量 */
+    fun openAllNetworks() = networks.view.keys.onEach { sockets[it] }.size
 
     /** 查看超时时间 [timeout] 内出现的组成员 */
     operator fun get(timeout: Int) = group[timeout]
@@ -97,6 +115,9 @@ class RemoteHub(
 
     /** 主动询问一个远端的端口 */
     infix fun ask(name: String) = synchronizer2 ask name
+
+    /** 使用指令 [cmd] 广播数据包 [payload] */
+    fun broadcast(cmd: Command, payload: ByteArray) = broadcaster.broadcast(cmd, payload)
 
     /** 使用指令 [cmd] 连接到一个远端 [name] */
     fun connect(name: String, cmd: Command) = client.connect(name, cmd)

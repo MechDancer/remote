@@ -9,19 +9,18 @@ import java.net.Socket
  * TCP 应答服务器
  */
 class DialogTcpServer(
-    private val block: (ByteArray) -> ByteArray
+    private val block: (String, ByteArray) -> ByteArray
 ) : AbstractModule(), ShortConnectionListener {
 
-    override val interest = INTEREST
+    override val interest = Dialog.id
 
-    override fun process(socket: Socket) =
-        with(socket) { say(block(listen())) }
+    override fun process(client: String, socket: Socket) =
+        with(socket) { say(block(client, listen())) }
 
     override fun equals(other: Any?) = other is DialogTcpServer
     override fun hashCode() = TYPE_HASH
 
     private companion object {
         val TYPE_HASH = hashOf<DialogTcpServer>()
-        val INTEREST = setOf(Dialog.id)
     }
 }

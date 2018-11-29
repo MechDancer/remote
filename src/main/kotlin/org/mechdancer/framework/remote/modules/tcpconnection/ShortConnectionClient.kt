@@ -6,6 +6,7 @@ import org.mechdancer.framework.dependency.maybe
 import org.mechdancer.framework.dependency.must
 import org.mechdancer.framework.remote.resources.Addresses
 import org.mechdancer.framework.remote.resources.Command
+import org.mechdancer.framework.remote.resources.Name
 import java.net.Socket
 import java.net.SocketException
 
@@ -13,17 +14,18 @@ import java.net.SocketException
  * 短连接客户端
  */
 class ShortConnectionClient : AbstractModule() {
+    private val name by must<Name>(dependencies)
     private val addresses by must<Addresses>(dependencies)
     private val monitor by maybe<PortMonitor>(dependencies)
 
     /**
      * 连接一个远端
-     * @param name 远端名字
+     * @param server 远端名字
      */
-    fun connect(name: String, cmd: Command): Socket? {
+    fun connect(server: String, cmd: Command): Socket? {
         val address =
-            addresses[name] ?: run {
-                monitor?.ask(name)
+            addresses[server] ?: run {
+                monitor?.ask(server)
                 return null
             }
 
@@ -32,10 +34,11 @@ class ShortConnectionClient : AbstractModule() {
             socket.also { I ->
                 I.connect(address)
                 I say cmd
+                I say name.value.toByteArray()
             }
         } catch (e: SocketException) {
-            addresses remove name
-            monitor?.ask(name)
+            addresses remove server
+            monitor?.ask(server)
             null
         }
     }

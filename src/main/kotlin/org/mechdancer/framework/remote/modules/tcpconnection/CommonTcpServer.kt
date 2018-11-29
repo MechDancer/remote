@@ -9,13 +9,13 @@ import java.net.Socket
  * 通用 TCP 服务器
  */
 class CommonTcpServer(
-    private val block: Socket.() -> Any?
+    private val block: (String, Socket) -> Any?
 ) : AbstractModule(), ShortConnectionListener {
 
-    override val interest = INTEREST
+    override val interest = COMMON.id
 
-    override fun process(socket: Socket) {
-        block(socket)
+    override fun process(client: String, socket: Socket) {
+        block(client, socket)
     }
 
     override fun equals(other: Any?) = other is CommonTcpServer
@@ -23,6 +23,5 @@ class CommonTcpServer(
 
     private companion object {
         val TYPE_HASH = hashOf<CommonTcpServer>()
-        val INTEREST = setOf(COMMON.id)
     }
 }

@@ -7,6 +7,6 @@ import java.net.Socket
  * 短连接监听者
  */
 interface ShortConnectionListener : FunctionModule {
-    val interest: Collection<Byte>
-    infix fun process(socket: Socket)
+    val interest: Byte
+    fun process(client: String, socket: Socket)
 }
