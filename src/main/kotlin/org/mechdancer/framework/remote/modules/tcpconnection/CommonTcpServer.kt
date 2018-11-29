@@ -6,9 +6,9 @@ import org.mechdancer.framework.remote.resources.TcpCmd.COMMON
 import java.net.Socket
 
 /**
- * 通用组播接收
+ * 通用 TCP 服务器
  */
-class CommonShortConnection(
+class CommonTcpServer(
     private val block: Socket.() -> Any?
 ) : AbstractModule(), ShortConnectionListener {
 
@@ -18,11 +18,11 @@ class CommonShortConnection(
         block(socket)
     }
 
-    override fun equals(other: Any?) = other is CommonShortConnection
+    override fun equals(other: Any?) = other is CommonTcpServer
     override fun hashCode() = TYPE_HASH
 
     private companion object {
-        val TYPE_HASH = hashOf<CommonShortConnection>()
+        val TYPE_HASH = hashOf<CommonTcpServer>()
         val INTEREST = setOf(COMMON.id)
     }
 }

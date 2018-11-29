@@ -4,6 +4,7 @@ package org.mechdancer.framework.remote.resources
  * TCP 协议指令
  */
 enum class TcpCmd(override val id: Byte) : Command {
+    Dialog(0),
     COMMON(127);
 
     companion object {

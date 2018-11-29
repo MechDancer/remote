@@ -3,7 +3,6 @@ package org.mechdancer.framework.remote
 import org.mechdancer.framework.dependency.plusAssign
 import org.mechdancer.framework.dependency.scope
 import org.mechdancer.framework.remote.modules.group.GroupMonitor
-import org.mechdancer.framework.remote.modules.multicast.CommonMulticast
 import org.mechdancer.framework.remote.modules.multicast.MulticastBroadcaster
 import org.mechdancer.framework.remote.modules.multicast.MulticastReceiver
 import org.mechdancer.framework.remote.modules.multicast.PacketSlicer
@@ -20,9 +19,8 @@ import java.util.*
  * 远程终端
  */
 class RemoteHub(
-    name: String? = null,
-    newMemberDetected: (String) -> Unit = {},
-    broadcastReceived: (String, ByteArray) -> Unit = { _, _ -> }
+    name: String?,
+    newMemberDetected: (String) -> Unit
 ) {
     // UDP 依赖项
 
@@ -31,15 +29,14 @@ class RemoteHub(
     // 组成员管理
     private val monitor = GroupMonitor(newMemberDetected)
 
+    // 网络接口资源
     private val networks = Networks()
     // 组播套接字
-    private val _sockets = MulticastSockets(ADDRESS)
-    // 组播广播器
+    private val sockets = MulticastSockets(ADDRESS)
+    // 组播发送器
     private val broadcaster = MulticastBroadcaster()
     // 组播接收器
     private val receiver = MulticastReceiver()
-    // 通用组播收发
-    private val common = CommonMulticast(broadcastReceived)
     // 组播分片协议
     private val slicer = PacketSlicer()
 
@@ -56,20 +53,19 @@ class RemoteHub(
     private val client = ShortConnectionClient()
     private val server = ShortConnectionServer()
 
-    val hub = scope {
+    val scope = scope {
         // 名字
         this += Name(name ?: randomName())
 
         // 组成员管理
-        this += group     // 成员存在性资源
-        this += monitor   // 组成员管理
+        this += group   // 成员存在性资源
+        this += monitor // 组成员管理
 
         // 组播
         this += networks    // 本机网络端口资源
-        this += _sockets    // 组播套接字资源
+        this += sockets     // 组播套接字资源
         this += broadcaster // 组播发送
         this += receiver    // 组播接收
-        this += common      // 通用组播收发
         this += slicer      // 组播分片协议
 
         // TCP 地址
@@ -86,7 +82,7 @@ class RemoteHub(
     // access
 
     /** 打开所有网络端口 */
-    fun openAllNetwork() = networks.view.forEach { network, _ -> _sockets[network] }
+    fun openAllNetwork() = networks.view.forEach { network, _ -> sockets[network] }
 
     /** 查看超时时间 [timeout] 内出现的组成员 */
     operator fun get(timeout: Int) = group[timeout]
@@ -98,9 +94,6 @@ class RemoteHub(
 
     /** 请求自证存在性 */
     fun yell() = monitor.yell()
-
-    /** 发送通用广播 */
-    infix fun broadcast(payload: ByteArray) = common broadcast payload
 
     /** 主动询问一个远端的端口 */
     infix fun ask(name: String) = synchronizer2 ask name
