@@ -48,7 +48,7 @@ class RemoteHub(
     // 组地址资源
     private val addresses = Addresses()
     // 监听套接字资源
-    private val serverSockets = ServerSockets()
+    private val servers = ServerSockets()
     // 组地址同步器
     private val synchronizer1 = PortBroadcaster()
     private val synchronizer2 = PortMonitor()
@@ -74,7 +74,7 @@ class RemoteHub(
 
         // TCP 地址
         this += addresses     // 地址资源
-        this += serverSockets // 监听套接字资源
+        this += servers       // 监听套接字资源
         this += synchronizer1 // 组地址同步器（答）
         this += synchronizer2 // 组地址同步器（问）
 

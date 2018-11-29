@@ -21,17 +21,23 @@ class ShortConnectionClient : AbstractModule() {
      * @param name 远端名字
      */
     fun connect(name: String, cmd: Command): Socket? {
-        val address = addresses[name] ?: return null
+        val address =
+            addresses[name] ?: run {
+                monitor?.ask(name)
+                return null
+            }
+
         val socket = Socket()
-        try {
-            socket.connect(address)
-            socket.say(cmd)
+        return try {
+            socket.also { I ->
+                I.connect(address)
+                I say cmd
+            }
         } catch (e: SocketException) {
             addresses remove name
             monitor?.ask(name)
-            return null
+            null
         }
-        return socket
     }
 
     override fun equals(other: Any?) = other is ShortConnectionClient

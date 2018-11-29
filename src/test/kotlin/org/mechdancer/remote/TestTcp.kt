@@ -7,16 +7,19 @@ import org.mechdancer.framework.remote.modules.tcpconnection.listen
 import org.mechdancer.framework.remote.modules.tcpconnection.say
 import org.mechdancer.framework.remote.resources.TcpCmd.COMMON
 import org.mechdancer.remote.Dispatcher.launch
+import java.net.Socket
 
 private object TestTcp {
     @JvmStatic
     fun main(args: Array<String>) {
         // 初始化
         val remote = RemoteHub(
-            name = "framework",
+            name = "kotlin echo server",
             newMemberDetected = ::println
         ).apply {
             hub += CommonShortConnection {
+                println("accepted: $this")
+
                 while (!isClosed)
                     String(listen())
                         .also { println("heard: $it") }
@@ -37,29 +40,24 @@ private object TestTcp {
 
         println("server started")
 
-        with(RemoteHub("client")) {
+        with(RemoteHub("kotlin")) {
             openAllNetwork()
             launch { invoke() }
 
-            // 询问
-            while (this["framework"] == null) {
-                ask("framework")
+            tailrec fun connect(): Socket {
+                connect("kotlin echo server", COMMON)?.let { return it }
                 Thread.sleep(1000)
+                return connect()
             }
 
-            (connect("framework", COMMON))!!.use { I ->
-                println("connected: ${I.remoteSocketAddress}")
+            connect().use { I ->
                 while (true) {
                     readLine()!!
+                        .also { I say it.toByteArray() }
                         .takeUnless { it == "over" }
-                        ?.toByteArray()
-                        ?.also(I::say)
                         ?: break
-                    String(I.listen())
-                        .also(::println)
+                    println(String(I.listen()))
                 }
-
-                I say "over".toByteArray()
             }
         }
     }
