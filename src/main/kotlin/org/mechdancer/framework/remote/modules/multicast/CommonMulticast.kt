@@ -34,6 +34,6 @@ class CommonMulticast(
 
     private companion object {
         val TYPE_HASH = hashOf<CommonMulticast>()
-        val INTEREST = setOf(COMMON)
+        val INTEREST = setOf(COMMON.id)
     }
 }

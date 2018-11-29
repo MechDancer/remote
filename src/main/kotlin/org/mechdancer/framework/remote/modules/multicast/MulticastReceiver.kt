@@ -4,7 +4,10 @@ import org.mechdancer.framework.dependency.*
 import org.mechdancer.framework.remote.protocol.RemotePacket
 import org.mechdancer.framework.remote.protocol.SimpleInputStream
 import org.mechdancer.framework.remote.protocol.readEnd
-import org.mechdancer.framework.remote.resources.*
+import org.mechdancer.framework.remote.resources.Addresses
+import org.mechdancer.framework.remote.resources.MulticastSockets
+import org.mechdancer.framework.remote.resources.Name
+import org.mechdancer.framework.remote.resources.Networks
 import java.net.DatagramPacket
 import java.net.Inet4Address
 import java.net.InterfaceAddress
@@ -56,7 +59,7 @@ class MulticastReceiver(private val bufferSize: Int = 65536) : AbstractModule() 
             payload = stream.lookRest()
         ).also { pack ->
             listeners
-                .filter { UdpCmd[pack.command] in it.interest }
+                .filter { pack.command in it.interest }
                 .forEach { it process pack }
         }
     }

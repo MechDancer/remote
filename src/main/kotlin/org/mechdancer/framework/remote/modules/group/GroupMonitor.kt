@@ -39,7 +39,7 @@ class GroupMonitor(
     override fun hashCode() = TYPE_HASH
 
     private companion object {
-        val INTEREST = setOf(YELL_ASK, YELL_ACK)
+        val INTEREST = setOf(YELL_ASK.id, YELL_ACK.id)
         val TYPE_HASH = hashOf<GroupMonitor>()
         fun now() = System.currentTimeMillis()
     }

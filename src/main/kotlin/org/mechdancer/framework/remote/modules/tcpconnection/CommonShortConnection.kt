@@ -23,6 +23,6 @@ class CommonShortConnection(
 
     private companion object {
         val TYPE_HASH = hashOf<CommonShortConnection>()
-        val INTEREST = setOf(COMMON)
+        val INTEREST = setOf(COMMON.id)
     }
 }

@@ -40,7 +40,7 @@ class PortMonitor : AbstractModule(), MulticastListener {
     override fun hashCode() = TYPE_HASH
 
     private companion object {
-        val INTEREST = setOf(ADDRESS_ACK)
+        val INTEREST = setOf(ADDRESS_ACK.id)
         val TYPE_HASH = hashOf<PortMonitor>()
         operator fun ByteArray.invoke(n: Int) = get(n).toInt() and 0xff
     }

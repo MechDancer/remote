@@ -9,7 +9,6 @@ import org.mechdancer.framework.remote.protocol.SimpleInputStream
 import org.mechdancer.framework.remote.protocol.SimpleOutputStream
 import org.mechdancer.framework.remote.protocol.zigzag
 import org.mechdancer.framework.remote.resources.Command
-import org.mechdancer.framework.remote.resources.UdpCmd
 import org.mechdancer.framework.remote.resources.UdpCmd.PACKET_SLICE
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
@@ -109,7 +108,7 @@ class PacketSlicer(
             ?.let { (cmd, payload) -> RemotePacket(name, cmd, payload) }
             ?.let { pack ->
                 callbacks
-                    .filter { UdpCmd[pack.command] in it.interest }
+                    .filter { pack.command in it.interest }
                     .forEach { it process pack }
             }
     }
@@ -197,7 +196,7 @@ class PacketSlicer(
 
     private companion object {
         val TYPE_HASH = hashOf<PacketSlicer>()
-        val INTEREST = setOf(PACKET_SLICE)
+        val INTEREST = setOf(PACKET_SLICE.id)
         const val LAST = 0.toByte()
     }
 }

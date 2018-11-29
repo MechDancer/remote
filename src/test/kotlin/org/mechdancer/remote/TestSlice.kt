@@ -55,7 +55,7 @@ private object TestSlice {
 
         // 通用协议接收
         this += object : AbstractModule(), MulticastListener {
-            override val interest = setOf(COMMON)
+            override val interest = setOf(COMMON.id)
             override fun process(remotePacket: RemotePacket) =
                 println(String(remotePacket.payload))
         }

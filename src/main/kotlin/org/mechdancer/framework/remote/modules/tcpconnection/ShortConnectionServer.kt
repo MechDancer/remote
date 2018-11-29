@@ -5,7 +5,6 @@ import org.mechdancer.framework.dependency.get
 import org.mechdancer.framework.dependency.hashOf
 import org.mechdancer.framework.dependency.must
 import org.mechdancer.framework.remote.resources.ServerSockets
-import org.mechdancer.framework.remote.resources.TcpCmd
 
 /**
  * 短连接服务器
@@ -32,7 +31,7 @@ class ShortConnectionServer : AbstractModule() {
             .accept()
             .use { socket ->
                 socket
-                    .listen { TcpCmd[it]!! }
+                    .listenCommand()
                     .let { cmd -> listeners.singleOrNull { cmd in it.interest } }
                     ?.process(socket)
             }

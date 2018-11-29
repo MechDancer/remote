@@ -11,8 +11,8 @@ infix fun Socket.say(cmd: Command) =
 infix fun Socket.say(byteArray: ByteArray) =
     getOutputStream().writeWithLength(byteArray)
 
-fun <T> Socket.listen(block: (Byte) -> T) =
-    getInputStream().read().toByte().let(block)
+fun Socket.listenCommand() =
+    getInputStream().read().toByte()
 
 fun Socket.listen() =
     getInputStream().readWithLength()
