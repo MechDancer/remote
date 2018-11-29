@@ -4,12 +4,10 @@ package org.mechdancer.framework.dependency
  * 抽象功能模块
  */
 abstract class AbstractModule : FunctionModule {
-    private lateinit var _dependencies: Set<Dependency>
-
-    protected val dependencies = { _dependencies }
+    lateinit var dependencies: Set<Dependency>
 
     override fun onSetup(dependencies: Set<Dependency>) {
-        _dependencies = dependencies
+        this.dependencies = dependencies
         sync()
     }
 

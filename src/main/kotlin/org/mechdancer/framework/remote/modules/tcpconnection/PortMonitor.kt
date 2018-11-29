@@ -18,8 +18,8 @@ import org.mechdancer.framework.remote.resources.UdpCmd.ADDRESS_ASK
  */
 class PortMonitor : AbstractModule(), MulticastListener {
 
-    private val broadcaster by must<MulticastBroadcaster>(dependencies)
-    private val addresses by must<Addresses>(dependencies)
+    private val broadcaster by must<MulticastBroadcaster>()
+    private val addresses by must<Addresses>()
 
     override val interest = INTEREST
 

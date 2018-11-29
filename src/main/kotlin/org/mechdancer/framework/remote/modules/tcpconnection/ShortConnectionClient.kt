@@ -14,9 +14,9 @@ import java.net.SocketException
  * 短连接客户端
  */
 class ShortConnectionClient : AbstractModule() {
-    private val name by must<Name>(dependencies)
-    private val addresses by must<Addresses>(dependencies)
-    private val monitor by maybe<PortMonitor>(dependencies)
+    private val name by must<Name>()
+    private val addresses by must<Addresses>()
+    private val monitor by maybe<PortMonitor>()
 
     /**
      * 连接一个远端

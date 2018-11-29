@@ -11,21 +11,21 @@ import org.mechdancer.framework.remote.resources.TcpCmd
  * 短连接服务器
  */
 class ShortConnectionServer : AbstractModule() {
-    private val servers by must<ServerSockets>(dependencies)
+    private val servers by must<ServerSockets>()
     private val mailListener = hashSetOf<MailListener>()
     private val connectionListeners = hashMapOf<Byte, ShortConnectionListener>()
 
     override fun sync() {
         synchronized(mailListener) {
             mailListener.clear()
-            dependencies()
+            dependencies
                 .get<MailListener>()
                 .let(mailListener::addAll)
         }
 
         synchronized(connectionListeners) {
             connectionListeners.clear()
-            dependencies()
+            dependencies
                 .get<ShortConnectionListener>()
                 .filterNot { it.interest == TcpCmd.Mail.id }
                 .associate { it.interest to it }

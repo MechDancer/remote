@@ -30,16 +30,16 @@ inline fun <reified D : Dependency> Set<Dependency>.must(): D =
     maybe() ?: throw DependencyNotExistException(D::class)
 
 /**
- * 构建一个每次检查依赖项的代理
+ * 构建一个宽松要求依赖项的代理
  */
-inline fun <reified D : Dependency> maybe(crossinline block: () -> Set<Dependency>) =
-    lazy { block().maybe<D>() }
+inline fun <reified D : Dependency> AbstractModule.maybe() =
+    lazy { dependencies.maybe<D>() }
 
 /**
  * 构建一个严格要求依赖项的代理
  */
-inline fun <reified D : Dependency> must(crossinline block: () -> Set<Dependency>) =
-    lazy { block().must<D>() }
+inline fun <reified D : Dependency> AbstractModule.must() =
+    lazy { dependencies.must<D>() }
 
 /**
  * 向动态域添加新的依赖项
