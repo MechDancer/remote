@@ -18,18 +18,18 @@ import kotlin.concurrent.getOrSet
  * @param bufferSize 缓冲区容量
  */
 class MulticastReceiver(private val bufferSize: Int = 65536) : AbstractModule() {
-    private val buffer = ThreadLocal<DatagramPacket>()        // 线程独立缓冲
-    private val name by maybe<Name>(host)                     // 过滤环路数据
-    private val sockets by must<MulticastSockets>(host)       // 接收套接字
-    private val listeners = mutableSetOf<MulticastListener>() // 处理回调
+    private val buffer = ThreadLocal<DatagramPacket>()          // 线程独立缓冲
+    private val name by maybe<Name>(dependencies)               // 过滤环路数据
+    private val sockets by must<MulticastSockets>(dependencies) // 接收套接字
+    private val listeners = mutableSetOf<MulticastListener>()   // 处理回调
 
-    private val networks by maybe<Networks>(host)   // 网络管理
-    private val addresses by maybe<Addresses>(host) // 地址管理
+    private val networks by maybe<Networks>(dependencies)   // 网络管理
+    private val addresses by maybe<Addresses>(dependencies) // 地址管理
 
     override fun sync() {
         synchronized(listeners) {
             listeners.clear()
-            listeners.addAll(host().get())
+            listeners.addAll(dependencies().get())
         }
     }
 

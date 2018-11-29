@@ -4,12 +4,12 @@ package org.mechdancer.framework.dependency
  * 抽象功能模块
  */
 abstract class AbstractModule : FunctionModule {
-    private lateinit var _host: DynamicScope
+    private lateinit var _dependencies: Set<Dependency>
 
-    protected val host = { _host }
+    protected val dependencies = { _dependencies }
 
-    override fun onSetup(host: DynamicScope) {
-        this._host = host
+    override fun onSetup(dependencies: Set<Dependency>) {
+        _dependencies = dependencies
         sync()
     }
 

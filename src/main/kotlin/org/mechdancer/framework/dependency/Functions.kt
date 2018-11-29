@@ -12,33 +12,33 @@ inline fun <reified D : Dependency> hashOf() =
  * 找到一种依赖项
  * @param D 依赖项类型
  */
-inline fun <reified D : Dependency> DynamicScope.get(): List<D> =
-    dependencies.mapNotNull { it as? D }
+inline fun <reified D : Dependency> Set<Dependency>.get(): List<D> =
+    mapNotNull { it as? D }
 
 /**
  * 找到一种依赖项
  * @param D 依赖项类型
  */
-inline fun <reified D : Dependency> DynamicScope.maybe(): D? =
+inline fun <reified D : Dependency> Set<Dependency>.maybe(): D? =
     get<D>().singleOrNull()
 
 /**
  * 找到一种依赖项
  * @param D 依赖项类型
  */
-inline fun <reified D : Dependency> DynamicScope.must(): D =
+inline fun <reified D : Dependency> Set<Dependency>.must(): D =
     maybe() ?: throw DependencyNotExistException(D::class)
 
 /**
  * 构建一个每次检查依赖项的代理
  */
-inline fun <reified D : Dependency> maybe(crossinline block: () -> DynamicScope) =
+inline fun <reified D : Dependency> maybe(crossinline block: () -> Set<Dependency>) =
     lazy { block().maybe<D>() }
 
 /**
  * 构建一个严格要求依赖项的代理
  */
-inline fun <reified D : Dependency> must(crossinline block: () -> DynamicScope) =
+inline fun <reified D : Dependency> must(crossinline block: () -> Set<Dependency>) =
     lazy { block().must<D>() }
 
 /**

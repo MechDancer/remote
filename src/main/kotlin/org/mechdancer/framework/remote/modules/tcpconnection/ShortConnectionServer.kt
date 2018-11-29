@@ -10,7 +10,7 @@ import org.mechdancer.framework.remote.resources.ServerSockets
  * 短连接服务器
  */
 class ShortConnectionServer : AbstractModule() {
-    private val servers by must<ServerSockets>(host)
+    private val servers by must<ServerSockets>(dependencies)
     private val listeners = mutableSetOf<ShortConnectionListener>()
 
     override fun sync() {
@@ -18,7 +18,7 @@ class ShortConnectionServer : AbstractModule() {
             listeners
                 .apply {
                     clear()
-                    addAll(host().get())
+                    addAll(dependencies().get())
                 }
                 .flatMap { it.interest }
                 .takeIf { it.toSet().size == it.size }

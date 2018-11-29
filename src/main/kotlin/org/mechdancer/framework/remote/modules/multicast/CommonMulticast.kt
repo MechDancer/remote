@@ -14,7 +14,7 @@ import org.mechdancer.framework.remote.resources.UdpCmd.COMMON
 class CommonMulticast(
     private val received: (String, ByteArray) -> Unit
 ) : AbstractModule(), MulticastListener {
-    private val broadcaster by must<MulticastBroadcaster>(host)
+    private val broadcaster by must<MulticastBroadcaster>(dependencies)
 
     /**
      * 发布通用广播

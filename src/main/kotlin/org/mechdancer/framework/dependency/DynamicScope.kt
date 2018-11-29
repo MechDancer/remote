@@ -20,7 +20,7 @@ class DynamicScope {
     infix fun setup(dependency: Dependency) =
         _dependencies
             .add(dependency)
-            .also { if (it) (dependency as? FunctionModule)?.onSetup(this) }
+            .also { if (it) (dependency as? FunctionModule)?.onSetup(dependencies) }
 
     /**
      * 重新同步依赖项

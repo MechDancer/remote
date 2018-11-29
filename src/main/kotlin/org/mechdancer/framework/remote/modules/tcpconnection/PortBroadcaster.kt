@@ -18,9 +18,9 @@ import org.mechdancer.framework.remote.resources.UdpCmd.ADDRESS_ASK
  */
 class PortBroadcaster : AbstractModule(), MulticastListener {
 
-    private val name by must<Name>(host)
-    private val broadcaster by must<MulticastBroadcaster>(host)
-    private val servers by must<ServerSockets>(host)
+    private val name by must<Name>(dependencies)
+    private val broadcaster by must<MulticastBroadcaster>(dependencies)
+    private val servers by must<ServerSockets>(dependencies)
 
     override val interest = INTEREST
 

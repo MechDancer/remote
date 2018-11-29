@@ -16,8 +16,8 @@ import java.net.DatagramPacket
  * 组播发布者
  */
 class MulticastBroadcaster : AbstractModule() {
-    private val name by maybe<Name>(host) // 可以匿名发送组播
-    private val sockets by must<MulticastSockets>(host)
+    private val name by maybe<Name>(dependencies) // 可以匿名发送组播
+    private val sockets by must<MulticastSockets>(dependencies)
 
     fun broadcast(cmd: Command, payload: ByteArray = ByteArray(0)) {
         val me = name?.value?.trim() ?: ""

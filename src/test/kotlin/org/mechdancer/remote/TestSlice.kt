@@ -25,16 +25,16 @@ private object TestSlice {
         val a = build("a")
         val b = build("b")
 
-        val receiver = b.must<MulticastReceiver>()
+        val receiver = b.dependencies.must<MulticastReceiver>()
 
         launch { receiver() }
 
         measureTimeMillis {
-            a.must<PacketSlicer>().broadcast(COMMON, LI_SAO.trimIndent().toByteArray())
+            a.dependencies.must<PacketSlicer>().broadcast(COMMON, LI_SAO.trimIndent().toByteArray())
         }.let(::println)
 
         measureTimeMillis {
-            a.must<PacketSlicer>().broadcast(COMMON, "12345".toByteArray())
+            a.dependencies.must<PacketSlicer>().broadcast(COMMON, "12345".toByteArray())
         }.let(::println)
 
         forever { }

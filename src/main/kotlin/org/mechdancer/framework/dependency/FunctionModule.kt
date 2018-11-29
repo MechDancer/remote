@@ -8,9 +8,8 @@ import kotlin.reflect.KClass
 interface FunctionModule : Dependency {
     /**
      * 加入动态域
-     * @param host 目标动态域
      */
-    infix fun onSetup(host: DynamicScope)
+    infix fun onSetup(dependencies: Set<Dependency>)
 
     /**
      * 重新同步依赖项
