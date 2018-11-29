@@ -34,7 +34,7 @@ class ShortConnectionClient : AbstractModule() {
             socket.also { I ->
                 I.connect(address)
                 I say cmd
-                I say name.value.toByteArray()
+                I say name.value
             }
         } catch (e: SocketException) {
             addresses remove server

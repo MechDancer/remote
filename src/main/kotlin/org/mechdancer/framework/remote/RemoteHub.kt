@@ -57,7 +57,7 @@ class RemoteHub(
 
     private val scope = scope {
         // 名字
-        this += Name(name ?: randomName())
+        this += Name(name ?: randomName)
 
         // 组成员管理
         this += group   // 成员存在性资源
@@ -82,8 +82,6 @@ class RemoteHub(
 
         for (dependency in additional)
             this += dependency
-
-        sync()
     }
 
     // access
@@ -97,10 +95,14 @@ class RemoteHub(
      */
     fun openOneNetwork() =
         sockets.view.isNotEmpty()
-            || networks.view.keys.firstOrNull()?.also { sockets[it] } != null
+            || null != networks.view.keys.firstOrNull()?.also { sockets[it] }
 
     /** 打开所有网络端口，返回实际打开的网络端口数量 */
-    fun openAllNetworks() = networks.view.keys.onEach { sockets[it] }.size
+    fun openAllNetworks(): Int {
+        for (network in networks.view.keys)
+            sockets[network]
+        return sockets.view.size
+    }
 
     /** 查看超时时间 [timeout] 内出现的组成员 */
     operator fun get(timeout: Int) = group[timeout]
@@ -132,6 +134,6 @@ class RemoteHub(
 
     private companion object {
         val ADDRESS = InetSocketAddress(InetAddress.getByName("233.33.33.33"), 23333)
-        fun randomName() = "RemoteHub[${UUID.randomUUID()}]"
+        val randomName get() = "RemoteHub[${UUID.randomUUID()}]"
     }
 }

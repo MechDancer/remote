@@ -1,23 +1,35 @@
 package org.mechdancer.framework.remote.modules.tcpconnection
 
 import org.mechdancer.framework.dependency.AbstractModule
+import org.mechdancer.framework.dependency.get
 import org.mechdancer.framework.dependency.hashOf
 import org.mechdancer.framework.dependency.must
 import org.mechdancer.framework.remote.resources.ServerSockets
+import org.mechdancer.framework.remote.resources.TcpCmd
 
 /**
  * 短连接服务器
  */
 class ShortConnectionServer : AbstractModule() {
     private val servers by must<ServerSockets>(dependencies)
-    private val listeners = hashMapOf<Byte, ShortConnectionListener>()
+    private val mailListener = hashSetOf<MailListener>()
+    private val connectionListeners = hashMapOf<Byte, ShortConnectionListener>()
 
     override fun sync() {
-        synchronized(listeners) {
+        synchronized(mailListener) {
+            mailListener.clear()
             dependencies()
-                .mapNotNull { it as? ShortConnectionListener }
+                .get<MailListener>()
+                .let(mailListener::addAll)
+        }
+
+        synchronized(connectionListeners) {
+            connectionListeners.clear()
+            dependencies()
+                .get<ShortConnectionListener>()
+                .filterNot { it.interest == TcpCmd.Mail.id }
                 .associate { it.interest to it }
-                .let(listeners::putAll)
+                .let(connectionListeners::putAll)
         }
     }
 
@@ -26,8 +38,17 @@ class ShortConnectionServer : AbstractModule() {
             .accept()
             .use { socket ->
                 val cmd = socket.listenCommand()
-                val client = String(socket.listen())
-                listeners[cmd]?.process(client, socket)
+                val client = socket.listenString()
+                when (cmd) {
+                    TcpCmd.Mail.id -> {
+                        val payload = socket.listen()
+                        for (listener in mailListener)
+                            listener.process(client, payload)
+                    }
+                    else           ->
+                        connectionListeners[cmd]
+                            ?.process(client, socket)
+                }
             }
     }
 
