@@ -30,6 +30,7 @@ class Networks : ResourceFactory<NetworkInterface, InterfaceAddress> {
             .filter(NetworkInterface::supportsMulticast)
             .notLoopback()
             .notVirtual()
+            .notDocker()
             .mapNotNull { network ->
                 network
                     .interfaceAddresses
@@ -59,6 +60,12 @@ class Networks : ResourceFactory<NetworkInterface, InterfaceAddress> {
             filterNot {
                 fun check(it: String) = "virtual" in it.toLowerCase()
                 it.isVirtual || check(it.name) || check(it.displayName)
+            }
+
+        fun Sequence<NetworkInterface>.notDocker() =
+            filterNot {
+                fun check(it: String) = "docker" in it.toLowerCase()
+                check(it.name) || check(it.displayName)
             }
 
         fun isMono(it: InterfaceAddress) =
