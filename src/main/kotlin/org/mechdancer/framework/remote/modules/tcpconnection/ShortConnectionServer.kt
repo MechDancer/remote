@@ -11,7 +11,7 @@ import kotlin.collections.set
  * 短连接服务器
  */
 class ShortConnectionServer : AbstractDependent() {
-    private val servers = must<ServerSockets>()
+    private val servers by must<ServerSockets>()
     private val mailListener = hashSetOf<MailListener>()
     private val listeners = hashMapOf<Byte, ShortConnectionListener>()
 
@@ -25,8 +25,7 @@ class ShortConnectionServer : AbstractDependent() {
     }
 
     operator fun invoke(port: Int = 0) {
-        servers
-            .field[port]!!
+        servers[port]!!
             .accept()
             .use { socket ->
                 val cmd = socket.listenCommand()

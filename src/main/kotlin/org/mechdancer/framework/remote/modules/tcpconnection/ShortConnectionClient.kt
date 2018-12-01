@@ -12,9 +12,9 @@ import java.net.SocketException
  * 短连接客户端
  */
 class ShortConnectionClient : AbstractDependent() {
-    private val name = must<Name>()
-    private val addresses = must<Addresses>()
-    private val monitor = maybe<PortMonitor>()
+    private val name by must<Name>()
+    private val addresses by must<Addresses>()
+    private val monitor by maybe<PortMonitor>()
 
     /**
      * 连接一个远端
@@ -22,8 +22,8 @@ class ShortConnectionClient : AbstractDependent() {
      */
     fun connect(server: String, cmd: Command): Socket? {
         val address =
-            addresses.field[server] ?: run {
-                monitor.field?.ask(server)
+            addresses[server] ?: run {
+                monitor?.ask(server)
                 return null
             }
 
@@ -32,11 +32,11 @@ class ShortConnectionClient : AbstractDependent() {
             socket.also { I ->
                 I.connect(address)
                 I say cmd
-                I say name.field.value
+                I say name.field
             }
         } catch (e: SocketException) {
-            addresses.field remove server
-            monitor.field?.ask(server)
+            addresses remove server
+            monitor?.ask(server)
             null
         }
     }

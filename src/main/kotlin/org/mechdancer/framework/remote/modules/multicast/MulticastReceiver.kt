@@ -21,12 +21,12 @@ import kotlin.concurrent.getOrSet
  */
 class MulticastReceiver(private val bufferSize: Int = 65536) : AbstractDependent() {
     private val buffer = ThreadLocal<DatagramPacket>()        // 线程独立缓冲
-    private val name = maybe<Name>()                          // 过滤环路数据
-    private val sockets = must<MulticastSockets>()            // 接收套接字
+    private val name by maybe<Name>()                          // 过滤环路数据
+    private val sockets by must<MulticastSockets>()            // 接收套接字
     private val listeners = mutableSetOf<MulticastListener>() // 处理回调
 
-    private val networks = maybe<Networks>()   // 网络管理
-    private val addresses = maybe<Addresses>() // 地址管理
+    private val networks by maybe<Networks>()   // 网络管理
+    private val addresses by maybe<Addresses>() // 地址管理
 
     override fun sync(dependency: Component): Boolean {
         super.sync(dependency)
@@ -37,22 +37,22 @@ class MulticastReceiver(private val bufferSize: Int = 65536) : AbstractDependent
     operator fun invoke(): RemotePacket? {
         val packet = buffer
             .getOrSet { DatagramPacket(ByteArray(bufferSize), bufferSize) }
-            .apply(sockets.field.default::receive)
+            .apply(sockets.default::receive)
 
         val stream = SimpleInputStream(core = packet.data, end = packet.length)
         val sender = stream.readEnd()
 
-        if (sender == name.field?.value ?: "") return null
+        if (sender == name?.field ?: "") return null
 
         val address = packet.address as Inet4Address
 
-        networks.field
+        networks
             ?.view
             ?.toList()
             ?.find { (_, it) -> it match address }
-            ?.let { (network, _) -> sockets.field[network] }
+            ?.let { (network, _) -> sockets[network] }
 
-        addresses.field?.set(sender, address)
+        addresses?.set(sender, address)
 
         return RemotePacket(
             sender = sender,

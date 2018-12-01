@@ -26,7 +26,7 @@ class PacketSlicer(
 
     // 发送
 
-    private val broadcaster = must<MulticastBroadcaster>()
+    private val broadcaster by must<MulticastBroadcaster>()
     private val sequence = AtomicLong(1) // 必须从 1 开始！0 用于指示最后一包！
 
     // 接收
@@ -76,7 +76,7 @@ class PacketSlicer(
                         }
                 }
 
-            broadcaster.field.broadcast(PACKET_SLICE, pack.core)
+            broadcaster.broadcast(PACKET_SLICE, pack.core)
         }
     }
 

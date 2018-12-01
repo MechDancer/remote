@@ -17,10 +17,10 @@ import org.mechdancer.framework.remote.resources.UdpCmd.YELL_ASK
 class GroupMonitor(
     private val detected: (String) -> Unit = {}
 ) : AbstractDependent(), MulticastListener {
-    private val group = must<Group>()
-    private val broadcaster = maybe<MulticastBroadcaster>()
+    private val group by must<Group>()
+    private val broadcaster by maybe<MulticastBroadcaster>()
 
-    fun yell() = broadcaster.field?.broadcast(UdpCmd.YELL_ASK)
+    fun yell() = broadcaster?.broadcast(UdpCmd.YELL_ASK)
 
     override val interest = INTEREST
 
@@ -28,10 +28,10 @@ class GroupMonitor(
         val (name, cmd) = remotePacket
 
         if (name.isNotBlank()) // 非匿名则保存名字
-            group.field.update(name, now()) ?: detected(name)
+            group.update(name, now()) ?: detected(name)
 
         if (cmd == UdpCmd.YELL_ASK.id) // 回应询问
-            broadcaster.field?.broadcast(UdpCmd.YELL_ACK)
+            broadcaster?.broadcast(UdpCmd.YELL_ACK)
     }
 
     override fun equals(other: Any?) = other is GroupMonitor
