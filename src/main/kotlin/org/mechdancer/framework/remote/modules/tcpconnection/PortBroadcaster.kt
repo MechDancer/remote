@@ -17,20 +17,15 @@ import org.mechdancer.framework.remote.resources.UdpCmd.ADDRESS_ASK
  */
 class PortBroadcaster : AbstractDependent(), MulticastListener {
 
-    private val name by must<Name>()
-    private val broadcaster by must<MulticastBroadcaster>()
-    private val servers by must<ServerSockets>()
+    private val name by must { it: Name -> it.field }
+    private val broadcast by must { it: MulticastBroadcaster -> it::broadcast }
+    private val port by must { it: ServerSockets -> it.default.localPort }
 
     override val interest = INTEREST
 
     override fun process(remotePacket: RemotePacket) {
-        if (String(remotePacket.payload) != name.field) return
-
-        val port = servers.default.localPort
-        broadcaster.broadcast(
-            ADDRESS_ACK,
-            byteArrayOf((port shr 8).toByte(), port.toByte())
-        )
+        if (String(remotePacket.payload) == name)
+            broadcast(ADDRESS_ACK, byteArrayOf((port shr 8).toByte(), port.toByte()))
     }
 
     override fun equals(other: Any?) = other is PortBroadcaster

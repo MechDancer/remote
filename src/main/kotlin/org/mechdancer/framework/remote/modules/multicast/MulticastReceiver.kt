@@ -3,6 +3,7 @@ package org.mechdancer.framework.remote.modules.multicast
 import org.mechdancer.framework.dependency.AbstractDependent
 import org.mechdancer.framework.dependency.Component
 import org.mechdancer.framework.dependency.hashOf
+import org.mechdancer.framework.remote.modules.group.Rule
 import org.mechdancer.framework.remote.protocol.RemotePacket
 import org.mechdancer.framework.remote.protocol.SimpleInputStream
 import org.mechdancer.framework.remote.protocol.readEnd
@@ -19,14 +20,23 @@ import kotlin.concurrent.getOrSet
  * 组播小包接收
  * @param bufferSize 缓冲区容量
  */
-class MulticastReceiver(private val bufferSize: Int = 65536) : AbstractDependent() {
-    private val buffer = ThreadLocal<DatagramPacket>()        // 线程独立缓冲
-    private val name by maybe<Name>()                          // 过滤环路数据
-    private val sockets by must<MulticastSockets>()            // 接收套接字
-    private val listeners = mutableSetOf<MulticastListener>() // 处理回调
+class MulticastReceiver(
+    private val bufferSize: Int = 65536,
+    private val rule: Rule = Rule()
+) : AbstractDependent() {
+    // 线程独立缓冲
+    private val buffer = ThreadLocal<DatagramPacket>()
+    // 过滤环路数据
+    private val name by maybe("") { it: Name -> it.field }
+    // 接收套接字
+    private val sockets by must<MulticastSockets>()
+    // 处理回调
+    private val listeners = mutableSetOf<MulticastListener>()
 
-    private val networks by maybe<Networks>()   // 网络管理
-    private val addresses by maybe<Addresses>() // 地址管理
+    // 网络管理
+    private val networks by maybe(null) { it: Networks -> it.view }
+    // 地址管理
+    private val addresses by maybe<Addresses>()
 
     override fun sync(dependency: Component): Boolean {
         super.sync(dependency)
@@ -42,12 +52,11 @@ class MulticastReceiver(private val bufferSize: Int = 65536) : AbstractDependent
         val stream = SimpleInputStream(core = packet.data, end = packet.length)
         val sender = stream.readEnd()
 
-        if (sender == name?.field ?: "") return null
+        if (sender == name || rule decline sender) return null
 
         val address = packet.address as Inet4Address
 
         networks
-            ?.view
             ?.toList()
             ?.find { (_, it) -> it match address }
             ?.let { (network, _) -> sockets[network] }

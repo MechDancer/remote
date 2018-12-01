@@ -34,6 +34,10 @@ private object TestSlice {
         }.let(::println)
 
         measureTimeMillis {
+            a.components.must<PacketSlicer>().broadcast(COMMON, LI_SAO.trimIndent().toByteArray())
+        }.let(::println)
+
+        measureTimeMillis {
             a.components.must<PacketSlicer>().broadcast(COMMON, "12345".toByteArray())
         }.let(::println)
 

@@ -6,13 +6,16 @@ import kotlin.reflect.full.safeCast
 
 /**
  * 类型 [T] 的依赖项
+ * 线程安全
  */
 sealed class AbstractDependency<T : Component>(val type: KClass<T>) {
     private val _field = AtomicReference<T?>(null)
+
+    /** 尝试置入值 [value]，若无法转换到目标类型则不产生作 */
     operator fun invoke(value: Component): T? = _field.updateAndGet { type.safeCast(value) ?: it }
 
+    /** 尝试获取值 */
     open val field: T? get() = _field.get()
-    open operator fun component1(): T? = field
 
     override fun equals(other: Any?) = this === other || (other as? AbstractDependency<*>)?.type == type
     override fun hashCode() = type.hashCode()
@@ -27,6 +30,5 @@ sealed class AbstractDependency<T : Component>(val type: KClass<T>) {
      */
     class Dependency<T : Component>(type: KClass<T>) : AbstractDependency<T>(type) {
         override val field: T get() = super.field ?: throw ComponentNotExistException(type)
-        override operator fun component1(): T = field
     }
 }

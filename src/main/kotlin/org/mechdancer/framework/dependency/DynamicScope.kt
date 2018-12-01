@@ -46,6 +46,7 @@ class DynamicScope {
                 }
             }
 
+    /** 线程安全的哈希集，仿照跳表集，基于映射构造 */
     private class ConcurrentHashSet<T : Any> {
         private object PlaceHolder
 

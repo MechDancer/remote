@@ -17,16 +17,13 @@ import org.mechdancer.framework.remote.resources.UdpCmd.ADDRESS_ASK
  */
 class PortMonitor : AbstractDependent(), MulticastListener {
 
-    private val broadcaster by must<MulticastBroadcaster>()
+    private val broadcast by must { it: MulticastBroadcaster -> it::broadcast }
     private val addresses by must<Addresses>()
 
     override val interest = INTEREST
 
-    /**
-     * 向一个远端发送地址询问
-     */
-    infix fun ask(name: String) =
-        broadcaster.broadcast(ADDRESS_ASK, name.toByteArray())
+    /** 向一个名为 [name] 的远端发送地址询问 */
+    infix fun ask(name: String) = broadcast(ADDRESS_ASK, name.toByteArray())
 
     override fun process(remotePacket: RemotePacket) {
         val (sender, _, payload) = remotePacket

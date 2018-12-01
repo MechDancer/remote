@@ -3,14 +3,16 @@ package org.mechdancer.framework.remote.modules.tcpconnection
 import org.mechdancer.framework.dependency.AbstractDependent
 import org.mechdancer.framework.dependency.Component
 import org.mechdancer.framework.dependency.hashOf
+import org.mechdancer.framework.remote.modules.group.Rule
 import org.mechdancer.framework.remote.resources.ServerSockets
 import org.mechdancer.framework.remote.resources.TcpCmd
+import org.mechdancer.framework.remote.resources.TcpFeedbackCmd
 import kotlin.collections.set
 
 /**
  * 短连接服务器
  */
-class ShortConnectionServer : AbstractDependent() {
+class ShortConnectionServer(private val rule: Rule = Rule()) : AbstractDependent() {
     private val servers by must<ServerSockets>()
     private val mailListener = hashSetOf<MailListener>()
     private val listeners = hashMapOf<Byte, ShortConnectionListener>()
@@ -30,7 +32,10 @@ class ShortConnectionServer : AbstractDependent() {
             .use { socket ->
                 val cmd = socket.listenCommand()
                 val client = socket.listenString()
-                when (cmd) {
+
+                if (rule decline client)
+                    socket say TcpFeedbackCmd.DECLINE
+                else when (cmd) {
                     TcpCmd.Mail.id -> {
                         val payload = socket.listen()
                         for (listener in mailListener)

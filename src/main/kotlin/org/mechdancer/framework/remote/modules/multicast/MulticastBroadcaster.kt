@@ -14,16 +14,14 @@ import java.net.DatagramPacket
  * 组播发布者
  */
 class MulticastBroadcaster : AbstractDependent() {
-    private val name by maybe<Name>() // 可以匿名发送组播
+    private val name by maybe("") { it: Name -> it.field } // 可以匿名发送组播
     private val sockets by must<MulticastSockets>()
 
     fun broadcast(cmd: Command, payload: ByteArray = ByteArray(0)) {
-        val me = name?.field ?: ""
-
-        if (me.isEmpty() && (cmd == YELL_ACK || cmd == ADDRESS_ACK)) return
+        if (name.isEmpty() && (cmd == YELL_ACK || cmd == ADDRESS_ACK)) return
 
         val packet = RemotePacket(
-            sender = me,
+            sender = name,
             command = cmd.id,
             payload = payload
         ).bytes.let { DatagramPacket(it, it.size, sockets.address) }
