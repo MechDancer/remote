@@ -1,6 +1,6 @@
 package org.mechdancer.framework.remote
 
-import org.mechdancer.framework.dependency.Dependency
+import org.mechdancer.framework.dependency.Component
 import org.mechdancer.framework.dependency.plusAssign
 import org.mechdancer.framework.dependency.scope
 import org.mechdancer.framework.remote.modules.group.GroupMonitor
@@ -22,7 +22,7 @@ import java.util.*
 class RemoteHub(
     name: String?,
     newMemberDetected: (String) -> Unit,
-    additional: Iterable<Dependency>
+    additional: Iterable<Component>
 ) {
     // UDP 依赖项
 
@@ -87,7 +87,7 @@ class RemoteHub(
     // access
 
     /** 浏览全部依赖项 */
-    val modules get() = scope.dependencies
+    val components get() = scope.components
 
     /**
      * 尝试打开一个随机的网络端口，返回是否成功

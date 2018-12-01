@@ -1,40 +1,32 @@
 package org.mechdancer.framework.remote.modules.tcpconnection
 
-import org.mechdancer.framework.dependency.AbstractModule
-import org.mechdancer.framework.dependency.get
+import org.mechdancer.framework.dependency.AbstractDependent
+import org.mechdancer.framework.dependency.Component
 import org.mechdancer.framework.dependency.hashOf
-import org.mechdancer.framework.dependency.must
 import org.mechdancer.framework.remote.resources.ServerSockets
 import org.mechdancer.framework.remote.resources.TcpCmd
+import kotlin.collections.set
 
 /**
  * 短连接服务器
  */
-class ShortConnectionServer : AbstractModule() {
-    private val servers by must<ServerSockets>()
+class ShortConnectionServer : AbstractDependent() {
+    private val servers = must<ServerSockets>()
     private val mailListener = hashSetOf<MailListener>()
-    private val connectionListeners = hashMapOf<Byte, ShortConnectionListener>()
+    private val listeners = hashMapOf<Byte, ShortConnectionListener>()
 
-    override fun sync() {
-        synchronized(mailListener) {
-            mailListener.clear()
-            dependencies
-                .get<MailListener>()
-                .let(mailListener::addAll)
-        }
-
-        synchronized(connectionListeners) {
-            connectionListeners.clear()
-            dependencies
-                .get<ShortConnectionListener>()
-                .filterNot { it.interest == TcpCmd.Mail.id }
-                .associate { it.interest to it }
-                .let(connectionListeners::putAll)
-        }
+    override fun sync(dependency: Component): Boolean {
+        super.sync(dependency)
+        if (dependency is MailListener)
+            mailListener.add(dependency)
+        if (dependency is ShortConnectionListener)
+            listeners[dependency.interest] = dependency
+        return false
     }
 
     operator fun invoke(port: Int = 0) {
-        servers[port]!!
+        servers
+            .field[port]!!
             .accept()
             .use { socket ->
                 val cmd = socket.listenCommand()
@@ -46,8 +38,7 @@ class ShortConnectionServer : AbstractModule() {
                             listener.process(client, payload)
                     }
                     else           ->
-                        connectionListeners[cmd]
-                            ?.process(client, socket)
+                        listeners[cmd]?.process(client, socket)
                 }
             }
     }

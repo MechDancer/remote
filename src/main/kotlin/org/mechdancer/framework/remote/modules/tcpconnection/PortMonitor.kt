@@ -1,8 +1,7 @@
 package org.mechdancer.framework.remote.modules.tcpconnection
 
-import org.mechdancer.framework.dependency.AbstractModule
+import org.mechdancer.framework.dependency.AbstractDependent
 import org.mechdancer.framework.dependency.hashOf
-import org.mechdancer.framework.dependency.must
 import org.mechdancer.framework.remote.modules.multicast.MulticastBroadcaster
 import org.mechdancer.framework.remote.modules.multicast.MulticastListener
 import org.mechdancer.framework.remote.protocol.RemotePacket
@@ -16,10 +15,10 @@ import org.mechdancer.framework.remote.resources.UdpCmd.ADDRESS_ASK
  * 依赖地址资源和组播收发功能
  * 将发起地址询问并更新地址资源
  */
-class PortMonitor : AbstractModule(), MulticastListener {
+class PortMonitor : AbstractDependent(), MulticastListener {
 
-    private val broadcaster by must<MulticastBroadcaster>()
-    private val addresses by must<Addresses>()
+    private val broadcaster = must<MulticastBroadcaster>()
+    private val addresses = must<Addresses>()
 
     override val interest = INTEREST
 
@@ -27,13 +26,13 @@ class PortMonitor : AbstractModule(), MulticastListener {
      * 向一个远端发送地址询问
      */
     infix fun ask(name: String) =
-        broadcaster.broadcast(ADDRESS_ASK, name.toByteArray())
+        broadcaster.field.broadcast(ADDRESS_ASK, name.toByteArray())
 
     override fun process(remotePacket: RemotePacket) {
         val (sender, _, payload) = remotePacket
 
         if (sender.isNotBlank()) // 忽略匿名终端的地址
-            addresses[sender] = payload(0) shl 8 or payload(1)
+            addresses.field[sender] = payload(0) shl 8 or payload(1)
     }
 
     override fun equals(other: Any?) = other is PortMonitor

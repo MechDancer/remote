@@ -1,9 +1,8 @@
 package org.mechdancer.framework.remote.modules.multicast
 
-import org.mechdancer.framework.dependency.AbstractModule
-import org.mechdancer.framework.dependency.get
+import org.mechdancer.framework.dependency.AbstractDependent
+import org.mechdancer.framework.dependency.Component
 import org.mechdancer.framework.dependency.hashOf
-import org.mechdancer.framework.dependency.must
 import org.mechdancer.framework.remote.protocol.RemotePacket
 import org.mechdancer.framework.remote.protocol.SimpleInputStream
 import org.mechdancer.framework.remote.protocol.SimpleOutputStream
@@ -12,13 +11,14 @@ import org.mechdancer.framework.remote.resources.Command
 import org.mechdancer.framework.remote.resources.UdpCmd.PACKET_SLICE
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
+import kotlin.collections.set
 
 /**
  * 数据包分片协议
  */
 class PacketSlicer(
     private val size: Int = 0x4000 // 16kB
-) : AbstractModule(), MulticastListener {
+) : AbstractDependent(), MulticastListener {
 
     init {
         assert(size in 16..65536)
@@ -26,20 +26,18 @@ class PacketSlicer(
 
     // 发送
 
-    private val broadcaster by must<MulticastBroadcaster>()
+    private val broadcaster = must<MulticastBroadcaster>()
     private val sequence = AtomicLong(1) // 必须从 1 开始！0 用于指示最后一包！
 
     // 接收
 
     private val buffers = ConcurrentHashMap<PackInfo, Buffer>()
-    private val callbacks = mutableSetOf<MulticastListener>()
+    private val listeners = mutableSetOf<MulticastListener>()
 
-    override fun sync() {
-        synchronized(callbacks) {
-            callbacks.clear()
-            callbacks.addAll(dependencies.get())
-            callbacks.remove(this)
-        }
+    override fun sync(dependency: Component): Boolean {
+        super.sync(dependency)
+        if (dependency is MulticastListener) listeners.add(dependency)
+        return false
     }
 
     override val interest = INTEREST
@@ -78,7 +76,7 @@ class PacketSlicer(
                         }
                 }
 
-            broadcaster.broadcast(PACKET_SLICE, pack.core)
+            broadcaster.field.broadcast(PACKET_SLICE, pack.core)
         }
     }
 
@@ -107,7 +105,7 @@ class PacketSlicer(
         }
             ?.let { (cmd, payload) -> RemotePacket(name, cmd, payload) }
             ?.let { pack ->
-                callbacks
+                listeners
                     .filter { pack.command in it.interest }
                     .forEach { it process pack }
             }

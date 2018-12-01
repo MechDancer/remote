@@ -1,6 +1,6 @@
 package org.mechdancer.framework.remote.modules.multicast
 
-import org.mechdancer.framework.dependency.AbstractModule
+import org.mechdancer.framework.dependency.AbstractDependent
 import org.mechdancer.framework.dependency.hashOf
 import org.mechdancer.framework.remote.protocol.RemotePacket
 import org.mechdancer.framework.remote.resources.UdpCmd.COMMON
@@ -11,7 +11,7 @@ import org.mechdancer.framework.remote.resources.UdpCmd.COMMON
  */
 class CommonUdpServer(
     private val received: (String, ByteArray) -> Unit
-) : AbstractModule(), MulticastListener {
+) : AbstractDependent(), MulticastListener {
     override val interest = INTEREST
 
     override fun process(remotePacket: RemotePacket) {

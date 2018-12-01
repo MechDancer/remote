@@ -1,9 +1,7 @@
 package org.mechdancer.framework.remote.modules.tcpconnection
 
-import org.mechdancer.framework.dependency.AbstractModule
+import org.mechdancer.framework.dependency.AbstractDependent
 import org.mechdancer.framework.dependency.hashOf
-import org.mechdancer.framework.dependency.maybe
-import org.mechdancer.framework.dependency.must
 import org.mechdancer.framework.remote.resources.Addresses
 import org.mechdancer.framework.remote.resources.Command
 import org.mechdancer.framework.remote.resources.Name
@@ -13,10 +11,10 @@ import java.net.SocketException
 /**
  * 短连接客户端
  */
-class ShortConnectionClient : AbstractModule() {
-    private val name by must<Name>()
-    private val addresses by must<Addresses>()
-    private val monitor by maybe<PortMonitor>()
+class ShortConnectionClient : AbstractDependent() {
+    private val name = must<Name>()
+    private val addresses = must<Addresses>()
+    private val monitor = maybe<PortMonitor>()
 
     /**
      * 连接一个远端
@@ -24,8 +22,8 @@ class ShortConnectionClient : AbstractModule() {
      */
     fun connect(server: String, cmd: Command): Socket? {
         val address =
-            addresses[server] ?: run {
-                monitor?.ask(server)
+            addresses.field[server] ?: run {
+                monitor.field?.ask(server)
                 return null
             }
 
@@ -34,11 +32,11 @@ class ShortConnectionClient : AbstractModule() {
             socket.also { I ->
                 I.connect(address)
                 I say cmd
-                I say name.value
+                I say name.field.value
             }
         } catch (e: SocketException) {
-            addresses remove server
-            monitor?.ask(server)
+            addresses.field remove server
+            monitor.field?.ask(server)
             null
         }
     }

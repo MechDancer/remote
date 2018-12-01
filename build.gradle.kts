@@ -24,7 +24,7 @@ apply {
 }
 
 group = "org.mechdancer"
-version = "0.2.0-rc-1"
+version = "0.2.1-dev-1"
 
 repositories {
 	mavenCentral()

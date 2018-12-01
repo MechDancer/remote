@@ -1,6 +1,6 @@
 package org.mechdancer.remote
 
-import org.mechdancer.framework.dependency.AbstractModule
+import org.mechdancer.framework.dependency.AbstractDependent
 import org.mechdancer.framework.dependency.must
 import org.mechdancer.framework.dependency.plusAssign
 import org.mechdancer.framework.dependency.scope
@@ -25,16 +25,16 @@ private object TestSlice {
         val a = build("a")
         val b = build("b")
 
-        val receiver = b.dependencies.must<MulticastReceiver>()
+        val receiver = b.components.must<MulticastReceiver>()
 
         launch { receiver() }
 
         measureTimeMillis {
-            a.dependencies.must<PacketSlicer>().broadcast(COMMON, LI_SAO.trimIndent().toByteArray())
+            a.components.must<PacketSlicer>().broadcast(COMMON, LI_SAO.trimIndent().toByteArray())
         }.let(::println)
 
         measureTimeMillis {
-            a.dependencies.must<PacketSlicer>().broadcast(COMMON, "12345".toByteArray())
+            a.components.must<PacketSlicer>().broadcast(COMMON, "12345".toByteArray())
         }.let(::println)
 
         forever { }
@@ -46,6 +46,7 @@ private object TestSlice {
 
         // 组播
         val networks = Networks()
+
         val sockets = MulticastSockets(ADDRESS)
         this += networks               // 本机网络资源
         this += sockets                // 组播套接字资源
@@ -54,14 +55,16 @@ private object TestSlice {
         this += PacketSlicer(1024)     // 分片器
 
         // 通用协议接收
-        this += object : AbstractModule(), MulticastListener {
+        this += object : AbstractDependent(), MulticastListener {
             override val interest = setOf(COMMON.id)
             override fun process(remotePacket: RemotePacket) =
                 println(String(remotePacket.payload))
+
+            override fun equals(other: Any?) = this === other
+            override fun hashCode() = javaClass.hashCode()
         }
 
-        networks.scan()
-        networks.view.forEach { network, _ -> sockets[network] }
+        networks.view.keys.forEach { sockets[it] }
     }
 
     private val ADDRESS = InetSocketAddress(InetAddress.getByName("238.88.88.88"), 23333)

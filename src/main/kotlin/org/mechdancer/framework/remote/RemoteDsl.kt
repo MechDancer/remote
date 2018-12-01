@@ -1,17 +1,17 @@
 package org.mechdancer.framework.remote
 
-import org.mechdancer.framework.dependency.Dependency
+import org.mechdancer.framework.dependency.Component
 
 /** 远程终端构建器 */
 class RemoteDsl private constructor() {
     private var newMemberDetected: (String) -> Unit = {}
-    private var dependencies = mutableListOf<Dependency>()
+    private var dependencies = mutableListOf<Component>()
 
     fun newMemberDetected(block: (String) -> Unit) {
         newMemberDetected = block
     }
 
-    fun inAddition(block: () -> Dependency) {
+    fun inAddition(block: () -> Component) {
         dependencies.add(block())
     }
 

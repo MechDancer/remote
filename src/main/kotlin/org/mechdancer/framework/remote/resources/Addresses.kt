@@ -1,6 +1,6 @@
 package org.mechdancer.framework.remote.resources
 
-import org.mechdancer.framework.dependency.Dependency
+import org.mechdancer.framework.dependency.Component
 import org.mechdancer.framework.dependency.hashOf
 import java.net.Inet4Address
 import java.net.InetSocketAddress
@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap
  * 地址资源
  * 记录成员的地址和端口
  */
-class Addresses : Dependency {
+class Addresses : Component {
 
     private val core = ConcurrentHashMap<String, InetSocketAddress>()
 

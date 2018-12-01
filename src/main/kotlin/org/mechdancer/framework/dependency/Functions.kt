@@ -1,58 +1,33 @@
 package org.mechdancer.framework.dependency
 
-import org.mechdancer.framework.dependency.FunctionModule.DependencyNotExistException
+/** 计算类型的哈希值 */
+inline fun <reified C : Component> hashOf() =
+    C::class.java.hashCode()
 
-/**
- * 计算资源工厂的哈希值
- */
-inline fun <reified D : Dependency> hashOf() =
-    D::class.java.hashCode()
+/** 找到一种 [C] 类型的依赖 */
+inline fun <reified C : Component> Set<Component>.get(): List<C> =
+    mapNotNull { it as? C }
 
-/**
- * 找到一种依赖项
- * @param D 依赖项类型
- */
-inline fun <reified D : Dependency> Set<Dependency>.get(): List<D> =
-    mapNotNull { it as? D }
+/** 找到一种 [C] 类型的依赖 */
+inline fun <reified C : Component> Set<Component>.maybe(): C? =
+    get<C>().singleOrNull()
 
-/**
- * 找到一种依赖项
- * @param D 依赖项类型
- */
-inline fun <reified D : Dependency> Set<Dependency>.maybe(): D? =
-    get<D>().singleOrNull()
-
-/**
- * 找到一种依赖项
- * @param D 依赖项类型
- */
-inline fun <reified D : Dependency> Set<Dependency>.must(): D =
-    maybe() ?: throw DependencyNotExistException(D::class)
-
-/**
- * 构建一个宽松要求依赖项的代理
- */
-inline fun <reified D : Dependency> AbstractModule.maybe() =
-    lazy { dependencies.maybe<D>() }
-
-/**
- * 构建一个严格要求依赖项的代理
- */
-inline fun <reified D : Dependency> AbstractModule.must() =
-    lazy { dependencies.must<D>() }
+/** 找到一种 [C] 类型的依赖 */
+inline fun <reified C : Component> Set<Component>.must(): C =
+    maybe() ?: throw ComponentNotExistException(C::class)
 
 /**
  * 向动态域添加新的依赖项
  */
-operator fun DynamicScope.plusAssign(dependency: Dependency) {
-    setup(dependency)
+operator fun DynamicScope.plusAssign(Component: Component) {
+    setup(Component)
 }
 
 /**
- * 构造动态域并扫描
+ * 构造动态域
  */
 fun scope(block: DynamicScope.() -> Unit) =
-    DynamicScope().apply(block).apply { sync() }
+    DynamicScope().apply(block)
 
 /**
  * 构造映射浏览器

@@ -32,7 +32,7 @@ private object TestOut {
             this += MulticastReceiver()
         }
 
-        val receiver = scope.dependencies.must<MulticastReceiver>()
+        val receiver = scope.components.must<MulticastReceiver>()
 
         thread {
             while (true) {

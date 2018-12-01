@@ -1,6 +1,6 @@
 package org.mechdancer.framework.remote.resources
 
-import org.mechdancer.framework.dependency.ResourceFactory
+import org.mechdancer.framework.dependency.Component
 import org.mechdancer.framework.dependency.buildView
 import org.mechdancer.framework.dependency.hashOf
 import java.net.Inet4Address
@@ -10,7 +10,7 @@ import java.net.NetworkInterface
 /**
  * 网络端口扫描器
  */
-class Networks : ResourceFactory<NetworkInterface, InterfaceAddress> {
+class Networks : Component {
     private val core = mutableMapOf<NetworkInterface, InterfaceAddress>()
     val view = buildView(core)
 
@@ -45,7 +45,7 @@ class Networks : ResourceFactory<NetworkInterface, InterfaceAddress> {
         }
     }
 
-    override fun get(parameter: NetworkInterface) = core[parameter]
+    fun get(parameter: NetworkInterface) = core[parameter]
 
     override fun equals(other: Any?) = other is Networks
     override fun hashCode() = TYPE_HASH

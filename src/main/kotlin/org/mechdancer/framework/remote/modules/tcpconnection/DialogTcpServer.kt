@@ -1,6 +1,6 @@
 package org.mechdancer.framework.remote.modules.tcpconnection
 
-import org.mechdancer.framework.dependency.AbstractModule
+import org.mechdancer.framework.dependency.AbstractDependent
 import org.mechdancer.framework.dependency.hashOf
 import org.mechdancer.framework.remote.resources.TcpCmd.Dialog
 import java.net.Socket
@@ -10,7 +10,7 @@ import java.net.Socket
  */
 class DialogTcpServer(
     private val block: (String, ByteArray) -> ByteArray
-) : AbstractModule(), ShortConnectionListener {
+) : AbstractDependent(), ShortConnectionListener {
 
     override val interest = Dialog.id
 
