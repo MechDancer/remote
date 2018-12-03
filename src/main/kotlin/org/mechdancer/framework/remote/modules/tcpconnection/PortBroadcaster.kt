@@ -24,7 +24,7 @@ class PortBroadcaster : AbstractDependent(), MulticastListener {
     override val interest = INTEREST
 
     override fun process(remotePacket: RemotePacket) {
-        if (String(remotePacket.payload) == name)
+        if (remotePacket.payload.isEmpty() || String(remotePacket.payload) == name)
             broadcast(ADDRESS_ACK, byteArrayOf((port shr 8).toByte(), port.toByte()))
     }
 

@@ -1,6 +1,8 @@
 package org.mechdancer.framework.remote
 
 import org.mechdancer.framework.dependency.Component
+import java.net.InetAddress
+import java.net.InetSocketAddress
 
 /** 远程终端构建器 */
 class RemoteDsl private constructor() {
@@ -16,15 +18,21 @@ class RemoteDsl private constructor() {
     }
 
     companion object {
+        private val ADDRESS = InetSocketAddress(InetAddress.getByName("233.33.33.33"), 23333)
+
         fun remoteHub(
             name: String? = null,
+            address: InetSocketAddress = ADDRESS,
             block: RemoteDsl.() -> Unit = {}
-        ) = RemoteDsl().apply(block).let {
-            RemoteHub(
-                name,
-                it.newMemberDetected,
-                it.dependencies
-            )
-        }
+        ) = RemoteDsl()
+            .apply(block)
+            .let {
+                RemoteHub(
+                    name,
+                    address,
+                    it.newMemberDetected,
+                    it.dependencies
+                )
+            }
     }
 }

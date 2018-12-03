@@ -69,7 +69,7 @@ class MulticastReceiver(
             payload = stream.lookRest()
         ).also { pack ->
             listeners
-                .filter { pack.command in it.interest }
+                .filter { it.interest.isEmpty() || pack.command in it.interest }
                 .forEach { it process pack }
         }
     }

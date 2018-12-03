@@ -21,7 +21,7 @@ private object TestOut {
         val monitor = GroupMonitor(::println)
 
         val scope = scope {
-            this += Name("Kotlin")
+            this += Name("Kotlin1")
 
             this += group
             this += monitor
@@ -46,7 +46,7 @@ private object TestOut {
     }
 
     val ADDRESS = InetSocketAddress(
-        InetAddress.getByName("233.33.33.33"),
-        23333
+        InetAddress.getByName("238.88.8.7"),
+        30000
     )
 }

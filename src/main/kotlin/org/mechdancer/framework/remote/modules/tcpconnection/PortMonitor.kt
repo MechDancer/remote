@@ -22,8 +22,11 @@ class PortMonitor : AbstractDependent(), MulticastListener {
 
     override val interest = INTEREST
 
-    /** 向一个名为 [name] 的远端发送地址询问 */
-    infix fun ask(name: String) = broadcast(ADDRESS_ASK, name.toByteArray())
+    /** 向所有远端发送端口询问 */
+    fun askEveryone() = broadcast(ADDRESS_ASK, byteArrayOf())
+
+    /** 向一个名为 [name] 的远端发送端口询问 */
+    fun ask(name: String) = broadcast(ADDRESS_ASK, name.toByteArray())
 
     override fun process(remotePacket: RemotePacket) {
         val (sender, _, payload) = remotePacket

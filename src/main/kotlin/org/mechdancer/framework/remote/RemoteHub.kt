@@ -12,7 +12,6 @@ import org.mechdancer.framework.remote.modules.tcpconnection.PortMonitor
 import org.mechdancer.framework.remote.modules.tcpconnection.ShortConnectionClient
 import org.mechdancer.framework.remote.modules.tcpconnection.ShortConnectionServer
 import org.mechdancer.framework.remote.resources.*
-import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.util.*
 
@@ -21,6 +20,7 @@ import java.util.*
  */
 class RemoteHub(
     name: String?,
+    address: InetSocketAddress,
     newMemberDetected: (String) -> Unit,
     additional: Iterable<Component>
 ) {
@@ -34,7 +34,7 @@ class RemoteHub(
     // 网络接口资源
     private val networks = Networks()
     // 组播套接字
-    private val sockets = MulticastSockets(ADDRESS)
+    private val sockets = MulticastSockets(address)
     // 组播发送器
     private val broadcaster = MulticastBroadcaster()
     // 组播接收器
@@ -115,8 +115,11 @@ class RemoteHub(
     /** 请求自证存在性 */
     fun yell() = monitor.yell()
 
+    /** 主动询问所有远端的端口 */
+    fun askEveryone() = synchronizer2.askEveryone()
+
     /** 主动询问一个远端的端口 */
-    infix fun ask(name: String) = synchronizer2 ask name
+    infix fun ask(name: String) = synchronizer2.ask(name)
 
     /** 使用指令 [cmd] 广播数据包 [payload] */
     fun broadcast(cmd: Command, payload: ByteArray) = broadcaster.broadcast(cmd, payload)
@@ -133,7 +136,6 @@ class RemoteHub(
     fun accept() = server()
 
     private companion object {
-        val ADDRESS = InetSocketAddress(InetAddress.getByName("233.33.33.33"), 23333)
         val randomName get() = "RemoteHub[${UUID.randomUUID()}]"
     }
 }

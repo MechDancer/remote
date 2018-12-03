@@ -7,8 +7,6 @@ import org.mechdancer.framework.remote.modules.multicast.MulticastListener
 import org.mechdancer.framework.remote.protocol.RemotePacket
 import org.mechdancer.framework.remote.resources.Group
 import org.mechdancer.framework.remote.resources.UdpCmd
-import org.mechdancer.framework.remote.resources.UdpCmd.YELL_ACK
-import org.mechdancer.framework.remote.resources.UdpCmd.YELL_ASK
 
 /**
  * 组成员的管理器
@@ -43,7 +41,7 @@ class GroupMonitor(
     override fun hashCode() = TYPE_HASH
 
     private companion object {
-        val INTEREST = setOf(YELL_ASK.id, YELL_ACK.id)
+        val INTEREST = setOf<Byte>()
         val TYPE_HASH = hashOf<GroupMonitor>()
         fun now() = System.currentTimeMillis()
     }
