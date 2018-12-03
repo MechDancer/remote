@@ -27,16 +27,17 @@ class PacketSlicer(
     // 发送
 
     private val output by must { it: MulticastBroadcaster -> it::broadcast }
-    private val sequence = AtomicLong(1) // 必须从 1 开始！0 用于指示最后一包！
+    private val sequence = AtomicLong(0)
 
     // 接收
 
     private val buffers = ConcurrentHashMap<PackInfo, Buffer>()
-    private val listeners = mutableSetOf<MulticastListener>()
+    private val listeners = mutableListOf<MulticastListener>()
 
     override fun sync(dependency: Component): Boolean {
         super.sync(dependency)
-        if (dependency is MulticastListener) listeners.add(dependency)
+        if (dependency !is PacketSlicer && dependency is MulticastListener)
+            listeners.add(dependency)
         return false
     }
 
@@ -47,7 +48,7 @@ class PacketSlicer(
      */
     fun broadcast(cmd: Command, payload: ByteArray) {
         val stream = SimpleInputStream(payload)
-        val s = sequence.getAndIncrement().zigzag(false)
+        val s = sequence.incrementAndGet().zigzag(false)
         var index = 0L // 包序号
 
         while (stream.available() > 0) {
@@ -57,7 +58,7 @@ class PacketSlicer(
             val last = stream.available() + 2 + s.size + i.size
             // 打包
             val pack =
-                if (last <= size) {
+                if (last <= size)
                     SimpleOutputStream(last)
                         .apply {
                             write(0)      // 空一位作为停止位
@@ -66,15 +67,12 @@ class PacketSlicer(
                             write(i)
                             writeFrom(stream, stream.available())
                         }
-                } else {
-                    val length = size - s.size - i.size
-                    SimpleOutputStream(size)
-                        .apply {
-                            write(s)
-                            write(i)
-                            writeFrom(stream, length)
-                        }
-                }
+                else SimpleOutputStream(size)
+                    .apply {
+                        write(s)
+                        write(i)
+                        writeFrom(stream, size - s.size - i.size)
+                    }
 
             output(PACKET_SLICE, pack.core)
         }
@@ -160,7 +158,7 @@ class PacketSlicer(
             payload: ByteArray
         ): Pair<Byte, ByteArray>? {
             // 修改状态，加锁保护
-            synchronized(this) {
+            synchronized(list) {
                 if (done) mark.remove(index)!!.ptr = payload
                 else {
                     command = cmd
