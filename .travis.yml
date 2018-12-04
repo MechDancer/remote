@@ -30,14 +30,6 @@ deploy:
   api_key:      $GitHubToken
   on:
     tags:       true
-# 发布到 Bintray （布星）
-- provider:     bintray
-  skip_cleanup: true
-  file:         "deploy.json"
-  user:         $BintrayUser
-  key:          $BintrayAPIKey
-  on:
-    tags:       true
 
 notifications:
   webhooks: https://oapi.dingtalk.com/robot/send?access_token=4b59c5ece57fc88af8fda28cc07573c4caf525aa69afc0cc888ccf3ce6dbe41b
