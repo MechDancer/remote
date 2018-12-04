@@ -13,6 +13,7 @@ import org.mechdancer.framework.remote.resources.MulticastSockets
 import org.mechdancer.framework.remote.resources.Name
 import org.mechdancer.framework.remote.resources.Networks
 import org.mechdancer.framework.remote.resources.UdpCmd.COMMON
+import org.mechdancer.remote.Dispatcher.forever
 import org.mechdancer.remote.Dispatcher.launch
 import java.net.InetAddress
 import java.net.InetSocketAddress
@@ -27,7 +28,7 @@ private object TestSlice {
         val broadcaster = a.components.must<MulticastBroadcaster>()
         val receiver = b.components.must<MulticastReceiver>()
 
-        launch { receiver() }
+        launch { println(receiver()) }
 
         measureTimeMillis {
             broadcaster.broadcast(COMMON, LI_SAO.trimIndent().toByteArray())
@@ -42,6 +43,7 @@ private object TestSlice {
         }.let(::println)
 
         Thread.sleep(10)
+        forever { }
     }
 
     private fun build(name: String) = scope {
@@ -71,7 +73,7 @@ private object TestSlice {
         networks.view.keys.forEach { sockets[it] }
     }
 
-    private val ADDRESS = InetSocketAddress(InetAddress.getByName("238.88.88.88"), 23333)
+    private val ADDRESS = InetSocketAddress(InetAddress.getByName("233.33.33.33"), 23333)
 
     private const val LI_SAO =
         """

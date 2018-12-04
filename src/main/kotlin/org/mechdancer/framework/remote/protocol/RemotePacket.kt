@@ -17,19 +17,6 @@ class RemotePacket(
     operator fun component2() = command
     operator fun component3() = payload
 
-    val bytes: ByteArray
-        get() {
-            val name = sender.toByteArray()
-            return SimpleOutputStream(name.size + 1 + 1 + payload.size)
-                .apply {
-                    write(name)       // 每个字符最多占 2 字节，1 个字节结尾
-                    write(0)
-                    write(command.toInt()) // 1 个字节指令
-                    write(payload)         // 剩下写入负载
-                }
-                .core
-        }
-
     override fun toString() =
         "sender: $sender, cmd: $command, payload: byte[${payload.size}]"
 }
