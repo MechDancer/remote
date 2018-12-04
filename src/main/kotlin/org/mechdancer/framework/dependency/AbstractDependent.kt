@@ -13,7 +13,7 @@ abstract class AbstractDependent : Dependent {
 
     /** 每一次扫描都清除成功装载的依赖项 */
     override fun sync(dependency: Component) =
-        dependencies.removeIf { it(dependency) != null } && dependencies.isEmpty()
+        dependencies.removeIf { it.set(dependency) != null } && dependencies.isEmpty()
 
     /** 构造一个 [C] 类型的强依赖 */
     protected inline fun <reified C : Component> dependency() =

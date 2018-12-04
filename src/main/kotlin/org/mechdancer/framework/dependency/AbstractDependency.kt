@@ -12,7 +12,7 @@ sealed class AbstractDependency<T : Component>(val type: KClass<T>) {
     private val _field = AtomicReference<T?>(null)
 
     /** 尝试置入值 [value]，若无法转换到目标类型则不产生作 */
-    operator fun invoke(value: Component): T? = _field.updateAndGet { type.safeCast(value) ?: it }
+    fun set(value: Component): T? = _field.updateAndGet { type.safeCast(value) ?: it }
 
     /** 尝试获取值 */
     open val field: T? get() = _field.get()

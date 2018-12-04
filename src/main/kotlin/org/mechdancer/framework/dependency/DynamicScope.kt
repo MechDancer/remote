@@ -8,23 +8,17 @@ import java.util.concurrent.ConcurrentHashMap
  *   组件被添加到动态域时，将执行一系列操作，以自动解算依赖关系和建立组件关联
  */
 class DynamicScope {
-    /**
-     * 组件集
-     *   用于查找特定组件类型和判定类型冲突
-     *   其中的组件只增加不减少
-     */
+    //组件集
+    //  用于查找特定组件类型和判定类型冲突
+    //  其中的组件只增加不减少
     private val _components = ConcurrentHashSet<Component>()
 
-    /**
-     * 依赖者列表
-     *   用于在在新的依赖项到来时接收通知
-     *   其中的组件一旦集齐依赖项就会离开列表，不再接收通知
-     */
-    private val dependents = mutableSetOf<(Component) -> Boolean>()
+    //依赖者列表
+    //  用于在在新的依赖项到来时接收通知
+    //  其中的组件一旦集齐依赖项就会离开列表，不再接收通知
+    private val dependents = mutableListOf<(Component) -> Boolean>()
 
-    /**
-     * 浏览所有组件
-     */
+    /** 浏览所有组件 */
     val components = _components.view
 
     /**
