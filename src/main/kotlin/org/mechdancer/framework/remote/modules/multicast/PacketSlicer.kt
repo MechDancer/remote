@@ -1,8 +1,7 @@
 package org.mechdancer.framework.remote.modules.multicast
 
-import org.mechdancer.framework.dependency.AbstractDependent
+import org.mechdancer.framework.dependency.AbstractComponent
 import org.mechdancer.framework.dependency.Component
-import org.mechdancer.framework.dependency.hashOf
 import org.mechdancer.framework.remote.protocol.RemotePacket
 import org.mechdancer.framework.remote.protocol.SimpleInputStream
 import org.mechdancer.framework.remote.protocol.SimpleOutputStream
@@ -16,26 +15,14 @@ import kotlin.collections.set
 /**
  * 数据包分片协议
  */
-class PacketSlicer(
-    private val size: Int = 0x4000 // 16kB
-) : AbstractDependent(), MulticastListener {
-
-    init {
-        assert(size in 16..65536)
-    }
-
-    // 发送
-
-    private val output by must { it: MulticastBroadcaster -> it::broadcast }
+class PacketSlicer :
+    AbstractComponent<PacketSlicer>(PacketSlicer::class),
+    MulticastListener {
     private val sequence = AtomicLong(0)
-
-    // 接收
-
     private val buffers = ConcurrentHashMap<PackInfo, Buffer>()
     private val listeners = mutableListOf<MulticastListener>()
 
     override fun sync(dependency: Component): Boolean {
-        super.sync(dependency)
         if (dependency !is PacketSlicer && dependency is MulticastListener)
             listeners.add(dependency)
         return false
@@ -46,7 +33,12 @@ class PacketSlicer(
     /**
      * 使用拆包协议广播一包
      */
-    fun broadcast(cmd: Command, payload: ByteArray) {
+    internal fun broadcast(
+        cmd: Command,
+        payload: ByteArray,
+        size: Int,
+        output: (ByteArray) -> Unit
+    ) {
         val stream = SimpleInputStream(payload)
         val s = sequence.incrementAndGet().zigzag(false)
         var index = 0L // 包序号
@@ -57,24 +49,20 @@ class PacketSlicer(
             // 如果是最后一包，应该多长?
             val last = stream.available() + 2 + s.size + i.size
             // 打包
-            val pack =
-                if (last <= size)
-                    SimpleOutputStream(last)
-                        .apply {
-                            write(0)      // 空一位作为停止位
-                            write(cmd.id) // 保存实际指令
-                            write(s)
-                            write(i)
-                            writeFrom(stream, stream.available())
-                        }
-                else SimpleOutputStream(size)
+            (if (last <= size)
+                SimpleOutputStream(last)
                     .apply {
-                        write(s)
-                        write(i)
-                        writeFrom(stream, size - s.size - i.size)
+                        write(0)      // 空一位作为停止位
+                        write(cmd.id) // 保存实际指令
                     }
-
-            output(PACKET_SLICE, pack.core)
+            else SimpleOutputStream(size))
+                .apply {
+                    write(s)
+                    write(i)
+                    writeFrom(stream, available())
+                }
+                .core
+                .let(output)
         }
     }
 
@@ -118,9 +106,6 @@ class PacketSlicer(
             .filterValues { it by now > timeout }
             .keys.forEach { buffers.remove(it) }
     }
-
-    override fun equals(other: Any?) = other is PacketSlicer
-    override fun hashCode() = TYPE_HASH
 
     /**
      * 关键信息
@@ -191,7 +176,6 @@ class PacketSlicer(
     }
 
     private companion object {
-        val TYPE_HASH = hashOf<PacketSlicer>()
         val INTEREST = setOf(PACKET_SLICE.id)
         const val LAST = 0.toByte()
     }

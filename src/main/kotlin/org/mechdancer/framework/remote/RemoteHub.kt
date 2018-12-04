@@ -21,6 +21,7 @@ import java.util.*
 class RemoteHub(
     name: String?,
     address: InetSocketAddress,
+    sliceSize: Int,
     newMemberDetected: (String) -> Unit,
     additional: Iterable<Component>
 ) {
@@ -36,7 +37,7 @@ class RemoteHub(
     // 组播套接字
     private val sockets = MulticastSockets(address)
     // 组播发送器
-    private val broadcaster = MulticastBroadcaster()
+    private val broadcaster = MulticastBroadcaster(sliceSize)
     // 组播接收器
     private val receiver = MulticastReceiver()
     // 组播分片协议

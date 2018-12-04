@@ -2,11 +2,11 @@ package org.mechdancer.framework.remote.protocol
 
 import java.io.OutputStream
 
-class SimpleOutputStream(size: Int) : OutputStream() {
+class SimpleOutputStream(size: Int) : OutputStream(), Cloneable {
     val core = ByteArray(size)
-    private var ptr = 0
+    var ptr = 0
 
-    fun available() = ptr
+    fun available() = core.size - ptr
 
     infix fun write(b: Byte) {
         core[ptr++] = b
@@ -38,4 +38,8 @@ class SimpleOutputStream(size: Int) : OutputStream() {
     override fun close() {
         ptr = core.size
     }
+
+    public override fun clone() =
+        SimpleOutputStream(core.size)
+            .also { it.writeRange(core, 0, ptr) }
 }

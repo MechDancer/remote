@@ -13,7 +13,6 @@ import org.mechdancer.framework.remote.resources.MulticastSockets
 import org.mechdancer.framework.remote.resources.Name
 import org.mechdancer.framework.remote.resources.Networks
 import org.mechdancer.framework.remote.resources.UdpCmd.COMMON
-import org.mechdancer.remote.Dispatcher.forever
 import org.mechdancer.remote.Dispatcher.launch
 import java.net.InetAddress
 import java.net.InetSocketAddress
@@ -25,23 +24,24 @@ private object TestSlice {
         val a = build("a")
         val b = build("b")
 
+        val broadcaster = a.components.must<MulticastBroadcaster>()
         val receiver = b.components.must<MulticastReceiver>()
 
         launch { receiver() }
 
         measureTimeMillis {
-            a.components.must<PacketSlicer>().broadcast(COMMON, LI_SAO.trimIndent().toByteArray())
+            broadcaster.broadcast(COMMON, LI_SAO.trimIndent().toByteArray())
         }.let(::println)
 
         measureTimeMillis {
-            a.components.must<PacketSlicer>().broadcast(COMMON, LI_SAO.trimIndent().toByteArray())
+            broadcaster.broadcast(COMMON, LI_SAO.trimIndent().toByteArray())
         }.let(::println)
 
         measureTimeMillis {
-            a.components.must<PacketSlicer>().broadcast(COMMON, "12345".toByteArray())
+            broadcaster.broadcast(COMMON, "12345".toByteArray())
         }.let(::println)
 
-        forever { }
+        Thread.sleep(10)
     }
 
     private fun build(name: String) = scope {
@@ -52,11 +52,11 @@ private object TestSlice {
         val networks = Networks()
 
         val sockets = MulticastSockets(ADDRESS)
-        this += networks               // 本机网络资源
-        this += sockets                // 组播套接字资源
-        this += MulticastBroadcaster() // 组播发送
-        this += MulticastReceiver()    // 组播接收
-        this += PacketSlicer(1024)     // 分片器
+        this += networks                   // 本机网络资源
+        this += sockets                    // 组播套接字资源
+        this += MulticastBroadcaster(1024) // 组播发送
+        this += MulticastReceiver()        // 组播接收
+        this += PacketSlicer()             // 分片器
 
         // 通用协议接收
         this += object : AbstractDependent(), MulticastListener {

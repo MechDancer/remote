@@ -23,6 +23,7 @@ class RemoteDsl private constructor() {
         fun remoteHub(
             name: String? = null,
             address: InetSocketAddress = ADDRESS,
+            sliceSize: Int = 0x4000,
             block: RemoteDsl.() -> Unit = {}
         ) = RemoteDsl()
             .apply(block)
@@ -30,6 +31,7 @@ class RemoteDsl private constructor() {
                 RemoteHub(
                     name,
                     address,
+                    sliceSize,
                     it.newMemberDetected,
                     it.dependencies
                 )
