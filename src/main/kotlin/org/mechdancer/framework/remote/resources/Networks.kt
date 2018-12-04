@@ -1,8 +1,7 @@
 package org.mechdancer.framework.remote.resources
 
-import org.mechdancer.framework.dependency.Component
+import org.mechdancer.framework.dependency.AbstractComponent
 import org.mechdancer.framework.dependency.buildView
-import org.mechdancer.framework.dependency.hashOf
 import java.net.Inet4Address
 import java.net.InterfaceAddress
 import java.net.NetworkInterface
@@ -10,7 +9,7 @@ import java.net.NetworkInterface
 /**
  * 网络端口扫描器
  */
-class Networks : Component {
+class Networks : AbstractComponent<Networks>(Networks::class) {
     private val core = mutableMapOf<NetworkInterface, InterfaceAddress>()
     val view = buildView(core)
 
@@ -47,12 +46,7 @@ class Networks : Component {
 
     fun get(parameter: NetworkInterface) = core[parameter]
 
-    override fun equals(other: Any?) = other is Networks
-    override fun hashCode() = TYPE_HASH
-
     private companion object {
-        val TYPE_HASH = hashOf<Networks>()
-
         fun Sequence<NetworkInterface>.notLoopback() =
             filterNot { network -> network.isLoopback }
 

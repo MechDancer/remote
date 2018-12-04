@@ -1,8 +1,7 @@
 package org.mechdancer.framework.remote.resources
 
-import org.mechdancer.framework.dependency.Component
+import org.mechdancer.framework.dependency.AbstractComponent
 import org.mechdancer.framework.dependency.buildView
-import org.mechdancer.framework.dependency.hashOf
 import java.net.InetSocketAddress
 import java.net.MulticastSocket
 import java.net.NetworkInterface
@@ -14,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class MulticastSockets(
     val address: InetSocketAddress
-) : Component {
+) : AbstractComponent<MulticastSockets>(MulticastSockets::class) {
     private val core = ConcurrentHashMap<NetworkInterface, MulticastSocket>()
     val view = buildView(core)
 
@@ -37,12 +36,7 @@ class MulticastSockets(
     operator fun get(timeout: Int): MulticastSocket =
         multicastOn(address, null).apply { soTimeout = timeout }
 
-    override fun equals(other: Any?) = other is MulticastSockets
-    override fun hashCode() = TYPE_HASH
-
     private companion object {
-        val TYPE_HASH = hashOf<MulticastSockets>()
-
         // 构造组播套接字
         fun multicastOn(group: InetSocketAddress, net: NetworkInterface?) =
             MulticastSocket(group.port).apply {

@@ -1,8 +1,7 @@
 package org.mechdancer.framework.remote.resources
 
-import org.mechdancer.framework.dependency.Component
+import org.mechdancer.framework.dependency.AbstractComponent
 import org.mechdancer.framework.dependency.buildView
-import org.mechdancer.framework.dependency.hashOf
 import java.net.ServerSocket
 import java.util.concurrent.ConcurrentHashMap
 
@@ -10,7 +9,7 @@ import java.util.concurrent.ConcurrentHashMap
  * 监听套接字资源
  */
 class ServerSockets(private val port: Int = 0) :
-    Component {
+    AbstractComponent<ServerSockets>(ServerSockets::class) {
     private val core = ConcurrentHashMap<Int, ServerSocket>()
     val view = buildView(core)
 
@@ -30,11 +29,4 @@ class ServerSockets(private val port: Int = 0) :
                 }
             }
             .getOrNull()
-
-    override fun equals(other: Any?) = other is ServerSockets
-    override fun hashCode() = TYPE_HASH
-
-    private companion object {
-        val TYPE_HASH = hashOf<ServerSockets>()
-    }
 }

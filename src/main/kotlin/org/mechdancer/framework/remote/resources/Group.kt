@@ -1,35 +1,25 @@
 package org.mechdancer.framework.remote.resources
 
-import org.mechdancer.framework.dependency.Component
+import org.mechdancer.framework.dependency.AbstractComponent
 import org.mechdancer.framework.dependency.buildView
-import org.mechdancer.framework.dependency.hashOf
 import java.util.concurrent.ConcurrentHashMap
 
-/**
- * 成员存在性资源
- */
-class Group : Component {
+/** 成员存在性资源 */
+class Group : AbstractComponent<Group>(Group::class) {
     private val core = ConcurrentHashMap<String, Long>()
     val view = buildView(core)
 
-    fun update(parameter: String, resource: Long?): Long? =
-        if (resource != null) core.put(parameter, resource)
-        else core.remove(parameter)
+    /** 更新出现时间 */
+    fun detect(name: String): Long? =
+        core.put(name, System.currentTimeMillis())
 
-    operator fun get(parameter: String) = core[parameter]
+    /** 读取出现时间 */
+    operator fun get(parameter: String) =
+        core[parameter]
 
-    /**
-     * 获取最后出现时间短于超时时间的成员
-     */
+    /** 获取最后出现时间短于超时时间 [timeout] 的成员 */
     operator fun get(timeout: Int): List<String> {
         val now = System.currentTimeMillis()
         return core.mapNotNull { (name, time) -> name.takeIf { now - time < timeout } }
-    }
-
-    override fun equals(other: Any?) = other is Group
-    override fun hashCode() = TYPE_HASH
-
-    private companion object {
-        val TYPE_HASH = hashOf<Group>()
     }
 }

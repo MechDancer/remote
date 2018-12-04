@@ -17,7 +17,7 @@ class GroupMonitor(
     private val detected: (String) -> Unit = {},
     private val timeout: Int = Int.MAX_VALUE
 ) : AbstractDependent(), MulticastListener {
-    private val update by must { it: Group -> it::update }
+    private val update by must { it: Group -> it::detect }
     private val broadcaster by maybe<MulticastBroadcaster>()
 
     /** 请求组中的成员响应，以证实存在性，要使用此功能必须依赖组播发送 */
@@ -29,7 +29,7 @@ class GroupMonitor(
         val (name, cmd) = remotePacket
 
         if (name.isNotBlank()) // 只保存非匿名对象
-            update(name, now())
+            update(name)
                 ?.takeUnless { System.currentTimeMillis() - it > timeout }
                 ?: detected(name)
 
@@ -43,6 +43,5 @@ class GroupMonitor(
     private companion object {
         val INTEREST = setOf<Byte>()
         val TYPE_HASH = hashOf<GroupMonitor>()
-        fun now() = System.currentTimeMillis()
     }
 }

@@ -11,7 +11,7 @@ import kotlin.reflect.full.safeCast
 sealed class AbstractDependency<T : Component>(val type: KClass<T>) {
     private val _field = AtomicReference<T?>(null)
 
-    /** 尝试置入值 [value]，若无法转换到目标类型则不产生作 */
+    /** 尝试置入值 [value]，若无法转换到目标类型则不产生作用 */
     fun set(value: Component): T? = _field.updateAndGet { type.safeCast(value) ?: it }
 
     /** 尝试获取值 */
@@ -20,14 +20,10 @@ sealed class AbstractDependency<T : Component>(val type: KClass<T>) {
     override fun equals(other: Any?) = this === other || (other as? AbstractDependency<*>)?.type == type
     override fun hashCode() = type.hashCode()
 
-    /**
-     * 类型 [T] 的弱依赖项
-     */
+    /** 类型 [T] 的弱依赖项 */
     class WeakDependency<T : Component>(type: KClass<T>) : AbstractDependency<T>(type)
 
-    /**
-     * 类型 [T] 的强依赖项
-     */
+    /** 类型 [T] 的强依赖项 */
     class Dependency<T : Component>(type: KClass<T>) : AbstractDependency<T>(type) {
         override val field: T get() = super.field ?: throw ComponentNotExistException(type)
     }

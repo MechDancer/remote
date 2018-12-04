@@ -1,7 +1,6 @@
 package org.mechdancer.framework.remote.resources
 
-import org.mechdancer.framework.dependency.Component
-import org.mechdancer.framework.dependency.hashOf
+import org.mechdancer.framework.dependency.AbstractComponent
 import java.net.Inet4Address
 import java.net.InetSocketAddress
 import java.util.concurrent.ConcurrentHashMap
@@ -10,8 +9,7 @@ import java.util.concurrent.ConcurrentHashMap
  * 地址资源
  * 记录成员的地址和端口
  */
-class Addresses : Component {
-
+class Addresses : AbstractComponent<Addresses>(Addresses::class) {
     private val core = ConcurrentHashMap<String, InetSocketAddress>()
 
     operator fun set(name: String, address: Inet4Address) =
@@ -33,14 +31,6 @@ class Addresses : Component {
     operator fun get(name: String) =
         core[name]?.takeUnless { it.port == 0 }
 
-    infix fun remove(name: String) {
+    infix fun remove(name: String) =
         core.remove(name)
-    }
-
-    override fun equals(other: Any?) = other is Addresses
-    override fun hashCode() = TYPE_HASH
-
-    private companion object {
-        val TYPE_HASH = hashOf<Addresses>()
-    }
 }

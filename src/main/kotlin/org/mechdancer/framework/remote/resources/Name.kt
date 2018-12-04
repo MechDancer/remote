@@ -1,15 +1,11 @@
 package org.mechdancer.framework.remote.resources
 
-import org.mechdancer.framework.dependency.Component
-import org.mechdancer.framework.dependency.hashOf
+import org.mechdancer.framework.dependency.AbstractComponent
 
-class Name(value: String) : Component {
-    override fun equals(other: Any?) = other is Name
-    override fun hashCode() = TYPE_HASH
+class Name private constructor(val field: String) :
+    AbstractComponent<Name>(Name::class) {
 
-    val field = value.trim()
-
-    private companion object {
-        val TYPE_HASH = hashOf<Name>()
+    companion object {
+        operator fun invoke(value: String) = Name(value.trim())
     }
 }
