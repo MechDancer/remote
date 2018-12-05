@@ -2,7 +2,6 @@ package org.mechdancer.framework.remote.modules.tcpconnection
 
 import org.mechdancer.framework.dependency.AbstractDependent
 import org.mechdancer.framework.dependency.Component
-import org.mechdancer.framework.dependency.hashOf
 import org.mechdancer.framework.remote.modules.group.Rule
 import org.mechdancer.framework.remote.resources.ServerSockets
 import org.mechdancer.framework.remote.resources.TcpCmd
@@ -12,7 +11,9 @@ import kotlin.collections.set
 /**
  * 短连接服务器
  */
-class ShortConnectionServer(private val rule: Rule = Rule()) : AbstractDependent() {
+class ShortConnectionServer(private val rule: Rule = Rule()) :
+    AbstractDependent<ShortConnectionServer>(ShortConnectionServer::class) {
+
     private val servers by must<ServerSockets>()
     private val mailListener = hashSetOf<MailListener>()
     private val listeners = hashMapOf<Byte, ShortConnectionListener>()
@@ -45,12 +46,5 @@ class ShortConnectionServer(private val rule: Rule = Rule()) : AbstractDependent
                         listeners[cmd]?.process(client, socket)
                 }
             }
-    }
-
-    override fun equals(other: Any?) = other is ShortConnectionServer
-    override fun hashCode() = TYPE_HASH
-
-    private companion object {
-        val TYPE_HASH = hashOf<ShortConnectionServer>()
     }
 }

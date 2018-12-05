@@ -1,7 +1,6 @@
 package org.mechdancer.framework.remote.modules.tcpconnection
 
 import org.mechdancer.framework.dependency.AbstractDependent
-import org.mechdancer.framework.dependency.hashOf
 import org.mechdancer.framework.remote.modules.multicast.MulticastBroadcaster
 import org.mechdancer.framework.remote.modules.multicast.MulticastListener
 import org.mechdancer.framework.remote.protocol.RemotePacket
@@ -15,7 +14,9 @@ import org.mechdancer.framework.remote.resources.UdpCmd.ADDRESS_ASK
  * 依赖地址资源和组播收发功能
  * 将发起地址询问并更新地址资源
  */
-class PortMonitor : AbstractDependent(), MulticastListener {
+class PortMonitor :
+    AbstractDependent<PortMonitor>(PortMonitor::class),
+    MulticastListener {
 
     private val broadcast by must { it: MulticastBroadcaster -> it::broadcast }
     private val addresses by must<Addresses>()
@@ -35,12 +36,8 @@ class PortMonitor : AbstractDependent(), MulticastListener {
             addresses[sender] = payload(0) shl 8 or payload(1)
     }
 
-    override fun equals(other: Any?) = other is PortMonitor
-    override fun hashCode() = TYPE_HASH
-
     private companion object {
         val INTEREST = setOf(ADDRESS_ACK.id)
-        val TYPE_HASH = hashOf<PortMonitor>()
         operator fun ByteArray.invoke(n: Int) = get(n).toInt() and 0xff
     }
 }

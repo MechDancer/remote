@@ -1,7 +1,6 @@
 package org.mechdancer.framework.remote.modules.tcpconnection
 
 import org.mechdancer.framework.dependency.AbstractDependent
-import org.mechdancer.framework.dependency.hashOf
 import org.mechdancer.framework.remote.resources.Addresses
 import org.mechdancer.framework.remote.resources.Command
 import org.mechdancer.framework.remote.resources.Name
@@ -11,7 +10,9 @@ import java.net.SocketException
 /**
  * 短连接客户端
  */
-class ShortConnectionClient : AbstractDependent() {
+class ShortConnectionClient :
+    AbstractDependent<ShortConnectionClient>(ShortConnectionClient::class) {
+
     private val name by must { it: Name -> it.field }
     private val addresses by must<Addresses>()
     private val ask by maybe(null) { it: PortMonitor -> it::ask }
@@ -39,12 +40,5 @@ class ShortConnectionClient : AbstractDependent() {
             ask?.invoke(server)
             null
         }
-    }
-
-    override fun equals(other: Any?) = other is ShortConnectionClient
-    override fun hashCode() = TYPE_HASH
-
-    private companion object {
-        val TYPE_HASH = hashOf<ShortConnectionClient>()
     }
 }

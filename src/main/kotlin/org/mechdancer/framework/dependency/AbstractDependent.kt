@@ -1,13 +1,17 @@
 package org.mechdancer.framework.dependency
 
 import kotlin.properties.ReadOnlyProperty
+import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 
 /**
  * 抽象依赖
- * 封装了依赖项管理功能
+ *   封装了依赖项管理功能以及默认的哈希函数和判等条件
+ *   须向抽象组件提供自身具体类型
  */
-abstract class AbstractDependent : Dependent {
+abstract class AbstractDependent<T : AbstractDependent<T>>(type: KClass<T>) :
+    AbstractComponent<T>(type), Dependent {
+
     /** 尚未装载的依赖项集 */
     protected val dependencies = mutableListOf<AbstractDependency<*>>()
 
@@ -37,15 +41,15 @@ abstract class AbstractDependent : Dependent {
 
     /** 构造一个 [C] 类型的强依赖属性代理 */
     protected inline fun <reified C : Component> must() =
-        object : ReadOnlyProperty<AbstractDependent, C> {
+        object : ReadOnlyProperty<AbstractDependent<T>, C> {
             private val core = dependency<C>()
-            override fun getValue(thisRef: AbstractDependent, property: KProperty<*>) = core.field
+            override fun getValue(thisRef: AbstractDependent<T>, property: KProperty<*>) = core.field
         }
 
     /** 构造一个 [C] 类型的弱依赖属性代理 */
     protected inline fun <reified C : Component> maybe() =
-        object : ReadOnlyProperty<AbstractDependent, C?> {
+        object : ReadOnlyProperty<AbstractDependent<T>, C?> {
             private val core = weakDependency<C>()
-            override fun getValue(thisRef: AbstractDependent, property: KProperty<*>) = core.field
+            override fun getValue(thisRef: AbstractDependent<T>, property: KProperty<*>) = core.field
         }
 }

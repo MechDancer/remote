@@ -42,11 +42,11 @@ private object TestOut {
             }
         }
 
-        while (true) receiver()
+        while (true) receiver().let(::println)
     }
 
     val ADDRESS = InetSocketAddress(
-        InetAddress.getByName("238.88.8.7"),
-        30000
+        InetAddress.getByName("233.33.33.33"),
+        23333
     )
 }

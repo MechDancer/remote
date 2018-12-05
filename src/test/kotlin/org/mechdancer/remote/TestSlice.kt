@@ -1,6 +1,5 @@
 package org.mechdancer.remote
 
-import org.mechdancer.framework.dependency.AbstractDependent
 import org.mechdancer.framework.dependency.must
 import org.mechdancer.framework.dependency.plusAssign
 import org.mechdancer.framework.dependency.scope
@@ -61,7 +60,7 @@ private object TestSlice {
         this += PacketSlicer()             // 分片器
 
         // 通用协议接收
-        this += object : AbstractDependent(), MulticastListener {
+        this += object : MulticastListener {
             override val interest = setOf(COMMON.id)
             override fun process(remotePacket: RemotePacket) =
                 println(String(remotePacket.payload))

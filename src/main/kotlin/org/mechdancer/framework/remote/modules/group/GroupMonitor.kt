@@ -1,7 +1,6 @@
 package org.mechdancer.framework.remote.modules.group
 
 import org.mechdancer.framework.dependency.AbstractDependent
-import org.mechdancer.framework.dependency.hashOf
 import org.mechdancer.framework.remote.modules.multicast.MulticastBroadcaster
 import org.mechdancer.framework.remote.modules.multicast.MulticastListener
 import org.mechdancer.framework.remote.protocol.RemotePacket
@@ -16,7 +15,8 @@ import org.mechdancer.framework.remote.resources.UdpCmd
 class GroupMonitor(
     private val detected: (String) -> Unit = {},
     private val timeout: Int = Int.MAX_VALUE
-) : AbstractDependent(), MulticastListener {
+) : AbstractDependent<GroupMonitor>(GroupMonitor::class),
+    MulticastListener {
     private val update by must { it: Group -> it::detect }
     private val broadcaster by maybe<MulticastBroadcaster>()
 
@@ -37,11 +37,7 @@ class GroupMonitor(
             broadcaster?.broadcast(UdpCmd.YELL_ACK)
     }
 
-    override fun equals(other: Any?) = other is GroupMonitor
-    override fun hashCode() = TYPE_HASH
-
     private companion object {
         val INTEREST = setOf<Byte>()
-        val TYPE_HASH = hashOf<GroupMonitor>()
     }
 }

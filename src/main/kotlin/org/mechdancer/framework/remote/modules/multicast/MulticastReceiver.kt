@@ -2,7 +2,6 @@ package org.mechdancer.framework.remote.modules.multicast
 
 import org.mechdancer.framework.dependency.AbstractDependent
 import org.mechdancer.framework.dependency.Component
-import org.mechdancer.framework.dependency.hashOf
 import org.mechdancer.framework.remote.modules.group.Rule
 import org.mechdancer.framework.remote.protocol.RemotePacket
 import org.mechdancer.framework.remote.protocol.SimpleInputStream
@@ -23,7 +22,7 @@ import kotlin.concurrent.getOrSet
 class MulticastReceiver(
     private val bufferSize: Int = 65536,
     private val rule: Rule = Rule()
-) : AbstractDependent() {
+) : AbstractDependent<MulticastReceiver>(MulticastReceiver::class) {
     // 线程独立缓冲
     private val buffer = ThreadLocal<DatagramPacket>()
     // 过滤环路数据
@@ -74,12 +73,7 @@ class MulticastReceiver(
         }
     }
 
-    override fun equals(other: Any?) = other is MulticastReceiver
-    override fun hashCode() = TYPE_HASH
-
     private companion object {
-        val TYPE_HASH = hashOf<MulticastReceiver>()
-
         fun Inet4Address.toInt() = address
             .fold(0) { acc, byte -> (acc shl 8) or (byte.toInt() and 0xff) }
 

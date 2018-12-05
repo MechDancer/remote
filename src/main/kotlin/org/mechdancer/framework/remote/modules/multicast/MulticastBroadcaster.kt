@@ -1,7 +1,6 @@
 package org.mechdancer.framework.remote.modules.multicast
 
 import org.mechdancer.framework.dependency.AbstractDependent
-import org.mechdancer.framework.dependency.hashOf
 import org.mechdancer.framework.remote.protocol.SimpleOutputStream
 import org.mechdancer.framework.remote.protocol.writeEnd
 import org.mechdancer.framework.remote.resources.Command
@@ -15,7 +14,9 @@ import java.net.DatagramPacket
 /**
  * 组播发布者
  */
-class MulticastBroadcaster(size: Int = 0x4000) : AbstractDependent() {
+class MulticastBroadcaster(size: Int = 0x4000) :
+    AbstractDependent<MulticastBroadcaster>(MulticastBroadcaster::class) {
+
     private val name by maybe("") { it: Name -> it.field } // 可以匿名发送组播
     private val slicer by maybe<PacketSlicer>()
     private val sockets by must<MulticastSockets>()
@@ -55,12 +56,5 @@ class MulticastBroadcaster(size: Int = 0x4000) : AbstractDependent() {
             else                                   ->
                 throw RuntimeException("payload is too heavy!")
         }
-    }
-
-    override fun equals(other: Any?) = other is MulticastBroadcaster
-    override fun hashCode() = TYPE_HASH
-
-    private companion object {
-        val TYPE_HASH = hashOf<MulticastBroadcaster>()
     }
 }

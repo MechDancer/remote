@@ -18,8 +18,15 @@ class DynamicScope {
     //  其中的组件一旦集齐依赖项就会离开列表，不再接收通知
     private val dependents = mutableListOf<(Component) -> Boolean>()
 
+    //标记组件表
+    //  通过保存标记组件的引用来加速访问
+    private val _tagComponents = ConcurrentHashMap<String, TagComponent>()
+
     /** 浏览所有组件 */
     val components = _components.view
+
+    /** 浏览标记的组件 */
+    val tagComponents = buildView(_tagComponents)
 
     /**
      * 将一个新的组件加入到动态域，返回是否成功添加
@@ -30,6 +37,7 @@ class DynamicScope {
         _components
             .add(component)
             .also {
+                // 更新依赖关系
                 if (it) synchronized(dependents) {
                     dependents.removeIf { it(component) }
 
@@ -38,6 +46,11 @@ class DynamicScope {
                             .takeIf { sync -> components.none(sync) }
                             ?.let(dependents::add)
                 }
+
+                // 保存标记组件
+                if (component is TagComponent)
+                    if (null != _tagComponents.putIfAbsent(component.tag, component))
+                        throw RuntimeException("try to add the second component with tag ${component.tag}")
             }
 
     /** 线程安全的哈希集，仿照跳表集，基于映射构造 */

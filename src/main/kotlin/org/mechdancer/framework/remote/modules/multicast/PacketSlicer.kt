@@ -1,6 +1,6 @@
 package org.mechdancer.framework.remote.modules.multicast
 
-import org.mechdancer.framework.dependency.AbstractComponent
+import org.mechdancer.framework.dependency.AbstractDependent
 import org.mechdancer.framework.dependency.Component
 import org.mechdancer.framework.remote.protocol.RemotePacket
 import org.mechdancer.framework.remote.protocol.SimpleInputStream
@@ -16,7 +16,7 @@ import kotlin.collections.set
  * 数据包分片协议
  */
 class PacketSlicer :
-    AbstractComponent<PacketSlicer>(PacketSlicer::class),
+    AbstractDependent<PacketSlicer>(PacketSlicer::class),
     MulticastListener {
     private val sequence = AtomicLong(0)
     private val buffers = ConcurrentHashMap<PackInfo, Buffer>()

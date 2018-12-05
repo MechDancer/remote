@@ -1,7 +1,6 @@
 package org.mechdancer.framework.remote.modules.tcpconnection
 
 import org.mechdancer.framework.dependency.AbstractDependent
-import org.mechdancer.framework.dependency.hashOf
 import org.mechdancer.framework.remote.resources.TcpCmd.Dialog
 import java.net.Socket
 
@@ -10,17 +9,11 @@ import java.net.Socket
  */
 class DialogTcpServer(
     private val block: (String, ByteArray) -> ByteArray
-) : AbstractDependent(), ShortConnectionListener {
+) : AbstractDependent<DialogTcpServer>(DialogTcpServer::class),
+    ShortConnectionListener {
 
     override val interest = Dialog.id
 
     override fun process(client: String, socket: Socket) =
         with(socket) { say(block(client, listen())) }
-
-    override fun equals(other: Any?) = other is DialogTcpServer
-    override fun hashCode() = TYPE_HASH
-
-    private companion object {
-        val TYPE_HASH = hashOf<DialogTcpServer>()
-    }
 }
