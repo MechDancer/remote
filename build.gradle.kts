@@ -1,4 +1,5 @@
 import com.novoda.gradle.release.PublishExtension
+import org.jetbrains.dokka.gradle.DokkaTask
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 buildscript {
@@ -16,7 +17,7 @@ buildscript {
 
 plugins {
     kotlin("jvm") version "1.3.10"
-	id("org.jetbrains.dokka") version "0.9.16"
+	id("org.jetbrains.dokka") version "0.9.17"
 }
 
 apply {
@@ -50,4 +51,24 @@ configure<PublishExtension> {
 	publishVersion = version.toString()
 	desc = "communication lib"
 	website = "https://github.com/MechDancer/remote"
+	setLicences("WTFPL")
 }
+
+task<Jar>("sourceJar") {
+	classifier = "sources"
+	from(sourceSets["main"].allSource)
+}
+
+task<Jar>("javadocJar") {
+	classifier = "javadoc"
+	from("$buildDir/javadoc")
+}
+
+tasks.withType<DokkaTask> {
+	outputFormat = "javadoc"
+	outputDirectory = "$buildDir/javadoc"
+}
+
+tasks["javadoc"].dependsOn("dokka")
+tasks["jar"].dependsOn("sourceJar")
+tasks["jar"].dependsOn("javadocJar")
