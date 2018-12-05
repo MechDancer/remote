@@ -3,7 +3,6 @@ import org.jetbrains.dokka.gradle.DokkaTask
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 buildscript {
-
 	repositories {
 		mavenCentral()
 		jcenter()
@@ -17,7 +16,7 @@ buildscript {
 
 plugins {
     kotlin("jvm") version "1.3.10"
-	id("org.jetbrains.dokka") version "0.9.17"
+    id("org.jetbrains.dokka") version "0.9.16"
 }
 
 apply {

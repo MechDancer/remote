@@ -31,7 +31,11 @@ class PacketSlicer :
     override val interest = INTEREST
 
     /**
-     * 使用拆包协议广播一包
+     * 使用分片协议广播一包
+     * @param cmd     实际指令
+     * @param payload 实际数据
+     * @param size    分片数据长度
+     * @param output  发布方法
      */
     internal fun broadcast(
         cmd: Command,
@@ -49,20 +53,20 @@ class PacketSlicer :
             // 如果是最后一包，应该多长?
             val last = stream.available() + 2 + s.size + i.size
             // 打包
-            (if (last <= size)
-                SimpleOutputStream(last)
-                    .apply {
-                        write(0)      // 空一位作为停止位
-                        write(cmd.id) // 保存实际指令
-                    }
-            else SimpleOutputStream(size))
-                .apply {
-                    write(s)
-                    write(i)
-                    writeFrom(stream, available())
-                }
-                .core
-                .let(output)
+            with(
+                if (last <= size)
+                    SimpleOutputStream(last)
+                        .apply {
+                            write(0)      // 空一位作为停止位
+                            write(cmd.id) // 保存实际指令
+                        }
+                else SimpleOutputStream(size)
+            ) {
+                write(s)
+                write(i)
+                writeFrom(stream, available())
+                output(core)
+            }
         }
     }
 
@@ -97,9 +101,7 @@ class PacketSlicer :
             }
     }
 
-    /**
-     * 清理缓冲中最后活跃时间超过 [timeout]ms 的数据包
-     */
+    /** 清理缓冲中最后活跃时间超过 [timeout]ms 的数据包 */
     fun refresh(timeout: Int) {
         val now = System.currentTimeMillis()
         buffers // 删除超时包
@@ -107,14 +109,10 @@ class PacketSlicer :
             .keys.forEach { buffers.remove(it) }
     }
 
-    /**
-     * 关键信息
-     */
+    /** 关键信息 */
     private data class PackInfo(val name: String, val seq: Long)
 
-    /**
-     * 子包缓存
-     */
+    /** 子包缓存 */
     private class Buffer {
         private var time = System.currentTimeMillis()
 
@@ -124,9 +122,7 @@ class PacketSlicer :
         private var command: Byte? = null
         private val done get() = command != null
 
-        /**
-         * @return 最后活跃时间到当前的延时
-         */
+        /** @return 最后活跃时间到当前的延时 */
         infix fun by(now: Long) = now - time
 
         /**

@@ -13,6 +13,7 @@ import org.mechdancer.framework.remote.modules.tcpconnection.ShortConnectionClie
 import org.mechdancer.framework.remote.modules.tcpconnection.ShortConnectionServer
 import org.mechdancer.framework.remote.resources.*
 import java.net.InetSocketAddress
+import java.net.Socket
 import java.util.*
 
 /**
@@ -123,10 +124,12 @@ class RemoteHub(
     infix fun ask(name: String) = synchronizer2.ask(name)
 
     /** 使用指令 [cmd] 广播数据包 [payload] */
-    fun broadcast(cmd: Command, payload: ByteArray) = broadcaster.broadcast(cmd, payload)
+    fun broadcast(cmd: Command, payload: ByteArray) =
+        broadcaster.broadcast(cmd, payload)
 
     /** 使用指令 [cmd] 连接到一个远端 [name] */
-    fun connect(name: String, cmd: Command) = client.connect(name, cmd)
+    fun <T> connect(name: String, cmd: Command, block: (Socket) -> T): T? =
+        client.connect(name, cmd)?.use(block)
 
     // service
 

@@ -6,62 +6,64 @@ import org.mechdancer.framework.remote.modules.tcpconnection.listen
 import org.mechdancer.framework.remote.modules.tcpconnection.say
 import org.mechdancer.framework.remote.resources.TcpCmd.COMMON
 import org.mechdancer.remote.Dispatcher.launch
-import java.net.Socket
 
 private object TestTcp {
+    const val serverName = "kotlin echo server"
+    const val over = "over"
+    fun serverPrint(string: String) = println("- server $string")
+
     @JvmStatic
     fun main(args: Array<String>) {
         // 初始化
         val remote =
-            remoteHub("kotlin echo server") {
+            remoteHub(serverName) {
 
                 newMemberDetected {
-                    println("- server detect $it")
+                    serverPrint("detect $it")
                 }
 
                 inAddition {
                     CommonTcpServer { client, I ->
-                        println("- server accepted: $client")
+                        serverPrint("accepted: $client")
 
                         while (!I.isClosed)
                             "\"${String(I.listen())}\""
-                                .takeUnless { it == "\"over\"" }
-                                ?.also { println("- server heard: $it") }
+                                .takeUnless { it == "\"$over\"" }
+                                ?.also { serverPrint("heard: $it") }
                                 ?.also { I say "you said $it".toByteArray() }
                                 ?: break
 
-                        println("- server separate from $client")
+                        serverPrint("separate from $client")
                     }
                 }
             }
 
         // 接收
         launch(remote::invoke)
-        launch(remote::accept)
-        launch(remote::accept)
+        repeat(3) {
+            launch(remote::accept)
+        }
 
-        println("- server started")
+        serverPrint("started")
 
         remoteHub("kotlin").apply {
             openOneNetwork()
             launch { invoke() }
 
-            var server: Socket?
+            var success: Boolean
 
             do {
-                server = connect("kotlin echo server", COMMON)
-                Thread.sleep(200)
-            } while (server == null)
-
-            server.use { I ->
-                do {
-                    readLine()!!
-                        .also { I say it.toByteArray() }
-                        .takeUnless { it == "over" }
-                        ?: break
-                    println("server heard ${String(I.listen())}")
-                } while (true)
-            }
+                success = connect(serverName, COMMON) { I ->
+                    do {
+                        readLine()!!
+                            .also { I say it.toByteArray() }
+                            .takeUnless { it == over }
+                            ?: break
+                        println("server heard ${String(I.listen())}")
+                    } while (true)
+                } != null
+                if (!success) Thread.sleep(200)
+            } while (!success)
         }
     }
 }
