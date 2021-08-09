@@ -25,17 +25,22 @@ class MulticastReceiver(
 
     // 线程独立缓冲
     private val buffer = ThreadLocal<DatagramPacket>()
+
     // 过滤环路数据
     private val name by manager.maybe("") { x: Name -> x.field }
+
     // 接收套接字
     private val sockets by manager.must<MulticastSockets>()
+
     // 组成员管理
     private val groupMonitor by manager.maybe<GroupMonitor>()
+
     // 处理回调
     private val listeners = mutableSetOf<MulticastListener>()
 
     // 网络管理
     private val networks by manager.maybe(null) { x: Networks -> x.view }
+
     // 地址管理
     private val addresses by manager.maybe<Addresses>()
 

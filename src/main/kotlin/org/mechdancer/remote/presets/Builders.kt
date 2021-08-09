@@ -7,7 +7,8 @@ import java.net.InetSocketAddress
 private val GROUP =
     InetSocketAddress(
         InetAddress.getByAddress(byteArrayOf(233.toByte(), 33, 33, 33)),
-        23333)
+        23333
+    )
 
 fun remoteHub(
     name: String? = null,

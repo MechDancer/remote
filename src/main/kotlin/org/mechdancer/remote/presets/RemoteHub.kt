@@ -34,17 +34,22 @@ class RemoteHub(
 
     // 组成员资源
     private val _group = Group()
+
     // 组成员管理
     private val monitor = GroupMonitor()
 
     // 网络接口资源
     private val networks = Networks()
+
     // 组播套接字
     private val sockets = MulticastSockets(group)
+
     // 组播发送器
     private val broadcaster = MulticastBroadcaster(sliceSize)
+
     // 组播接收器
     private val receiver = MulticastReceiver()
+
     // 组播分片协议
     private val slicer = PacketSlicer()
 
@@ -54,14 +59,18 @@ class RemoteHub(
 
     // 组地址资源
     private val addresses = Addresses()
+
     // 监听套接字资源
     private val servers = ServerSockets()
+
     // 组地址同步器
     private val synchronizer1 = PortBroadcaster()
     private val synchronizer2 = PortMonitor()
+
     // TCP 连接
     private val client = ConnectionClient()
     private val server = ConnectionServer()
+
     // TCP 长连接
     private val longConnectionSockets = LongConnectionSockets()
     private val longConnectionMonitor = LongConnectionMonitor()

@@ -15,18 +15,20 @@ import java.net.DatagramPacket
  *
  * @param size UDP 包分片长度
  */
-class MulticastBroadcaster(size: Int = 0x4000)
-    : UniqueComponent<MulticastBroadcaster>(),
-      Dependent {
+class MulticastBroadcaster(size: Int = 0x4000) : UniqueComponent<MulticastBroadcaster>(),
+                                                 Dependent {
 
     private val manager = DependencyManager()
 
     private val name by manager.maybe("") { x: Name -> x.field }
+
     // 用于发送的依赖
     private val sockets by manager.must<MulticastSockets>()
     private val slicer by manager.maybe<PacketSlicer>()
+
     // 发送流存根，发送包从这个流复制
     private val stub by lazy { SimpleOutputStream(size).apply { writeEnd(name) } }
+
     // 日志器
     private val logger by manager.maybe<ScopeLogger>()
 
@@ -38,6 +40,7 @@ class MulticastBroadcaster(size: Int = 0x4000)
 
         // 创建存根的副本，整个发送过程是同步的，若需要发送多包则复用同一个副本
         val stream = stub.clone()
+
         // 从所有打开的套接字同时发送
         fun send() {
             val packet = DatagramPacket(stream.core, stream.ptr, sockets.address)

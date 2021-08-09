@@ -5,6 +5,7 @@ import org.mechdancer.dependency.buildView
 import java.net.Inet4Address
 import java.net.InterfaceAddress
 import java.net.NetworkInterface
+import java.util.*
 
 /**
  * 网络端口扫描器
@@ -52,13 +53,13 @@ class Networks : UniqueComponent<Networks>() {
 
         fun Sequence<NetworkInterface>.notDocker() =
             filterNot {
-                fun check(it: String) = "docker" in it.toLowerCase()
+                fun check(it: String) = "docker" in it.lowercase(Locale.getDefault())
                 check(it.name) || check(it.displayName)
             }
 
         fun Sequence<NetworkInterface>.notVmware() =
             filterNot {
-                fun check(it: String) = "vmware" in it.toLowerCase()
+                fun check(it: String) = "vmware" in it.lowercase(Locale.getDefault())
                 check(it.name) || check(it.displayName)
             }
 

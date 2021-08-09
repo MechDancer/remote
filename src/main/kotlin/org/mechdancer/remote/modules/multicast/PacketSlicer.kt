@@ -161,7 +161,7 @@ class PacketSlicer : UniqueComponent<PacketSlicer>(),
 
             // 已经保存最后一包并且不缺包
             if (done && mark.isEmpty())
-                return command!! to SimpleOutputStream(list.sumBy { it.ptr!!.size })
+                return command!! to SimpleOutputStream(list.sumOf { it.ptr!!.size })
                     .apply { for (sub in list) write(sub.ptr!!) }
                     .core
 

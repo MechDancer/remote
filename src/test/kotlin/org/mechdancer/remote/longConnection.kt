@@ -6,7 +6,7 @@ import org.mechdancer.remote.presets.remoteHub
 import kotlin.concurrent.thread
 
 private object Server2 {
-    val name = Server2::class.java.simpleName!!
+    val name: String = Server2::class.java.simpleName
 
     @JvmStatic
     fun main(args: Array<String>) {
@@ -27,7 +27,7 @@ private object Server2 {
 }
 
 private object Client2 {
-    val name = Client2::class.java.simpleName!!
+    val name: String = Client2::class.java.simpleName
 
     @JvmStatic
     fun main(args: Array<String>) {
